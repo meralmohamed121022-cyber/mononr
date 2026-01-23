@@ -3339,8 +3339,8 @@ infoBox.addEventListener('click', toggleInfoBox);
             container.appendChild(prescriptionDiv);
         }
     function checkPrescription(nationalId, prescriptionNumber) {
-    // دمج رقم الهوية + رقم الوصفة لازقين
-    const combinedData = nationalId + prescriptionNumber;
+    // التعديل هنا: تم إضافة مسافة فارغة " " بين رقم الهوية ورقم الوصفة
+    const combinedData = nationalId + " " + prescriptionNumber;
     
     // نسخ للـ Clipboard
     navigator.clipboard.writeText(combinedData).then(() => {
@@ -3402,7 +3402,6 @@ infoBox.addEventListener('click', toggleInfoBox);
         window.open('https://ul.wasfaty.sa/support', '_blank');
     });
 }
-
 
         function removePrescription(index) {
             let container = document.getElementById('prescriptionsContainer');
@@ -4793,6 +4792,4 @@ document.getElementById('modalOverlay').addEventListener('click', function(e) {
     </script>
 </body>
 </html>
-
-
 
