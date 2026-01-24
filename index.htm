@@ -4549,112 +4549,114 @@ function analyzeImportFailure(skipped) {
     }
 }
 // ============================================
-// 1. IMPROVED DATA PROCESSOR (Validation Logic)
+// 1. STRICT DATA PROCESSOR (Logic: No Date = No Entry)
 // ============================================
 function processAndValidateData(rawData, isTextFile) {
     let validPatients = {};
     let skipped = [];
     
-    // قواعد التحقق حسب طلبك
     const patterns = {
-        // الهوية: 10 أرقام وتبدأ بـ 1 أو 2 أو 3 أو 4
         id: /^[1-4]\d{9}$/,
-        // الوصفة: حرف (سمول أو كابيتال) يتبعه 7 أرقام
-        rx: /^[a-zA-Z]\d{7}$/, 
-        // الجوال: يقبل 05, 5, 9665 ويستخرج الرقم الصحيح
+        rx: /^[a-zA-Z]\d{7}$/,
         phoneExtraction: /(?:966|0)?(5\d{8})/
     };
 
     const cleanString = (val) => String(val || '').trim();
 
     rawData.forEach((row, index) => {
-        // تحويل البيانات الخام إلى صيغة موحدة
         let raw = {};
-        if (isTextFile && row.nationalId) {
-            raw = { id: cleanString(row.nationalId), rx: cleanString(row.prescription), phone: cleanString(row.phoneNumber), date: '', note: '' };
+        
+        // --- A. Mapping Data ---
+        if (isTextFile || row.nationalId) {
+            raw = { 
+                id: cleanString(row.nationalId), 
+                rx: cleanString(row.prescription), 
+                phone: cleanString(row.phoneNumber), 
+                date: cleanString(row.dispensingDate), 
+                nextRefill: cleanString(row.nextRefillDate), 
+                rxNote: '', 
+                genNote: cleanString(row.note) 
+            };
         } else {
-            // محاولة اكتشاف الأعمدة بذكاء لملفات Excel/JSON
-            const values = Object.values(row).map(cleanString);
-            const keys = Object.keys(row).map(k => k.toLowerCase());
-            
-            // البحث عن البيانات في الصف
-            raw.id = values.find(v => patterns.id.test(v.replace(/\D/g, ''))) || '';
-            raw.rx = values.find(v => patterns.rx.test(v.replace(/\s/g, ''))) || '';
-            
-            // إذا لم يتم العثور عبر القيم، نحاول عبر أسماء الأعمدة (Keys)
-            if (!raw.id) {
-                const idKey = keys.find(k => k.includes('id') || k.includes('identity'));
-                if (idKey) raw.id = cleanString(row[Object.keys(row)[keys.indexOf(idKey)]]);
-            }
-            if (!raw.rx) {
-                const rxKey = keys.find(k => k.includes('presc') || k.includes('number'));
-                if (rxKey) raw.rx = cleanString(row[Object.keys(row)[keys.indexOf(rxKey)]]);
-            }
-            
-            // البحث عن الجوال والتاريخ والملاحظات
-            const phoneKey = keys.find(k => k.includes('phone') || k.includes('mobile'));
-            if (phoneKey) raw.phone = cleanString(row[Object.keys(row)[keys.indexOf(phoneKey)]]);
-            
-            const dateKey = keys.find(k => k.includes('date') || k.includes('dispens'));
-            if (dateKey) raw.date = cleanString(row[Object.keys(row)[keys.indexOf(dateKey)]]);
-            
-            const noteKey = keys.find(k => k.includes('note'));
-            if (noteKey) raw.note = cleanString(row[Object.keys(row)[keys.indexOf(noteKey)]]);
+            const keys = Object.keys(row);
+            const getKey = (substr) => keys.find(k => k.toLowerCase().includes(substr.toLowerCase()));
+
+            raw.id = cleanString(row[getKey('ID')] || row['ID']);
+            raw.rx = cleanString(row[getKey('Prescription Number')] || row['Prescription Number']);
+            raw.phone = cleanString(row[getKey('Phone')] || row['Phone']);
+            raw.date = cleanString(row[getKey('Dispensing Date')] || row['Dispensing Date']);
+            raw.nextRefill = cleanString(row[getKey('Next Refill')] || row['Next Refill Date']);
+            raw.rxNote = cleanString(row[getKey('Prescription Note')] || row['Prescription Note']);
+            raw.genNote = cleanString(row[getKey('General Note')] || row['General Note']);
         }
 
-        // --- مرحلة التحقق والفلترة ---
-
-        // 1. تنظيف وفحص الهوية
-        const cleanId = raw.id.replace(/\D/g, ''); // حذف أي رموز غير رقمية
-        if (!patterns.id.test(cleanId)) {
-            if (raw.id.length > 0) skipped.push({ type: 'error', msg: `Row ${index + 1}: Invalid ID format (${raw.id})` });
-            return; // تخطي هذا السجل
-        }
-
-        // 2. تنظيف وفحص الوصفة
+        // --- B. Cleaning ---
+        const cleanId = raw.id.replace(/\D/g, '');
         const cleanRx = raw.rx.replace(/\s/g, '').toLowerCase();
-        if (!patterns.rx.test(cleanRx)) {
-            if (raw.rx.length > 0) skipped.push({ type: 'error', msg: `Row ${index + 1}: Invalid Prescription format (${raw.rx})` });
-            return; // تخطي هذا السجل
+        
+        // --- C. Dates Analysis ---
+        let importDispensingDate = (raw.date && !isNaN(new Date(raw.date))) 
+            ? new Date(raw.date).toISOString().split('T')[0] 
+            : new Date().toISOString().split('T')[0];
+        
+        let hasImportedDate = (raw.nextRefill && !isNaN(new Date(raw.nextRefill)));
+        let importNextRefillDate = hasImportedDate 
+            ? new Date(raw.nextRefill).toISOString().split('T')[0] 
+            : ""; // نتركه فارغاً إذا لم يوجد في الملف
+
+        // --- D. Validation ---
+        if (!patterns.id.test(cleanId) || !patterns.rx.test(cleanRx)) {
+            skipped.push({ type: 'error', msg: `Row ${index + 1}: Data Format Error (ID: ${raw.id} / Rx: ${raw.rx})` });
+            return;
         }
 
-        // 3. فحص التكرار (Duplicates)
-        const isDuplicateInDB = patients.some(existingPatient => 
-            existingPatient.nationalId === cleanId && 
-            existingPatient.prescriptions.some(p => p.number.toLowerCase() === cleanRx)
-        );
+        // --- E. SMART STRICT DUPLICATE CHECK ---
+        const isDuplicateInDB = patients.some(existingPatient => {
+            const idMatch = existingPatient.nationalId === cleanId;
+            const rxMatch = existingPatient.prescriptions.some(p => p.number.toLowerCase() === cleanRx);
+            
+            if (hasImportedDate) {
+                // الحالة الأولى: لو فيه تاريخ في الملف -> قارن الهوية والوصفة والتاريخ
+                return idMatch && rxMatch && (existingPatient.nextRefillDate === importNextRefillDate);
+            } else {
+                // الحالة الثانية (طلبك): لو مفيش تاريخ ريفل في الملف -> لا يقبل لو الهوية والوصفة موجودين
+                return idMatch && rxMatch;
+            }
+        });
 
         if (isDuplicateInDB) {
-            skipped.push({ type: 'duplicate', msg: `Row ${index + 1}: Already exists (ID: ${cleanId}, Rx: ${cleanRx})` });
-            return; // تخطي هذا السجل
+            let reason = hasImportedDate ? `Date Match: ${importNextRefillDate}` : "ID & Rx already exist (No new date provided)";
+            skipped.push({ type: 'duplicate', msg: `Row ${index + 1}: Skipped (${reason})` });
+            return;
         }
 
-        // 4. معالجة الجوال
-        let cleanPhone = '';
-        const phoneMatch = raw.phone.replace(/\D/g, '').match(patterns.phoneExtraction);
-        if (phoneMatch) {
-            cleanPhone = '0' + phoneMatch[1];
+        // إذا لم يوجد تاريخ في الملف وتم تجاوز فحص التكرار، نقوم بحساب تاريخ افتراضي للحفظ
+        if (!hasImportedDate) {
+            let d = new Date(importDispensingDate);
+            d.setDate(d.getDate() + 28);
+            importNextRefillDate = d.toISOString().split('T')[0];
         }
 
-        // 5. تجهيز السجل الصحيح
-        if (!validPatients[cleanId]) {
-            validPatients[cleanId] = {
+        // --- F. Aggregation ---
+        const uniqueKey = `${cleanId}_${importNextRefillDate}`;
+
+        if (!validPatients[uniqueKey]) {
+            validPatients[uniqueKey] = {
                 nationalId: cleanId,
-                phoneNumber: cleanPhone,
-                dispensingDate: (raw.date && !isNaN(new Date(raw.date))) ? new Date(raw.date).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
-                refillPeriod: 24,
-                nextRefillDate: '', 
+                phoneNumber: cleanString(raw.phone).replace(/\D/g, '').match(patterns.phoneExtraction) ? '0' + cleanString(raw.phone).replace(/\D/g, '').match(patterns.phoneExtraction)[1] : '',
+                dispensingDate: importDispensingDate,
+                refillPeriod: 28,
+                nextRefillDate: importNextRefillDate,
                 prescriptions: [],
-                generalNote: raw.note,
+                generalNote: raw.genNote,
                 imported: true
             };
         }
 
-        // إضافة الوصفة إذا لم تكن مكررة داخل نفس الملف
-        if (!validPatients[cleanId].prescriptions.find(p => p.number === cleanRx)) {
-            validPatients[cleanId].prescriptions.push({
+        if (!validPatients[uniqueKey].prescriptions.find(p => p.number === cleanRx)) {
+            validPatients[uniqueKey].prescriptions.push({
                 number: cleanRx,
-                note: ''
+                note: raw.rxNote
             });
         }
     });
@@ -4664,90 +4666,186 @@ function processAndValidateData(rawData, isTextFile) {
         skipped: skipped
     };
 }
-// 3. Smart Text Parser (Scanning Mode)
+// ============================================
+// 3. SMART TEXT PARSER (Enhanced)
+// ============================================
 function parseSmartTextData(text) {
     let records = [];
-    // Global Regex with 'g' flag to scan whole text
-    const idPattern = /[1-4]\d{9}/g;
-    const rxPattern = /[a-zA-Z]\d{7}/g;
-    
     let lines = text.split('\n');
-    let currentId = null;
+    let currentRecord = null;
+
+    // أنماط البحث
+    const idPattern = /[1-4]\d{9}/;
+    const rxPattern = /[a-zA-Z]\d{7}/;
+    const datePattern = /(\d{4}-\d{2}-\d{2})/; // يبحث عن أي تاريخ YYYY-MM-DD
 
     lines.forEach(line => {
-        // Look for ID
-        let idMatch = line.match(idPattern);
-        if (idMatch) {
-            currentId = idMatch[0];
-        }
+        line = line.trim();
+        if (!line) return;
 
-        // Look for Rx
-        let rxMatch = line.match(rxPattern);
-        
-        // Context Awareness: Associate Rx with the last seen ID
-        if (rxMatch && currentId) {
-            rxMatch.forEach(rx => {
-                records.push({
-                    nationalId: currentId,
+        // التقاط الهوية
+        let idMatch = line.match(idPattern);
+        if (idMatch && (line.toLowerCase().includes("id") || line.includes("Patient"))) {
+            if (currentRecord) records.push(currentRecord);
+            currentRecord = {
+                nationalId: idMatch[0],
+                phoneNumber: '',
+                prescription: '',
+                prescriptions: [],
+                dispensingDate: '',
+                nextRefillDate: '',
+                note: ''
+            };
+        } 
+        else if (currentRecord) {
+            // التقاط التواريخ
+            let dates = line.match(new RegExp(datePattern, 'g'));
+            if (dates) {
+                if (line.toLowerCase().includes('dispens')) currentRecord.dispensingDate = dates[0];
+                if (line.toLowerCase().includes('next') || line.toLowerCase().includes('refill')) {
+                    currentRecord.nextRefillDate = dates[dates.length - 1]; // غالباً التاريخ الثاني هو الرفيل
+                }
+            }
+
+            // التقاط الوصفات
+            let rxMatch = line.match(rxPattern);
+            if (rxMatch && rxMatch[0] !== currentRecord.nationalId) {
+                currentRecord.prescriptions.push(rxMatch[0]);
+                if (!currentRecord.prescription) currentRecord.prescription = rxMatch[0];
+            }
+            
+            // التقاط الملاحظات (إذا السطر لا يحتوي تواريخ ولا وصفات)
+            if (!rxMatch && !dates && line.length > 3 && !line.includes('---')) {
+               // افتراض أن السطر الباقي هو ملاحظة
+               currentRecord.note += line + " ";
+            }
+        }
+    });
+
+    if (currentRecord) records.push(currentRecord);
+
+    // تجهيز البيانات
+    let flatRecords = [];
+    records.forEach(rec => {
+        if (rec.prescriptions.length > 0) {
+            rec.prescriptions.forEach(rx => {
+                flatRecords.push({
+                    nationalId: rec.nationalId,
                     prescription: rx,
-                    phoneNumber: ''
+                    phoneNumber: rec.phoneNumber,
+                    dispensingDate: rec.dispensingDate,
+                    nextRefillDate: rec.nextRefillDate,
+                    note: rec.note.trim()
                 });
             });
         }
     });
 
-    return records;
+    return flatRecords;
 }
-
-// 4. Preview UI (Modified to show Errors)
+// ============================================
+// 2. IMPORT PREVIEW UI (Shows Full Data)
+// ============================================
 function showImportPreview(data, skipped) {
     switchTab('data');
     
-    // Generate Error Report HTML
+    // 1. عرض الأخطاء (تم إصلاح [object Object])
     let errorReport = '';
     if (skipped && skipped.length > 0) {
         errorReport = `
-            <div style="background: #FFF5F5; border: 1px solid #FEB2B2; padding: 15px; border-radius: 8px; margin-bottom: 20px;">
+            <div style="background: #FFF5F5; border: 1px solid #FEB2B2; padding: 15px; border-radius: 12px; margin-bottom: 25px;">
                 <h4 style="color: #C53030; margin-top: 0; margin-bottom: 10px; display: flex; align-items: center; gap: 8px; font-size: 14px;">
-                    ⚠️ Skipped ${skipped.length} Invalid Records
+                    ⚠️ Skipped ${skipped.length} Records
                 </h4>
-                <div style="max-height: 100px; overflow-y: auto; font-size: 0.85em; color: #742A2A; font-family: monospace;">
-                    ${skipped.map(s => `<div>• ${s}</div>`).join('')}
+                <div style="max-height: 120px; overflow-y: auto; font-size: 11px; color: #742A2A; font-family: monospace; line-height: 1.5;">
+                    ${skipped.map(s => {
+                        // التحقق مما إذا كان s كائن أم نص
+                        const msg = typeof s === 'object' ? s.msg : s;
+                        const icon = typeof s === 'object' && s.type === 'duplicate' ? '🔁' : '🚫';
+                        return `<div style="border-bottom: 1px dashed rgba(0,0,0,0.05); padding: 2px 0;">${icon} ${msg}</div>`;
+                    }).join('')}
                 </div>
             </div>
         `;
     }
 
     let container = document.getElementById('importPreview');
+    
+    // 2. بناء HTML للمعاينة (كروت كاملة)
     container.innerHTML = `
-        <div style="background: white; padding: 24px; border-radius: 16px; border: 2px solid var(--primary); margin-top: 20px;">
-            <h3 style="color: var(--primary); margin-bottom: 15px; font-size: 16px; display: flex; align-items: center; gap: 10px;">
-                <div class="icon icon-database" style="color: var(--primary);"></div>
-                Import Preview
-            </h3>
+        <div style="background: white; padding: 25px; border-radius: 16px; border: 2px solid var(--primary); margin-top: 20px; box-shadow: 0 10px 40px rgba(0,0,0,0.1);">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; border-bottom: 1px solid #eee; padding-bottom: 15px;">
+                <h3 style="color: var(--primary); font-size: 18px; display: flex; align-items: center; gap: 10px; margin: 0;">
+                    <div class="icon icon-database" style="color: var(--primary);"></div>
+                    Import Preview
+                </h3>
+                <span style="background: var(--success); color: white; padding: 5px 12px; border-radius: 20px; font-size: 12px; font-weight: bold;">
+                    ${data.length} Valid Records
+                </span>
+            </div>
             
             ${errorReport}
 
-            <p style="margin-bottom: 15px; color: #636E72;">Ready to import <strong style="color: var(--success);">${data.length}</strong> valid patient record(s)</p>
-            
-            <div style="max-height: 300px; overflow-y: auto; margin-bottom: 20px;">
+            <div style="max-height: 500px; overflow-y: auto; margin-bottom: 25px; padding-right: 5px;">
                 ${data.map((patient, index) => `
-                    <div style="background: #F8F9FE; padding: 15px; border-radius: 10px; margin-bottom: 10px; border: 1px solid #E3E8FF;">
-                        <strong style="color: var(--primary);">${index + 1}. ID: ${patient.nationalId}</strong><br>
-                        <small style="color: #636E72;">
-                            Rx: ${patient.prescriptions.map(p => 
-                                `<span style="background:white; px-2; border:1px solid #ddd; border-radius:4px; padding: 2px 5px;">${p.number}</span>`
-                            ).join(' ')}
-                        </small>
+                    <div style="background: linear-gradient(145deg, #ffffff, #f8f9fe); padding: 18px; border-radius: 14px; margin-bottom: 15px; border: 1px solid #E3E8FF; box-shadow: 0 4px 12px rgba(0,0,0,0.03); position: relative;">
+                        
+                        <div style="position: absolute; top: 15px; right: 15px; font-size: 24px; font-weight: 900; color: rgba(0,0,0,0.05); font-family: sans-serif;">
+                            #${index + 1}
+                        </div>
+
+                        <div style="display: flex; align-items: center; gap: 15px; margin-bottom: 12px;">
+                            <div style="font-weight: 800; color: var(--primary); font-family: 'Courier New', monospace; font-size: 18px; display: flex; align-items: center; gap: 5px;">
+                                <span style="font-size: 14px;">🆔</span> ${patient.nationalId}
+                            </div>
+                            ${patient.phoneNumber ? `
+                                <div style="background: #E3F2FD; color: #1565C0; padding: 4px 10px; border-radius: 20px; font-size: 12px; font-weight: 600; display: flex; align-items: center; gap: 5px;">
+                                    📱 ${patient.phoneNumber}
+                                </div>
+                            ` : '<span style="font-size:11px; color:#aaa;">No Phone</span>'}
+                        </div>
+
+                        <div style="display: flex; gap: 10px; margin-bottom: 15px;">
+                            <div style="flex: 1; background: white; border: 1px solid #E3E8FF; padding: 8px 12px; border-radius: 8px;">
+                                <div style="font-size: 10px; color: #636E72; text-transform: uppercase; margin-bottom: 3px;">Dispensing Date</div>
+                                <div style="font-weight: 700; color: var(--dark); font-size: 13px;">${patient.dispensingDate}</div>
+                            </div>
+                            <div style="flex: 1; background: #FFF3E0; border: 1px solid #FFE0B2; padding: 8px 12px; border-radius: 8px;">
+                                <div style="font-size: 10px; color: #E65100; text-transform: uppercase; margin-bottom: 3px;">Next Refill</div>
+                                <div style="font-weight: 800; color: #E65100; font-size: 13px;">${patient.nextRefillDate}</div>
+                            </div>
+                        </div>
+
+                        <div style="background: white; border: 1px solid #E3E8FF; border-radius: 10px; padding: 12px;">
+                            <div style="font-size: 11px; color: #b2bec3; text-transform: uppercase; font-weight: 700; margin-bottom: 8px;">Prescriptions:</div>
+                            ${patient.prescriptions.map(p => `
+                                <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px dashed #eee; padding: 6px 0;">
+                                    <span style="font-family: 'Courier New', monospace; font-weight: 700; color: var(--dark); font-size: 14px;">
+                                        💊 ${p.number}
+                                    </span>
+                                    ${p.note ? `<span style="font-size: 11px; color: #00B894; background: #E0F2F1; padding: 2px 8px; border-radius: 4px;">📝 ${p.note}</span>` : ''}
+                                </div>
+                            `).join('')}
+                        </div>
+
+                        ${patient.generalNote ? `
+                            <div style="margin-top: 12px; background: #FFF9C4; padding: 10px; border-radius: 8px; font-size: 12px; color: #5D4037; border-left: 4px solid #FBC02D; line-height: 1.4;">
+                                <strong>General Note:</strong> ${patient.generalNote}
+                            </div>
+                        ` : ''}
+
                     </div>
                 `).join('')}
             </div>
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
-                <button class="btn-primary" onclick="confirmImport()">
+
+            <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 15px;">
+                <button class="btn-primary" onclick="confirmImport()" style="height: 50px; font-size: 15px;">
                     <div class="icon icon-save" style="color: white;"></div>
-                    Confirm Import
+                    CONFIRM & IMPORT ALL (${data.length})
                 </button>
-                <button class="btn-secondary" onclick="cancelImport()">Cancel</button>
+                <button class="btn-secondary" onclick="cancelImport()" style="height: 50px;">
+                    CANCEL
+                </button>
             </div>
         </div>
     `;
