@@ -2382,15 +2382,15 @@
                     </label>
                     <p style="font-size: 12px; color: #636E72; margin-bottom: 10px;">Next refill date will auto-calculate</p>
                     <div class="refill-selector">
-                        <div class="refill-box active" data-days="28" onclick="selectRefill(28)">
+                        <div class="refill-box active" data-days="24" onclick="selectRefill(24)">
                             <div class="duration">1</div>
                             <div class="label">Month</div>
                         </div>
-                        <div class="refill-box" data-days="56" onclick="selectRefill(56)">
+                        <div class="refill-box" data-days="48" onclick="selectRefill(48)">
                             <div class="duration">2</div>
                             <div class="label">Months</div>
                         </div>
-                        <div class="refill-box" data-days="84" onclick="selectRefill(84)">
+                        <div class="refill-box" data-days="72" onclick="selectRefill(72)">
                             <div class="duration">3</div>
                             <div class="label">Months</div>
                         </div>
@@ -2836,7 +2836,7 @@ infoBox.addEventListener('click', toggleInfoBox);
         let currentUser = null;
         let patients = [];
         let editingPatientId = null;
-        let selectedRefillDays = 28;
+        let selectedRefillDays = 24;
         let currentFilter = 'all';
         let fuse = null;
         let pendingImportData = null;
@@ -3611,11 +3611,11 @@ infoBox.addEventListener('click', toggleInfoBox);
             document.getElementById('generalNote').value = '';
             document.getElementById('prescriptionsContainer').innerHTML = '';
             document.getElementById('saveButtonText').textContent = 'ADD PATIENT';
-            selectedRefillDays = 28;
+            selectedRefillDays = 24;
             
             document.querySelectorAll('.refill-box').forEach(box => {
                 box.classList.remove('active');
-                if (box.getAttribute('data-days') === '28') {
+                if (box.getAttribute('data-days') === '24') {
                     box.classList.add('active');
                 }
             });
@@ -4369,7 +4369,7 @@ function exportText() {
                         nationalId: line.split(':')[1].trim(),
                         phoneNumber: '',
                         dispensingDate: new Date().toISOString().split('T')[0],
-                        refillPeriod: 28,
+                        refillPeriod: 24,
                         nextRefillDate: '',
                         prescriptions: [],
                         generalNote: '',
@@ -4642,7 +4642,7 @@ function processAndValidateData(rawData, isTextFile) {
                 nationalId: cleanId,
                 phoneNumber: cleanPhone,
                 dispensingDate: (raw.date && !isNaN(new Date(raw.date))) ? new Date(raw.date).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
-                refillPeriod: 28,
+                refillPeriod: 24,
                 nextRefillDate: '', 
                 prescriptions: [],
                 generalNote: raw.note,
