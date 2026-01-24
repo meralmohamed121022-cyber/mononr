@@ -21,27 +21,36 @@
             box-sizing: border-box;
         }
         
-        :root {
-            --primary: #6C5CE7;
-            --primary-dark: #5F4FD1;
-            --secondary: #00B894;
-            --danger: #FF6B6B;
-            --warning: #FFA502;
-            --info: #54A0FF;
-            --light: #F8F9FE;
-            --dark: #2D3436;
-            --border: #DFE6E9;
-            --shadow: rgba(108, 92, 231, 0.15);
-        }
-        
-        body {
-            font-family: 'Segoe UI', 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-            background: linear-gradient(135deg, #667EEA 0%, #764BA2 100%);
-            min-height: 100vh;
-            position: relative;
-            overflow-x: hidden;
-        }
-        
+      :root {
+    /* تم تغيير اللون للأزرق الغامق */
+    --primary: #0d47a1;       /* أزرق غامق أساسي */
+    --primary-dark: #002171;  /* درجة أغمق للظل والضغط */
+    
+    --secondary: #00B894;
+    --danger: #c0392b;        /* تم تغميق الأحمر قليلاً ليتماشى مع الأزرق */
+    --warning: #FFA502;
+    --info: #1976D2;
+    --light: #F8F9FE;
+    --dark: #2D3436;
+    --border: #DFE6E9;
+    --shadow: rgba(13, 71, 161, 0.2); /* تعديل لون الظل للأزرق */
+}
+        /* ستايل لتمييز النص عند البحث */
+.highlight-text {
+    background-color: #ffe082; /* لون أصفر */
+    color: black;
+    font-weight: bold;
+    padding: 0 2px;
+    border-radius: 2px;
+}
+      body {
+    font-family: 'Segoe UI', 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    /* خلفية زرقاء غامقة متدرجة */
+    background: linear-gradient(135deg, #1565C0 0%, #0D47A1 100%);
+    min-height: 100vh;
+    position: relative;
+    overflow-x: hidden;
+}
         body::before {
             content: '';
             position: fixed;
@@ -675,17 +684,17 @@
             box-shadow: 0 4px 12px var(--shadow);
         }
         
-        .header {
-            background: linear-gradient(135deg, rgba(108, 92, 231, 0.95) 0%, rgba(95, 79, 209, 0.95) 100%);
-            backdrop-filter: blur(10px);
-            color: white;
-            padding: 25px 20px;
-            text-align: center;
-            box-shadow: 0 8px 32px rgba(0,0,0,0.2);
-            position: relative;
-            z-index: 10;
-        }
-        
+      .header {
+    /* خلفية الهيدر أزرق غامق */
+    background: linear-gradient(135deg, rgba(13, 71, 161, 0.95) 0%, rgba(0, 33, 113, 0.95) 100%);
+    backdrop-filter: blur(10px);
+    color: white;
+    padding: 25px 20px;
+    text-align: center;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.2);
+    position: relative;
+    z-index: 10;
+}
         .header::after {
             content: '';
             position: absolute;
@@ -2154,7 +2163,34 @@
         opacity: 1;
     }
 }
+/* ============================================ */
+/* ستايل خاص للكروت المستوردة (Imported) */
+/* ============================================ */
+.patient-card.imported {
+    /* لون خلفية كريمي/أصفر فاتح جداً لتمييزها */
+    background: linear-gradient(135deg, #fffdeb 0%, #fff3e0 100%) !important;
+    /* حدود برتقالي فاتح */
+    border-color: #ffe0b2 !important;
+}
 
+/* تغيير لون الشريط الجانبي للكارت المستورد ليكون برتقالي */
+.patient-card.imported::before {
+    background: linear-gradient(180deg, #fdd835, #f57c00) !important;
+}
+
+/* إضافة علامة صغيرة "Imported" لزيادة التوضيح (اختياري) */
+.patient-card.imported::after {
+    content: 'IMPORTED';
+    position: absolute;
+    bottom: 10px;
+    right: 10px;
+    font-size: 40px;
+    font-weight: 900;
+    color: rgba(255, 152, 0, 0.08); /* شفاف جداً كخلفية مائية */
+    pointer-events: none;
+    font-family: 'Arial', sans-serif;
+    z-index: 0;
+}
     </style>
 </head>
 <body>
@@ -3600,43 +3636,51 @@ infoBox.addEventListener('click', toggleInfoBox);
             }
         }
         
-        function displayPatients() {
-            updateStats();
-            
-            let filteredPatients = filterPatientsByStatus(currentFilter);
-            
-            if (fuse) {
-                let searchTerm = document.getElementById('searchInput').value.trim();
-                if (searchTerm) {
-                    let results = fuse.search(searchTerm);
-                    let searchedIds = results.map(r => r.item.id);
-                    filteredPatients = filteredPatients.filter(p => searchedIds.includes(p.id));
-                }
-            }
-            
-            let container = document.getElementById('patientsContainer');
-            
-            if (filteredPatients.length === 0) {
-                container.innerHTML = `
-                    <div class="no-data">
-                        <div class="no-data-icon">
-                            <div class="icon icon-user" style="width: 60px; height: 60px; background: #B2BEC3; margin: 0 auto;"></div>
-                        </div>
-                        <p style="font-size: 18px; font-weight: 700; color: #95A5A6;">No patients found</p>
-                    </div>
-                `;
-                return;
-            }
-            
-            container.innerHTML = '';
-            
-            filteredPatients.forEach(patient => {
-                let card = createPatientCard(patient);
-                container.appendChild(card);
-            });
-        }
-        
-   function createPatientCard(patient) {
+      function displayPatients() {
+    updateStats();
+    
+    let filteredPatients = filterPatientsByStatus(currentFilter);
+    let searchTerm = document.getElementById('searchInput').value.trim(); // نحتفظ بكلمة البحث
+
+    if (fuse && searchTerm) {
+        let results = fuse.search(searchTerm);
+        let searchedIds = results.map(r => r.item.id);
+        filteredPatients = filteredPatients.filter(p => searchedIds.includes(p.id));
+    }
+    
+    let container = document.getElementById('patientsContainer');
+    
+    if (filteredPatients.length === 0) {
+        container.innerHTML = `
+            <div class="no-data">
+                <div class="no-data-icon">
+                    <div class="icon icon-search" style="width: 40px; height: 40px; border-width: 4px; color: #B2BEC3; margin: 0 auto;"></div>
+                </div>
+                <p style="font-size: 18px; font-weight: 700; color: #95A5A6;">No results found</p>
+            </div>
+        `;
+        return;
+    }
+    
+    container.innerHTML = '';
+    
+    filteredPatients.forEach(patient => {
+        // نمرر كلمة البحث للكارت عشان يعمل Highlight
+        let card = createPatientCard(patient, searchTerm); 
+        container.appendChild(card);
+    });
+}
+        // دالة مساعدة لعمل Highlight للنص
+function highlightMatch(text, searchTerm) {
+    if (!text) return '';
+    if (!searchTerm || searchTerm.trim() === '') return text;
+
+    // تنظيف النص وتجهيز البحث (Case Insensitive)
+    const regex = new RegExp(`(${searchTerm.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi');
+    return text.toString().replace(regex, '<span class="highlight-text">$1</span>');
+}
+
+   function createPatientCard(patient, searchTerm = '') {
     let card = document.createElement('div');
     card.className = 'patient-card';
     
@@ -3658,15 +3702,20 @@ infoBox.addEventListener('click', toggleInfoBox);
         whatsappLink = `https://wa.me/${cleanPhone}`;
     }
 
+    // === تطبيق الـ Highlight على النصوص ===
+    const hl_nationalId = highlightMatch(patient.nationalId, searchTerm);
+    const hl_phone = highlightMatch(patient.phoneNumber, searchTerm);
+    const hl_note = highlightMatch(patient.generalNote, searchTerm);
+
     card.innerHTML = `
         <div class="patient-header">
             <div>
-                <div class="patient-id">${patient.nationalId}</div>
+                <div class="patient-id">${hl_nationalId}</div>
                 
                 ${patient.phoneNumber ? `
                 <div style="display: flex; align-items: center; gap: 8px; margin-top: 5px;">
                     <div class="patient-phone" style="color: #636E72; font-weight: 600;">
-                        📱 ${patient.phoneNumber}
+                        📱 ${hl_phone}
                     </div>
 
                     <a href="tel:${patient.phoneNumber}" title="اتصال هاتفي" style="display: inline-flex; align-items: center; justify-content: center; width: 24px; height: 24px; background: #0984e3; border-radius: 50%; color: white; box-shadow: 0 2px 5px rgba(9, 132, 227, 0.3); transition: transform 0.2s; text-decoration: none;" onmouseover="this.style.transform='scale(1.1)'" onmouseout="this.style.transform='scale(1)'">
@@ -3697,7 +3746,10 @@ infoBox.addEventListener('click', toggleInfoBox);
             <strong style="font-size: 11px; color: var(--primary); text-transform: uppercase; letter-spacing: 0.5px;">Prescriptions (${patient.prescriptions.length}):</strong><br>
             ${patient.prescriptions.map(p => `
                 <div style="display: inline-flex; align-items: center; gap: 6px; margin: 5px 5px 5px 0; background: white; padding: 4px 8px; border-radius: 8px; border: 2px solid #E3E8FF;">
-                    <span class="prescription-tag" style="margin: 0; border: none; padding: 4px 10px;">${p.number}</span>
+                    <span class="prescription-tag" style="margin: 0; border: none; padding: 4px 10px;">
+                        ${highlightMatch(p.number, searchTerm)}
+                    </span>
+                    ${p.note ? `<span style="font-size:11px; color:#666;">(${highlightMatch(p.note, searchTerm)})</span>` : ''}
                     <button class="btn-check-wasfaty" onclick="checkPrescription('${patient.nationalId}', '${p.number}')" title="نسخ وفتح وصفتي">
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
                             <polyline points="20 6 9 17 4 12"></polyline>
@@ -3707,7 +3759,7 @@ infoBox.addEventListener('click', toggleInfoBox);
             `).join('')}
         </div>
         
-        ${patient.generalNote ? `<div class="info-box"><strong>Note:</strong> ${patient.generalNote}</div>` : ''}
+        ${patient.generalNote ? `<div class="info-box"><strong>Note:</strong> ${hl_note}</div>` : ''}
         
         <div class="qr-display" id="qr-${patient.id}"></div>
         
@@ -3817,9 +3869,18 @@ infoBox.addEventListener('click', toggleInfoBox);
     
     document.getElementById('statsGrid').innerHTML = statsHTML;
     
+   // إعدادات البحث الدقيق والشامل
     fuse = new Fuse(patients, {
-        keys: ['nationalId', 'phoneNumber', 'prescriptions.number'],
-        threshold: 0.3
+        keys: [
+            'nationalId', 
+            'phoneNumber', 
+            'generalNote',          // إضافة البحث في الملاحظات العامة
+            'prescriptions.number', 
+            'prescriptions.note'    // إضافة البحث في ملاحظات الوصفة
+        ],
+        threshold: 0.0,             // 0.0 يعني تطابق تام (لحل مشكلة الأرقام المتشابهة)
+        ignoreLocation: true,       // يبحث في أي مكان في النص
+        useExtendedSearch: true     // يسمح ببحث متطور
     });
 }
 
@@ -4189,105 +4250,109 @@ function fallbackWhatsAppShare(blob, patient) {
             }, 1000);
         }
         
-        function exportData(format) {
-            if (patients.length === 0) {
-                showModal(
-                    '<span style="color: var(--warning);">⚠️ Warning</span>',
-                    '<p style="text-align: center; padding: 20px;">No data to export!</p>',
-                    '<button class="btn-primary" style="grid-column: 1/3;" onclick="closeModal()">OK</button>'
-                );
-                return;
-            }
-            
-            switch(format) {
-                case 'json':
-                    exportJSON();
-                    break;
-                case 'excel':
-                    exportExcel();
-                    break;
-                case 'text':
-                    exportText();
-                    break;
-            }
-        }
-        
-        function exportJSON() {
-            let data = {
-                exportDate: new Date().toISOString(),
-                pharmacy: currentUser.pharmacy_code,
-                totalPatients: patients.length,
-                data: patients
-            };
-            
-            let blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
-            let url = URL.createObjectURL(blob);
-            let a = document.createElement('a');
-            a.href = url;
-            a.download = `mono-patients-${new Date().toISOString().split('T')[0]}.json`;
-            a.click();
-            URL.revokeObjectURL(url);
-        }
-        
-        function exportExcel() {
-            let rows = [];
-            
-            patients.forEach(patient => {
-                patient.prescriptions.forEach((presc, idx) => {
-                    rows.push({
-                        'ID': patient.nationalId,
-                        'Phone': patient.phoneNumber,
-                        'Dispensing Date': patient.dispensingDate,
-                        'Next Refill Date': patient.nextRefillDate,
-                        'Refill Period (days)': patient.refillPeriod,
-                        'Prescription Number': presc.number,
-                        'Prescription Note': presc.note,
-                        'General Note': idx === 0 ? patient.generalNote : '',
-                        'Status': getRefillStatus(patient.nextRefillDate) || 'scheduled',
-                        'Imported': patient.imported ? 'Yes' : 'No'
-                    });
-                });
-            });
-            
-            let ws = XLSX.utils.json_to_sheet(rows);
-            let wb = XLSX.utils.book_new();
-            XLSX.utils.book_append_sheet(wb, ws, 'Patients');
-            XLSX.writeFile(wb, `mono-patients-${new Date().toISOString().split('T')[0]}.xlsx`);
-        }
-        
-        function exportText() {
-            let text = `MONO Patient Management System\n`;
-            text += `Export Date: ${new Date().toLocaleString()}\n`;
-            text += `Pharmacy: ${currentUser.pharmacy_code}\n`;
-            text += `Total Patients: ${patients.length}\n`;
-            text += `${'='.repeat(80)}\n\n`;
-            
-            patients.forEach((patient, idx) => {
-                text += `Patient ${idx + 1}:\n`;
-                text += `  ID: ${patient.nationalId}\n`;
-                text += `  Phone: ${patient.phoneNumber || 'N/A'}\n`;
-                text += `  Dispensing: ${patient.dispensingDate}\n`;
-                text += `  Next Refill: ${patient.nextRefillDate}\n`;
-                text += `  Prescriptions:\n`;
-                patient.prescriptions.forEach((presc, i) => {
-                    text += `    ${i + 1}. ${presc.number}${presc.note ? ' - ' + presc.note : ''}\n`;
-                });
-                if (patient.generalNote) {
-                    text += `  Note: ${patient.generalNote}\n`;
-                }
-                text += `\n`;
-            });
-            
-            let blob = new Blob([text], { type: 'text/plain' });
-            let url = URL.createObjectURL(blob);
-            let a = document.createElement('a');
-            a.href = url;
-            a.download = `mono-patients-${new Date().toISOString().split('T')[0]}.txt`;
-            a.click();
-            URL.revokeObjectURL(url);
-        }
-        
+     // ============================================
+// EXPORT FUNCTIONS (Fixed Data Types)
+// ============================================
+
+function exportData(format) {
+    if (patients.length === 0) {
+        showModal(
+            '<span style="color: var(--warning);">⚠️ Warning</span>',
+            '<p style="text-align: center; padding: 20px;">No data to export!</p>',
+            '<button class="btn-primary" style="grid-column: 1/3;" onclick="closeModal()">OK</button>'
+        );
+        return;
+    }
     
+    switch(format) {
+        case 'json':
+            exportJSON();
+            break;
+        case 'excel':
+            exportExcel();
+            break;
+        case 'text':
+            exportText();
+            break;
+    }
+}
+
+function exportJSON() {
+    // هيكلة البيانات لتكون واضحة عند الاستيراد
+    let data = {
+        meta: {
+            exportDate: new Date().toISOString(),
+            pharmacy: currentUser.pharmacy_code,
+            totalPatients: patients.length,
+            version: "2.0"
+        },
+        data: patients // البيانات الأساسية
+    };
+    
+    let blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+    let url = URL.createObjectURL(blob);
+    let a = document.createElement('a');
+    a.href = url;
+    a.download = `mono-patients-${new Date().toISOString().split('T')[0]}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+}
+
+function exportExcel() {
+    let rows = [];
+    
+    patients.forEach(patient => {
+        patient.prescriptions.forEach((presc, idx) => {
+            rows.push({
+                // إضافة مسافة فارغة أو علامة اقتباس لإجبار الإكسل على قراءتها كنص
+                'ID': String(patient.nationalId), 
+                'Phone': String(patient.phoneNumber || ''),
+                'Dispensing Date': patient.dispensingDate,
+                'Next Refill Date': patient.nextRefillDate,
+                'Refill Period': patient.refillPeriod,
+                'Prescription Number': String(presc.number), // هام جداً للوصفات
+                'Prescription Note': presc.note,
+                'General Note': idx === 0 ? patient.generalNote : '', // الملاحظة تظهر مرة واحدة
+                'Status': getRefillStatus(patient.nextRefillDate) || 'scheduled'
+            });
+        });
+    });
+    
+    // إنشاء الشيت
+    let ws = XLSX.utils.json_to_sheet(rows);
+    let wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'Patients');
+    
+    // تصدير الملف
+    XLSX.writeFile(wb, `mono-patients-${new Date().toISOString().split('T')[0]}.xlsx`);
+}
+
+function exportText() {
+    let text = `MONO PATIENT MANAGEMENT SYSTEM\n`;
+    text += `Export Date: ${new Date().toLocaleString()}\n`;
+    text += `Total Records: ${patients.length}\n`;
+    text += `================================================================\n\n`;
+    
+    patients.forEach((patient, idx) => {
+        text += `[${idx + 1}] Patient ID: ${patient.nationalId}\n`;
+        if(patient.phoneNumber) text += `    Phone: ${patient.phoneNumber}\n`;
+        text += `    Dispensing: ${patient.dispensingDate} | Next Refill: ${patient.nextRefillDate}\n`;
+        text += `    Prescriptions:\n`;
+        patient.prescriptions.forEach((presc, i) => {
+            text += `      - ${presc.number} ${presc.note ? '('+presc.note+')' : ''}\n`;
+        });
+        if (patient.generalNote) text += `    Note: ${patient.generalNote}\n`;
+        text += `----------------------------------------------------------------\n`;
+    });
+    
+    let blob = new Blob([text], { type: 'text/plain' });
+    let url = URL.createObjectURL(blob);
+    let a = document.createElement('a');
+    a.href = url;
+    a.download = `mono-patients-${new Date().toISOString().split('T')[0]}.txt`;
+    a.click();
+    URL.revokeObjectURL(url);
+}
         function parseTextData(text) {
             let records = [];
             let lines = text.split('\n');
@@ -4333,6 +4398,7 @@ function fallbackWhatsAppShare(blob, patient) {
             
             return records;
         }
+        
         /* ==========================================
    SMART IMPORT SYSTEM (Dr. Mo Edition)
    ========================================== */
@@ -4341,63 +4407,61 @@ function fallbackWhatsAppShare(blob, patient) {
    ========================================== */
 
 let skippedRecords = []; // تخزين الحالات المرفوضة للعرض
-
-// 1. Main Handler (entry point)
+// ============================================
+// IMPORT HANDLER (Pre-Processor)
+// ============================================
+// ============================================
+// 2. SMART IMPORT HANDLER (The Logic Switch)
+// ============================================
 function handleImportFile(e) {
     let file = e.target.files[0];
     if (!file) return;
-    
+
     let reader = new FileReader();
     
     reader.onload = function(event) {
         try {
             let rawData = [];
             
-            // A. Detect File Type & Parse Raw Data
+            // تحديد نوع الملف وقراءته
             if (file.name.toLowerCase().endsWith('.json')) {
                 let jsonContent = JSON.parse(event.target.result);
-                // Handle { data: [...] } or direct [...]
-                rawData = Array.isArray(jsonContent) ? jsonContent : (jsonContent.data || []);
+                if (jsonContent.data && Array.isArray(jsonContent.data)) rawData = jsonContent.data;
+                else if (Array.isArray(jsonContent)) rawData = jsonContent;
+                else {
+                    const foundKey = Object.keys(jsonContent).find(key => Array.isArray(jsonContent[key]));
+                    if (foundKey) rawData = jsonContent[foundKey];
+                }
             } 
             else if (file.name.toLowerCase().endsWith('.xlsx') || file.name.toLowerCase().endsWith('.xls')) {
                 let workbook = XLSX.read(event.target.result, { type: 'binary' });
-                let sheetName = workbook.SheetNames[0];
-                let worksheet = workbook.Sheets[sheetName];
-                rawData = XLSX.utils.sheet_to_json(worksheet, { defval: "" });
+                let worksheet = workbook.Sheets[workbook.SheetNames[0]];
+                rawData = XLSX.utils.sheet_to_json(worksheet, { defval: "", raw: false }); 
             }
             else if (file.name.toLowerCase().endsWith('.txt')) {
-                // Special Text Parser
                 rawData = parseSmartTextData(event.target.result);
             }
 
-            // B. The Triage Process (Separate Valid from Invalid)
-            const result = processAndValidateData(rawData, file.name.endsWith('.txt'));
+            // المعالجة
+            const result = processAndValidateData(rawData, file.name.toLowerCase().endsWith('.txt'));
             
             pendingImportData = result.valid;
-            skippedRecords = result.skipped;
+            skippedRecords = result.skipped; // الآن تحتوي على objects {type, msg}
 
-            // C. Decision Support
+            // === المنطق الجديد للتمييز بين الأخطاء ===
             if (pendingImportData.length > 0) {
-                // Show Preview with Error Report if any
+                // إذا وجدنا بيانات صحيحة، نعرض المعاينة
                 showImportPreview(pendingImportData, skippedRecords);
             } else {
-                // If 100% of data is bad
-                let errorMsg = 'No valid records found.';
-                if (skippedRecords.length > 0) {
-                    errorMsg += `<br><span style="color:var(--danger)">Skipped all ${skippedRecords.length} records due to format errors.</span>`;
-                }
-                showModal(
-                    '<span style="color: var(--danger);">❌ Import Failed</span>',
-                    `<p style="text-align: center; padding: 20px;">${errorMsg}</p>`,
-                    '<button class="btn-primary" style="grid-column: 1/3;" onclick="closeModal()">OK</button>'
-                );
+                // إذا لم نجد أي سجل صحيح (كلها تم تخطيها)
+                analyzeImportFailure(skippedRecords);
             }
 
         } catch (error) {
-            console.error(error);
+            console.error("File Parse Error:", error);
             showModal(
                 '<span style="color: var(--danger);">❌ File Error</span>',
-                `<p style="text-align: center; padding: 20px;">Error reading file: ${error.message}</p>`,
+                `<p style="text-align: center; padding: 20px;">Could not read file.<br><small>${error.message}</small></p>`,
                 '<button class="btn-primary" style="grid-column: 1/3;" onclick="closeModal()">OK</button>'
             );
         }
@@ -4408,84 +4472,185 @@ function handleImportFile(e) {
     } else {
         reader.readAsText(file);
     }
-    
-    e.target.value = '';
+    e.target.value = ''; 
 }
 
-// 2. The Core Logic (Validator & Normalizer)
+// دالة مساعدة لتحليل سبب الفشل وعرض المودال المناسب
+function analyzeImportFailure(skipped) {
+    if (skipped.length === 0) {
+        showModal(
+            '<span style="color: var(--warning);">⚠️ Empty File</span>',
+            '<p style="text-align: center; padding: 20px;">No readable data found in the file.</p>',
+            '<button class="btn-primary" style="grid-column: 1/3;" onclick="closeModal()">OK</button>'
+        );
+        return;
+    }
+
+    const duplicates = skipped.filter(s => s.type === 'duplicate');
+    const errors = skipped.filter(s => s.type === 'error');
+
+    // الحالة 1: الملف كله مكرر (Duplicates)
+    if (duplicates.length > 0 && errors.length === 0) {
+        showModal(
+            '<span style="color: var(--info);">⚠️ Duplicates Detected</span>',
+            `
+            <div style="text-align: center; padding: 20px;">
+                <div style="font-size: 40px; margin-bottom: 10px;">🔁</div>
+                <h3 style="color: var(--dark);">All Records Already Exist</h3>
+                <p style="color: #636E72; font-size: 14px; margin-top: 10px;">
+                    This file contains <b>${duplicates.length}</b> records that are already in your system.
+                </p>
+                <div style="background: #F8F9FE; padding: 10px; border-radius: 8px; margin-top: 15px; max-height: 150px; overflow-y: auto; text-align: left; font-size: 11px; font-family: monospace;">
+                    ${duplicates.map(d => `<div style="color: #0984e3;">• ${d.msg.replace('Row ', 'Row ')}</div>`).join('')}
+                </div>
+            </div>
+            `,
+            '<button class="btn-primary" style="grid-column: 1/3;" onclick="closeModal()">Close</button>'
+        );
+    }
+    // الحالة 2: الملف كله أخطاء تنسيق (Errors)
+    else if (errors.length > 0 && duplicates.length === 0) {
+        showModal(
+            '<span style="color: var(--danger);">❌ Format Errors</span>',
+            `
+            <div style="text-align: center; padding: 20px;">
+                <div style="font-size: 40px; margin-bottom: 10px;">🚫</div>
+                <h3 style="color: var(--dark);">Invalid Data Format</h3>
+                <p style="color: #636E72; font-size: 14px; margin-top: 10px;">
+                    Found <b>${errors.length}</b> records with incorrect formats.<br>
+                    <span style="font-size: 12px; color: var(--danger);">Remember: ID must be 10 digits (starts 1-4), Rx starts with letter.</span>
+                </p>
+                <div style="background: #FFF5F5; padding: 10px; border-radius: 8px; margin-top: 15px; max-height: 150px; overflow-y: auto; text-align: left; font-size: 11px; font-family: monospace; border: 1px solid #FEB2B2;">
+                    ${errors.map(e => `<div style="color: #C53030;">• ${e.msg}</div>`).join('')}
+                </div>
+            </div>
+            `,
+            '<button class="btn-primary" style="grid-column: 1/3;" onclick="closeModal()">Check File</button>'
+        );
+    }
+    // الحالة 3: خليط (Mixed)
+    else {
+        showModal(
+            '<span style="color: var(--warning);">⚠️ Import Failed</span>',
+            `
+            <div style="text-align: center; padding: 20px;">
+                <p style="margin-bottom: 10px;">No valid records to import.</p>
+                <div style="display: flex; gap: 10px; justify-content: center; margin-bottom: 15px;">
+                    <span style="background: #F8F9FE; color: #0984e3; padding: 5px 10px; border-radius: 5px; font-size: 12px; font-weight: bold;">${duplicates.length} Duplicates</span>
+                    <span style="background: #FFF5F5; color: #C53030; padding: 5px 10px; border-radius: 5px; font-size: 12px; font-weight: bold;">${errors.length} Errors</span>
+                </div>
+                <div style="background: #F1F2F6; padding: 10px; border-radius: 8px; max-height: 150px; overflow-y: auto; text-align: left; font-size: 11px; font-family: monospace;">
+                    ${skipped.map(s => `<div style="color: ${s.type === 'error' ? '#C53030' : '#0984e3'};">• ${s.msg}</div>`).join('')}
+                </div>
+            </div>
+            `,
+            '<button class="btn-primary" style="grid-column: 1/3;" onclick="closeModal()">Close</button>'
+        );
+    }
+}
+// ============================================
+// 1. IMPROVED DATA PROCESSOR (Validation Logic)
+// ============================================
 function processAndValidateData(rawData, isTextFile) {
     let validPatients = {};
     let skipped = [];
     
-    // Regex Definitions (Evidence-based)
-    const idRegex = /^[1-4]\d{9}$/;      // Starts with 1-4, 10 digits
-    const rxRegex = /^[a-z]\d{7}$/;      // Small letter + 7 digits exactly
-
-    // Helper: Normalize Keys (Removes _, space, case sensitivity)
-    const extractFromRow = (row) => {
-        let keys = Object.keys(row);
-        let keyMap = {};
-        // Create a map like: { "nationalid": "National_ID", "prescriptionnumber": "Prescription Number" }
-        keys.forEach(k => keyMap[k.toLowerCase().replace(/[\s_-]/g, '')] = k);
-
-        // Intelligent Lookup
-        let idKey = keys.find(k => k.match(/id|national|iqama/i)) || keyMap['nationalid'] || keyMap['id'];
-        let rxKey = keys.find(k => k.match(/prescription|rx|number|code/i)) || keyMap['prescriptionnumber'];
-        let phoneKey = keys.find(k => k.match(/phone|mobile/i));
-
-        return {
-            id: idKey ? String(row[idKey]).trim() : '',
-            rx: rxKey ? String(row[rxKey]).trim() : '',
-            phone: phoneKey ? String(row[phoneKey]).trim() : ''
-        };
+    // قواعد التحقق حسب طلبك
+    const patterns = {
+        // الهوية: 10 أرقام وتبدأ بـ 1 أو 2 أو 3 أو 4
+        id: /^[1-4]\d{9}$/,
+        // الوصفة: حرف (سمول أو كابيتال) يتبعه 7 أرقام
+        rx: /^[a-zA-Z]\d{7}$/, 
+        // الجوال: يقبل 05, 5, 9665 ويستخرج الرقم الصحيح
+        phoneExtraction: /(?:966|0)?(5\d{8})/
     };
 
+    const cleanString = (val) => String(val || '').trim();
+
     rawData.forEach((row, index) => {
-        let id, rx, phone;
-
-        if (isTextFile) {
-            id = row.nationalId;
-            rx = row.prescription;
-            phone = row.phoneNumber;
+        // تحويل البيانات الخام إلى صيغة موحدة
+        let raw = {};
+        if (isTextFile && row.nationalId) {
+            raw = { id: cleanString(row.nationalId), rx: cleanString(row.prescription), phone: cleanString(row.phoneNumber), date: '', note: '' };
         } else {
-            let data = extractFromRow(row);
-            id = data.id;
-            rx = data.rx;
-            phone = data.phone;
+            // محاولة اكتشاف الأعمدة بذكاء لملفات Excel/JSON
+            const values = Object.values(row).map(cleanString);
+            const keys = Object.keys(row).map(k => k.toLowerCase());
+            
+            // البحث عن البيانات في الصف
+            raw.id = values.find(v => patterns.id.test(v.replace(/\D/g, ''))) || '';
+            raw.rx = values.find(v => patterns.rx.test(v.replace(/\s/g, ''))) || '';
+            
+            // إذا لم يتم العثور عبر القيم، نحاول عبر أسماء الأعمدة (Keys)
+            if (!raw.id) {
+                const idKey = keys.find(k => k.includes('id') || k.includes('identity'));
+                if (idKey) raw.id = cleanString(row[Object.keys(row)[keys.indexOf(idKey)]]);
+            }
+            if (!raw.rx) {
+                const rxKey = keys.find(k => k.includes('presc') || k.includes('number'));
+                if (rxKey) raw.rx = cleanString(row[Object.keys(row)[keys.indexOf(rxKey)]]);
+            }
+            
+            // البحث عن الجوال والتاريخ والملاحظات
+            const phoneKey = keys.find(k => k.includes('phone') || k.includes('mobile'));
+            if (phoneKey) raw.phone = cleanString(row[Object.keys(row)[keys.indexOf(phoneKey)]]);
+            
+            const dateKey = keys.find(k => k.includes('date') || k.includes('dispens'));
+            if (dateKey) raw.date = cleanString(row[Object.keys(row)[keys.indexOf(dateKey)]]);
+            
+            const noteKey = keys.find(k => k.includes('note'));
+            if (noteKey) raw.note = cleanString(row[Object.keys(row)[keys.indexOf(noteKey)]]);
         }
 
-        // --- VALIDATION STEPS ---
+        // --- مرحلة التحقق والفلترة ---
 
-        // 1. ID Check
-        let cleanId = id.replace(/\D/g, ''); // Ensure only digits
-        if (!idRegex.test(cleanId)) {
-            skipped.push(`Row ${index + 1}: Invalid ID (${id})`);
-            return; // Skip Row
+        // 1. تنظيف وفحص الهوية
+        const cleanId = raw.id.replace(/\D/g, ''); // حذف أي رموز غير رقمية
+        if (!patterns.id.test(cleanId)) {
+            if (raw.id.length > 0) skipped.push({ type: 'error', msg: `Row ${index + 1}: Invalid ID format (${raw.id})` });
+            return; // تخطي هذا السجل
         }
 
-        // 2. Rx Check (Auto-correct & Validate)
-        let cleanRx = rx.toLowerCase().trim(); // Auto-fix capitals
-        if (!rxRegex.test(cleanRx)) {
-            skipped.push(`Row ${index + 1} (ID ${cleanId}): Invalid Rx (${rx}). Must be letter + 7 digits.`);
-            return; // Skip Row
+        // 2. تنظيف وفحص الوصفة
+        const cleanRx = raw.rx.replace(/\s/g, '').toLowerCase();
+        if (!patterns.rx.test(cleanRx)) {
+            if (raw.rx.length > 0) skipped.push({ type: 'error', msg: `Row ${index + 1}: Invalid Prescription format (${raw.rx})` });
+            return; // تخطي هذا السجل
         }
 
-        // --- PREPARE VALID DATA ---
-        
+        // 3. فحص التكرار (Duplicates)
+        const isDuplicateInDB = patients.some(existingPatient => 
+            existingPatient.nationalId === cleanId && 
+            existingPatient.prescriptions.some(p => p.number.toLowerCase() === cleanRx)
+        );
+
+        if (isDuplicateInDB) {
+            skipped.push({ type: 'duplicate', msg: `Row ${index + 1}: Already exists (ID: ${cleanId}, Rx: ${cleanRx})` });
+            return; // تخطي هذا السجل
+        }
+
+        // 4. معالجة الجوال
+        let cleanPhone = '';
+        const phoneMatch = raw.phone.replace(/\D/g, '').match(patterns.phoneExtraction);
+        if (phoneMatch) {
+            cleanPhone = '0' + phoneMatch[1];
+        }
+
+        // 5. تجهيز السجل الصحيح
         if (!validPatients[cleanId]) {
             validPatients[cleanId] = {
                 nationalId: cleanId,
-                phoneNumber: phone || '',
-                dispensingDate: new Date().toISOString().split('T')[0],
+                phoneNumber: cleanPhone,
+                dispensingDate: (raw.date && !isNaN(new Date(raw.date))) ? new Date(raw.date).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
                 refillPeriod: 28,
-                nextRefillDate: '',
+                nextRefillDate: '', 
                 prescriptions: [],
-                generalNote: '',
+                generalNote: raw.note,
                 imported: true
             };
         }
 
-        // Avoid Duplicate Rx for same patient in this batch
+        // إضافة الوصفة إذا لم تكن مكررة داخل نفس الملف
         if (!validPatients[cleanId].prescriptions.find(p => p.number === cleanRx)) {
             validPatients[cleanId].prescriptions.push({
                 number: cleanRx,
@@ -4499,7 +4664,6 @@ function processAndValidateData(rawData, isTextFile) {
         skipped: skipped
     };
 }
-
 // 3. Smart Text Parser (Scanning Mode)
 function parseSmartTextData(text) {
     let records = [];
