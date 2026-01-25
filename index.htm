@@ -2164,32 +2164,162 @@
     }
 }
 /* ============================================ */
-/* ستايل خاص للكروت المستوردة (Imported) */
+/* ستايل خاص للكروت المستوردة (Imported) - تعديل اللون والمكان */
 /* ============================================ */
 .patient-card.imported {
-    /* لون خلفية كريمي/أصفر فاتح جداً لتمييزها */
-    background: linear-gradient(135deg, #fffdeb 0%, #fff3e0 100%) !important;
-    /* حدود برتقالي فاتح */
-    border-color: #ffe0b2 !important;
+    /* خلفية برتقالي أغمق وأوضح */
+    background: linear-gradient(135deg, #FFF3E0 0%, #FFCC80 100%) !important;
+    /* حدود برتقالي محروق */
+    border: 2px solid #EF6C00 !important;
 }
 
-/* تغيير لون الشريط الجانبي للكارت المستورد ليكون برتقالي */
+/* الشريط الجانبي بلون برتقالي قوي */
 .patient-card.imported::before {
-    background: linear-gradient(180deg, #fdd835, #f57c00) !important;
+    background: linear-gradient(180deg, #EF6C00, #E65100) !important;
+    width: 8px !important;
 }
 
-/* إضافة علامة صغيرة "Imported" لزيادة التوضيح (اختياري) */
+/* كلمة IMPORTED تحت الاستاتس (أعلى اليمين) */
 .patient-card.imported::after {
-    content: 'IMPORTED';
+    content: 'NOT CHECKED';
     position: absolute;
-    bottom: 10px;
-    right: 10px;
-    font-size: 40px;
+    /* المكان الجديد: تحت الـ Badge مباشرة */
+    top: 45px; 
+    right: 15px;
+    font-size: 24px;
     font-weight: 900;
-    color: rgba(255, 152, 0, 0.08); /* شفاف جداً كخلفية مائية */
+    /* لون برتقالي بني شفاف */
+    color: rgba(230, 81, 0, 0.2); 
     pointer-events: none;
-    font-family: 'Arial', sans-serif;
+    font-family: 'Arial Black', sans-serif;
+    letter-spacing: 1px;
     z-index: 0;
+    transform: rotate(-5deg); /* ميلة بسيطة لشكل جمالي */
+}
+/* ============================================ */
+/* QUICK NOTES STYLES */
+/* ============================================ */
+.quick-notes-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 10px;
+}
+
+.quick-note-btn {
+    padding: 8px 12px;
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    background: white;
+    font-size: 10px;
+    font-weight: 700;
+    color: #636E72;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    text-transform: uppercase;
+}
+
+.quick-note-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+}
+
+/* ألوان الأزرار عند الضغط أو العرض */
+.note-badge {
+    display: inline-block;
+    padding: 4px 10px;
+    border-radius: 6px;
+    font-size: 10px;
+    font-weight: 800;
+    color: white;
+    margin-right: 5px;
+    margin-bottom: 5px;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+}
+
+/* تخصيص الألوان لكل نوع */
+.badge-need-rx { background: linear-gradient(135deg, #ff9f43, #e67e22); }
+.badge-sensor { background: linear-gradient(135deg, #54a0ff, #2e86de); }
+.badge-insulin { background: linear-gradient(135deg, #a29bfe, #6c5ce7); }
+.badge-no-answer { background: linear-gradient(135deg, #636e72, #2d3436); }
+.badge-rejected { background: linear-gradient(135deg, #ff6b6b, #ee5253); }
+.badge-dispensed { background: linear-gradient(135deg, #1dd1a1, #10ac84); }
+/* زر النسخ فقط */
+.btn-copy-only {
+    background: #e2e8f0; /* لون رصاصي فاتح */
+    border: none;
+    border-radius: 6px;
+    width: 24px;
+    height: 24px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    margin-left: 5px; /* مسافة صغيرة بينه وبين زر وصفتي */
+    color: #475569;
+}
+
+.btn-copy-only:hover {
+    background: #cbd5e1;
+    color: #1e293b;
+    transform: translateY(-2px);
+}
+
+.btn-copy-only:active {
+    transform: scale(0.95);
+}
+/* زر النسخ بستايل CSS Art */
+.btn-css-copy {
+    width: 34px;          /* حجم أكبر */
+    height: 34px;         /* حجم أكبر */
+    background: #f1f5f9;  /* خلفية رصاصي فاتح جداً */
+    border: 1px solid #cbd5e1;
+    border-radius: 8px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    margin-left: 6px;     /* مسافة عن الزر اللي قبله */
+    position: relative;
+}
+
+.btn-css-copy:hover {
+    background: #e2e8f0;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+    border-color: #94a3b8;
+}
+
+.btn-css-copy:active {
+    transform: scale(0.95);
+}
+
+/* رسم الورقة الأمامية */
+.art-copy-icon {
+    width: 10px;
+    height: 12px;
+    border: 2px solid #475569; /* لون القلم */
+    background: white;
+    border-radius: 2px;
+    position: relative;
+    z-index: 2;
+    transform: translate(-2px, 2px); /* تحريك للأسفل واليسار */
+}
+
+/* رسم الورقة الخلفية */
+.art-copy-icon::after {
+    content: '';
+    position: absolute;
+    top: -5px;    /* ترحيل للأعلى */
+    right: -5px;  /* ترحيل لليمين */
+    width: 100%;
+    height: 100%;
+    border: 2px solid #94a3b8; /* لون أفتح */
+    background: white;
+    border-radius: 2px;
+    z-index: -1;  /* جعلها في الخلف */
 }
     </style>
 </head>
@@ -2417,16 +2547,22 @@
                     </label>
                  <input type="date" class="form-input" id="nextRefillDate" onclick="this.showPicker()">
                 </div>
-                
-                <div class="section-title">
-                    <span style="font-size: 18px;">📝</span>
-                    Additional Notes
-                </div>
-                
-                <div class="form-group">
-                    <textarea class="form-input" id="generalNote" rows="4" placeholder="Add general notes here..." style="resize: vertical;"></textarea>
-                </div>
-                
+             <div class="section-title">
+    <span style="font-size: 18px;">📝</span>
+    Additional Notes
+</div>
+
+<div class="quick-notes-grid">
+    <button class="quick-note-btn" onclick="addQuickNote('NEED NEW RX NO')">⚠️ NEED NEW RX NO</button>
+    <button class="quick-note-btn" onclick="addQuickNote('SENSOR')">📡 SENSOR</button>
+    <button class="quick-note-btn" onclick="addQuickNote('INSULIN')">💉 INSULIN</button>
+    <button class="quick-note-btn" onclick="addQuickNote('NO ANSWER')">📞 NO ANSWER</button>
+    <button class="quick-note-btn" onclick="addQuickNote('REJECTED')">❌ REJECTED</button>
+    <button class="quick-note-btn" onclick="addQuickNote('DISPENSED')">✅ DISPENSED</button>
+</div>
+<div class="form-group">
+    <textarea class="form-input" id="generalNote" rows="4" placeholder="Add general notes here..." style="resize: vertical;"></textarea>
+</div>
                 <button class="btn-primary" onclick="savePatient()" id="saveBtn">
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
                         <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path>
@@ -3679,20 +3815,20 @@ function highlightMatch(text, searchTerm) {
     const regex = new RegExp(`(${searchTerm.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi');
     return text.toString().replace(regex, '<span class="highlight-text">$1</span>');
 }
-
-   function createPatientCard(patient, searchTerm = '') {
+function createPatientCard(patient, searchTerm = '') {
     let card = document.createElement('div');
     card.className = 'patient-card';
     
+    // 1. تحديد حالة الريفيل وتنسيق الكروت المستوردة
     let status = getRefillStatus(patient.nextRefillDate);
     if (status) card.classList.add(status);
     if (patient.imported) card.classList.add('imported');
     
     let badgeText = status === 'today' ? 'DUE TODAY' : 
-                   status === 'overdue' ? 'OVERDUE' : 
-                   status === 'upcoming' ? 'UPCOMING' : 'SCHEDULED';
+                    status === 'overdue' ? 'OVERDUE' : 
+                    status === 'upcoming' ? 'UPCOMING' : 'SCHEDULED';
 
-    // === تجهيز رابط الواتساب ===
+    // 2. تجهيز رابط الواتساب
     let whatsappLink = '';
     if (patient.phoneNumber) {
         let cleanPhone = patient.phoneNumber.replace(/\D/g, '');
@@ -3702,11 +3838,57 @@ function highlightMatch(text, searchTerm) {
         whatsappLink = `https://wa.me/${cleanPhone}`;
     }
 
-    // === تطبيق الـ Highlight على النصوص ===
+    // 3. دالة لمعالجة النوت وتحويل الكلمات إلى بادجات ملونة
+    const processNotes = (note) => {
+        if (!note) return '';
+        
+        let badgesHtml = '<div style="display:flex; flex-wrap:wrap; gap:5px; margin-bottom:6px;">';
+        let textNote = note; 
+
+        const tags = [
+            { key: 'NEED NEW RX NO', class: 'badge-need-rx', icon: '⚠️' },
+            { key: 'SENSOR', class: 'badge-sensor', icon: '📡' },
+            { key: 'INSULIN', class: 'badge-insulin', icon: '💉' },
+            { key: 'NO ANSWER', class: 'badge-no-answer', icon: '📞' },
+            { key: 'REJECTED', class: 'badge-rejected', icon: '❌' },
+            { key: 'DISPENSED', class: 'badge-dispensed', icon: '✅' }
+        ];
+
+        let foundTags = false;
+
+        tags.forEach(tag => {
+            if (textNote.includes(tag.key)) {
+                foundTags = true;
+                badgesHtml += `<span class="note-badge ${tag.class}">${tag.icon} ${tag.key}</span>`;
+                textNote = textNote.replace(tag.key, '').trim();
+            }
+        });
+        
+        badgesHtml += '</div>';
+
+        textNote = textNote.replace(/,\s*,/g, ',')
+                           .replace(/^[\s,]+|[\s,]+$/g, '');
+
+        let finalHtml = '';
+        
+        if (foundTags) {
+            finalHtml += badgesHtml;
+        }
+
+        if (textNote.length > 0) {
+            finalHtml += `<div style="color: #5D4037; font-weight:600; line-height:1.4;">${highlightMatch(textNote, searchTerm)}</div>`;
+        } else if (!foundTags) {
+            finalHtml += highlightMatch(note, searchTerm);
+        }
+        
+        return finalHtml;
+    };
+
+    // 4. تطبيق الـ Highlight
     const hl_nationalId = highlightMatch(patient.nationalId, searchTerm);
     const hl_phone = highlightMatch(patient.phoneNumber, searchTerm);
-    const hl_note = highlightMatch(patient.generalNote, searchTerm);
 
+    // 5. بناء كود HTML للكارت
     card.innerHTML = `
         <div class="patient-header">
             <div>
@@ -3750,16 +3932,25 @@ function highlightMatch(text, searchTerm) {
                         ${highlightMatch(p.number, searchTerm)}
                     </span>
                     ${p.note ? `<span style="font-size:11px; color:#666;">(${highlightMatch(p.note, searchTerm)})</span>` : ''}
+                    
                     <button class="btn-check-wasfaty" onclick="checkPrescription('${patient.nationalId}', '${p.number}')" title="نسخ وفتح وصفتي">
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
                             <polyline points="20 6 9 17 4 12"></polyline>
                         </svg>
                     </button>
+
+                    <button class="btn-css-copy" onclick="copyRxOnly('${patient.nationalId}', '${p.number}')" title="نسخ فقط">
+                        <div class="art-copy-icon"></div>
+                    </button>
                 </div>
             `).join('')}
         </div>
         
-        ${patient.generalNote ? `<div class="info-box"><strong>Note:</strong> ${hl_note}</div>` : ''}
+        ${patient.generalNote ? `
+            <div class="info-box" style="background: #FFF9C4; border-left: 4px solid #FBC02D; color: #333;">
+                ${processNotes(patient.generalNote)}
+            </div>
+        ` : ''}
         
         <div class="qr-display" id="qr-${patient.id}"></div>
         
@@ -3786,9 +3977,12 @@ function highlightMatch(text, searchTerm) {
         </div>
     `;
     
+    // حل مشكلة تكرار الكيو ار (تنظيف الحاوية قبل الإضافة)
     setTimeout(() => {
         let qrContainer = document.getElementById('qr-' + patient.id);
         if (qrContainer) {
+            qrContainer.innerHTML = ''; // هذا السطر يمنع التكرار
+            
             qrContainer.appendChild(createQRElement(patient.nationalId, 'ID', patient.nationalId));
             patient.prescriptions.forEach((presc, idx) => {
                 qrContainer.appendChild(createQRElement(presc.number, 'RX ' + (idx + 1), presc.number));
@@ -5079,7 +5273,42 @@ document.getElementById('modalOverlay').addEventListener('click', function(e) {
     }
 });
 
-
+function addQuickNote(text) {
+    const noteArea = document.getElementById('generalNote');
+    // إذا كان هناك نص بالفعل، أضف فاصلة، وإلا أضف النص مباشرة
+    if (noteArea.value.trim().length > 0) {
+        // نتأكد أننا لا نكرر نفس الملاحظة
+        if (!noteArea.value.includes(text)) {
+            noteArea.value += ', ' + text;
+        }
+    } else {
+        noteArea.value = text;
+    }
+}
+function copyRxOnly(nationalId, prescriptionNumber) {
+    // دمج الرقمين مع مسافة بينهما
+    const textToCopy = `${nationalId} ${prescriptionNumber}`;
+    
+    navigator.clipboard.writeText(textToCopy).then(() => {
+        // عرض رسالة صغيرة تؤكد النسخ وتختفي بسرعة
+        showModal(
+            '<span style="color: var(--secondary);">✅ تم النسخ</span>',
+            `<div style="text-align:center; font-weight:bold; color:#2d3436; padding:15px;">
+                ${textToCopy}
+             </div>
+             <div style="text-align:center; font-size:12px; color:#636e72;">جاهز للصق (Ctrl+V)</div>`,
+            '' // لا نحتاج أزرار لأننا سنغلقه تلقائياً
+        );
+        
+        // إغلاق المودال تلقائياً بعد ثانية واحدة لسرعة العمل
+        setTimeout(() => {
+            closeModal();
+        }, 1000);
+        
+    }).catch(err => {
+        console.error('Copy failed', err);
+    });
+}
     </script>
 </body>
 </html>
