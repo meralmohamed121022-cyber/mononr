@@ -4633,7 +4633,7 @@ function processAndValidateData(rawData, isTextFile) {
         // إذا لم يوجد تاريخ في الملف وتم تجاوز فحص التكرار، نقوم بحساب تاريخ افتراضي للحفظ
         if (!hasImportedDate) {
             let d = new Date(importDispensingDate);
-            d.setDate(d.getDate() + 28);
+            d.setDate(d.getDate() + 24);
             importNextRefillDate = d.toISOString().split('T')[0];
         }
 
@@ -4645,7 +4645,7 @@ function processAndValidateData(rawData, isTextFile) {
                 nationalId: cleanId,
                 phoneNumber: cleanString(raw.phone).replace(/\D/g, '').match(patterns.phoneExtraction) ? '0' + cleanString(raw.phone).replace(/\D/g, '').match(patterns.phoneExtraction)[1] : '',
                 dispensingDate: importDispensingDate,
-                refillPeriod: 28,
+                refillPeriod: 24,
                 nextRefillDate: importNextRefillDate,
                 prescriptions: [],
                 generalNote: raw.genNote,
