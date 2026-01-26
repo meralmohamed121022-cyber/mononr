@@ -2244,6 +2244,11 @@
 .badge-no-answer { background: linear-gradient(135deg, #636e72, #2d3436); }
 .badge-rejected { background: linear-gradient(135deg, #ff6b6b, #ee5253); }
 .badge-dispensed { background: linear-gradient(135deg, #1dd1a1, #10ac84); }
+/* أضف هذا السطر لزر VIP الجديد */
+.badge-vip { background: linear-gradient(135deg, #f1c40f, #f39c12); color: black !important; border: 1px solid #e67e22; }
+
+/* هذا الستايل الجديد لأي ملاحظة عادية مكتوبة يدوياً (أزرق افتراضي) */
+.badge-default { background: linear-gradient(135deg, #3498db, #2980b9); }
 /* زر النسخ فقط */
 .btn-copy-only {
     background: #e2e8f0; /* لون رصاصي فاتح */
@@ -2268,58 +2273,6 @@
 
 .btn-copy-only:active {
     transform: scale(0.95);
-}
-/* زر النسخ بستايل CSS Art */
-.btn-css-copy {
-    width: 34px;          /* حجم أكبر */
-    height: 34px;         /* حجم أكبر */
-    background: #f1f5f9;  /* خلفية رصاصي فاتح جداً */
-    border: 1px solid #cbd5e1;
-    border-radius: 8px;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    cursor: pointer;
-    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-    margin-left: 6px;     /* مسافة عن الزر اللي قبله */
-    position: relative;
-}
-
-.btn-css-copy:hover {
-    background: #e2e8f0;
-    transform: translateY(-2px);
-    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-    border-color: #94a3b8;
-}
-
-.btn-css-copy:active {
-    transform: scale(0.95);
-}
-
-/* رسم الورقة الأمامية */
-.art-copy-icon {
-    width: 10px;
-    height: 12px;
-    border: 2px solid #475569; /* لون القلم */
-    background: white;
-    border-radius: 2px;
-    position: relative;
-    z-index: 2;
-    transform: translate(-2px, 2px); /* تحريك للأسفل واليسار */
-}
-
-/* رسم الورقة الخلفية */
-.art-copy-icon::after {
-    content: '';
-    position: absolute;
-    top: -5px;    /* ترحيل للأعلى */
-    right: -5px;  /* ترحيل لليمين */
-    width: 100%;
-    height: 100%;
-    border: 2px solid #94a3b8; /* لون أفتح */
-    background: white;
-    border-radius: 2px;
-    z-index: -1;  /* جعلها في الخلف */
 }
     </style>
 </head>
@@ -2553,6 +2506,7 @@
 </div>
 
 <div class="quick-notes-grid">
+    <button class="quick-note-btn" onclick="addQuickNote('⭐ VIP')">⭐ VIP</button>
     <button class="quick-note-btn" onclick="addQuickNote('NEED NEW RX NO')">⚠️ NEED NEW RX NO</button>
     <button class="quick-note-btn" onclick="addQuickNote('SENSOR')">📡 SENSOR</button>
     <button class="quick-note-btn" onclick="addQuickNote('INSULIN')">💉 INSULIN</button>
@@ -3436,11 +3390,12 @@ infoBox.addEventListener('click', toggleInfoBox);
                 });
             }
         });
-        
-        function initializeApp() {
+      function initializeApp() {
+            // 1. الإعدادات الأولية للعناصر
             document.getElementById('dispensingDate').valueAsDate = new Date();
             addPrescription();
             
+            // 2. تفعيل المستمعين (Event Listeners)
             document.getElementById('dispensingDate').addEventListener('change', calculateNextRefill);
             document.getElementById('searchInput').addEventListener('input', searchPatients);
             document.getElementById('filterDateFrom').addEventListener('change', applyDateFilter);
@@ -3448,11 +3403,38 @@ infoBox.addEventListener('click', toggleInfoBox);
             document.getElementById('importFile').addEventListener('change', handleImportFile);
             document.getElementById('importFileData').addEventListener('change', handleImportFile);
             
-            // Add blur event to check duplicates
+            // التحقق من التكرار عند الخروج من حقل الهوية
             document.getElementById('nationalId').addEventListener('blur', checkIDDuplicate);
             
+            // 3. العرض الأولي للبيانات
             calculateNextRefill();
             displayPatients();
+
+            // ============================================================
+            // 🆕 التعديل الجديد: تفعيل المزامنة اللحظية (Realtime Sync)
+            // ============================================================
+            if (currentUser) {
+                console.log('🟢 Connecting to Realtime updates...');
+                
+                const subscription = supabaseClient
+                    .channel('public:patients') // قناة استماع عامة لجدول المرضى
+                    .on(
+                        'postgres_changes', 
+                        { event: '*', schema: 'public', table: 'patients' }, // الاستماع لأي تغيير (إضافة، حذف، تعديل)
+                        (payload) => {
+                            console.log('🔄 Change detected from another device:', payload);
+                            
+                            // عند حدوث أي تغيير، نقوم بإعادة تحميل البيانات وتحديث الشاشة
+                            loadPatientsFromSupabase().then(() => {
+                                displayPatients();
+                                
+                                // (اختياري) عرض تنبيه صغير يخبرك أن هناك تحديثاً حدث
+                                // showModal('Updated', 'Data has been updated from another device', 'OK'); 
+                            });
+                        }
+                    )
+                    .subscribe();
+            }
         }
         
         async function checkIDDuplicate() {
@@ -3837,54 +3819,53 @@ function createPatientCard(patient, searchTerm = '') {
         }
         whatsappLink = `https://wa.me/${cleanPhone}`;
     }
-
-    // 3. دالة لمعالجة النوت وتحويل الكلمات إلى بادجات ملونة
+// 3. دالة لمعالجة النوت وتحويل الكلمات إلى بادجات ملونة
     const processNotes = (note) => {
         if (!note) return '';
         
         let badgesHtml = '<div style="display:flex; flex-wrap:wrap; gap:5px; margin-bottom:6px;">';
-        let textNote = note; 
+        
+        // تقسيم النص بناءً على الفواصل لإنشاء صناديق منفصلة
+        // مثلاً: "VIP, SENSOR, مريض مستعجل" -> ستصبح 3 صناديق
+        let parts = note.split(',').map(s => s.trim()).filter(s => s.length > 0);
 
-        const tags = [
-            { key: 'NEED NEW RX NO', class: 'badge-need-rx', icon: '⚠️' },
-            { key: 'SENSOR', class: 'badge-sensor', icon: '📡' },
-            { key: 'INSULIN', class: 'badge-insulin', icon: '💉' },
-            { key: 'NO ANSWER', class: 'badge-no-answer', icon: '📞' },
-            { key: 'REJECTED', class: 'badge-rejected', icon: '❌' },
-            { key: 'DISPENSED', class: 'badge-dispensed', icon: '✅' }
-        ];
+        // تعريف الكلمات الخاصة وألوانها
+        const tagsMap = {
+            'VIP': { class: 'badge-vip', icon: '' }, // الـ VIP الجديد
+            'NEED NEW RX NO': { class: 'badge-need-rx', icon: '⚠️' },
+            'SENSOR': { class: 'badge-sensor', icon: '📡' },
+            'INSULIN': { class: 'badge-insulin', icon: '💉' },
+            'NO ANSWER': { class: 'badge-no-answer', icon: '📞' },
+            'REJECTED': { class: 'badge-rejected', icon: '❌' },
+            'DISPENSED': { class: 'badge-dispensed', icon: '✅' }
+        };
 
-        let foundTags = false;
+        parts.forEach(part => {
+            let cssClass = 'badge-default'; // اللون الأزرق الافتراضي لأي نص يدوي
+            let icon = ''; 
+            let textToShow = part;
 
-        tags.forEach(tag => {
-            if (textNote.includes(tag.key)) {
-                foundTags = true;
-                badgesHtml += `<span class="note-badge ${tag.class}">${tag.icon} ${tag.key}</span>`;
-                textNote = textNote.replace(tag.key, '').trim();
+            // البحث هل النص يحتوي على كلمة مفتاحية من القائمة أعلاه؟
+            // تم استخدام Object.keys للبحث بذكاء
+            for (const [key, config] of Object.entries(tagsMap)) {
+                if (part.toUpperCase().includes(key)) {
+                    cssClass = config.class;
+                    // إذا لم يكن النص يحتوي على الأيقونة بالفعل، نستخدم أيقونة التاج
+                    if (!part.includes(config.icon) && config.icon) {
+                        // icon = config.icon; // يمكن تفعيل هذا إذا أردت فصل الأيقونة
+                    }
+                    break; 
+                }
             }
+
+            // إنشاء البوكس (الصندوق)
+            badgesHtml += `<span class="note-badge ${cssClass}" style="font-size: 11px; padding: 5px 12px;">${highlightMatch(textToShow, searchTerm)}</span>`;
         });
         
         badgesHtml += '</div>';
-
-        textNote = textNote.replace(/,\s*,/g, ',')
-                           .replace(/^[\s,]+|[\s,]+$/g, '');
-
-        let finalHtml = '';
-        
-        if (foundTags) {
-            finalHtml += badgesHtml;
-        }
-
-        if (textNote.length > 0) {
-            finalHtml += `<div style="color: #5D4037; font-weight:600; line-height:1.4;">${highlightMatch(textNote, searchTerm)}</div>`;
-        } else if (!foundTags) {
-            finalHtml += highlightMatch(note, searchTerm);
-        }
-        
-        return finalHtml;
+        return badgesHtml;
     };
-
-    // 4. تطبيق الـ Highlight
+    // 4. تطبيق الـ Highlight على النصوص الأساسية
     const hl_nationalId = highlightMatch(patient.nationalId, searchTerm);
     const hl_phone = highlightMatch(patient.phoneNumber, searchTerm);
 
@@ -3933,14 +3914,17 @@ function createPatientCard(patient, searchTerm = '') {
                     </span>
                     ${p.note ? `<span style="font-size:11px; color:#666;">(${highlightMatch(p.note, searchTerm)})</span>` : ''}
                     
+                    <button class="btn-copy-only" onclick="copyRxOnly('${patient.nationalId}', '${p.number}')" title="نسخ فقط">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                            <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                        </svg>
+                    </button>
+
                     <button class="btn-check-wasfaty" onclick="checkPrescription('${patient.nationalId}', '${p.number}')" title="نسخ وفتح وصفتي">
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
                             <polyline points="20 6 9 17 4 12"></polyline>
                         </svg>
-                    </button>
-
-                    <button class="btn-css-copy" onclick="copyRxOnly('${patient.nationalId}', '${p.number}')" title="نسخ فقط">
-                        <div class="art-copy-icon"></div>
                     </button>
                 </div>
             `).join('')}
@@ -4211,14 +4195,21 @@ function createPatientCard(patient, searchTerm = '') {
         }
     function deletePatient(patientId) {
     confirmAction('Are you sure you want to delete this patient?', async function() {
+        // 1. إغلاق نافذة التأكيد فوراً لعدم تعطيل المستخدم
+        closeModal();
+
         try {
+            // 2. الحذف من السيرفر (Supabase)
             await deletePatientFromSupabase(patientId);
-            await loadPatientsFromSupabase();
             
-            // Close confirmation modal first
-            closeModal();
+            // 3. التعديل الجوهري: حذف العنصر من المصفوفة المحلية فوراً
+            // (هذا السطر هو الذي يجعله يختفي من أمامك بدون ريفريش)
+            patients = patients.filter(p => p.id !== patientId);
             
-            // Show success message after short delay
+            // 4. إعادة رسم القائمة بالبيانات الجديدة
+            displayPatients();
+            
+            // 5. عرض رسالة النجاح
             setTimeout(function() {
                 let successHTML = `
                     <div style="text-align: center; padding: 30px;">
@@ -4227,8 +4218,7 @@ function createPatientCard(patient, searchTerm = '') {
                                 <polyline points="20 6 9 17 4 12"></polyline>
                             </svg>
                         </div>
-                        <p style="font-size: 18px; font-weight: 700; color: var(--dark); margin-bottom: 8px;">Patient Deleted Successfully!</p>
-                        <p style="font-size: 14px; color: #636E72;">The patient record has been removed from the database.</p>
+                        <p style="font-size: 18px; font-weight: 700; color: var(--dark); margin-bottom: 8px;">Deleted Successfully!</p>
                     </div>
                 `;
                 
@@ -4237,39 +4227,22 @@ function createPatientCard(patient, searchTerm = '') {
                     successHTML,
                     '<button class="btn-primary" style="grid-column: 1/3;" onclick="closeModal()">OK</button>'
                 );
+                
+                // إغلاق رسالة النجاح تلقائياً بعد ثانية ونصف
+                setTimeout(() => closeModal(), 1500);
+                
             }, 300);
             
         } catch (error) {
             console.error('Delete error:', error);
-            
-            // Close any existing modal
-            closeModal();
-            
-            // Show error message
-            setTimeout(function() {
-                let errorHTML = `
-                    <div style="text-align: center; padding: 30px;">
-                        <div style="width: 80px; height: 80px; background: linear-gradient(135deg, #FF6B6B, #EE5A6F); border-radius: 50%; margin: 0 auto 20px; display: flex; align-items: center; justify-content: center; box-shadow: 0 8px 24px rgba(255, 107, 107, 0.3);">
-                            <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
-                                <line x1="18" y1="6" x2="6" y2="18"></line>
-                                <line x1="6" y1="6" x2="18" y2="18"></line>
-                            </svg>
-                        </div>
-                        <p style="font-size: 18px; font-weight: 700; color: var(--dark); margin-bottom: 8px;">Delete Failed!</p>
-                        <p style="font-size: 14px; color: #636E72;">` + error.message + `</p>
-                    </div>
-                `;
-                
-                showModal(
-                    '<span style="color: var(--danger);">❌ ERROR</span>',
-                    errorHTML,
-                    '<button class="btn-primary" style="grid-column: 1/3;" onclick="closeModal()">OK</button>'
-                );
-            }, 300);
+            showModal(
+                '<span style="color: var(--danger);">❌ ERROR</span>',
+                `<p style="text-align: center; padding: 20px;">Delete Failed: ${error.message}</p>`,
+                '<button class="btn-primary" style="grid-column: 1/3;" onclick="closeModal()">OK</button>'
+            );
         }
     });
 }
-
     async function shareWhatsApp(patientId) {
     let patient = patients.find(p => p.id === patientId);
     if (!patient) return;
