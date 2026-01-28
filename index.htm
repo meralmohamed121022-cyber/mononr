@@ -2274,6 +2274,98 @@
 .btn-copy-only:active {
     transform: scale(0.95);
 }
+/* ============================================ */
+/* DISPENSED TAB STYLES */
+/* ============================================ */
+.dispense-search-container {
+    position: relative;
+    margin-bottom: 20px;
+}
+
+.dispense-results-dropdown {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    background: white;
+    border: 2px solid var(--border);
+    border-top: none;
+    border-radius: 0 0 12px 12px;
+    max-height: 300px;
+    overflow-y: auto;
+    z-index: 1000;
+    box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+    display: none;
+}
+
+.dispense-result-item {
+    padding: 12px 15px;
+    border-bottom: 1px solid #eee;
+    cursor: pointer;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.dispense-result-item:hover {
+    background: #F8F9FE;
+}
+
+.dispensing-table {
+    width: 100%;
+    border-collapse: collapse;
+    background: white;
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+}
+
+.dispensing-table th {
+    background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+    color: white;
+    padding: 15px;
+    text-align: left;
+    font-size: 12px;
+    text-transform: uppercase;
+}
+
+.dispensing-table td {
+    padding: 15px;
+    border-bottom: 1px solid #eee;
+    color: var(--dark);
+    font-weight: 600;
+    vertical-align: middle;
+}
+
+.dispensing-table tr.completed {
+    background-color: #e8f5e9;
+    text-decoration: line-through;
+    color: #aaa;
+    opacity: 0.6;
+    transition: all 0.3s ease;
+}
+
+.dispense-checkbox {
+    width: 24px;
+    height: 24px;
+    cursor: pointer;
+    accent-color: var(--secondary);
+}
+
+.rx-chips-mini {
+    display: flex;
+    gap: 4px;
+    flex-wrap: wrap;
+}
+
+.rx-chip-mini {
+    background: #E3F2FD;
+    color: var(--primary);
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-size: 10px;
+    font-family: monospace;
+}
     </style>
 </head>
 <body>
@@ -2390,31 +2482,355 @@
             </button>
         </div>
         
-        <div class="container">
-            <div class="nav-tabs">
-                <button class="nav-tab active" onclick="switchTab('add')">
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                        <line x1="12" y1="5" x2="12" y2="19"></line>
-                        <line x1="5" y1="12" x2="19" y2="12"></line>
+      <div class="container">
+    <div class="nav-tabs">
+        <button class="nav-tab active" onclick="switchTab('add')">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <line x1="12" y1="5" x2="12" y2="19"></line>
+                <line x1="5" y1="12" x2="19" y2="12"></line>
+            </svg>
+            Add
+        </button>
+        <button class="nav-tab" onclick="switchTab('patients')">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                <circle cx="12" cy="7" r="4"></circle>
+            </svg>
+            Patients
+        </button>
+        <button class="nav-tab" onclick="switchTab('data')">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <ellipse cx="12" cy="5" rx="9" ry="3"></ellipse>
+                <path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"></path>
+                <path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"></path>
+            </svg>
+            Data Hub
+        </button>
+        <button class="nav-tab" onclick="switchTab('dispensed')">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+                <polyline points="22 4 12 14.01 9 11.01"></polyline>
+            </svg>
+            Dispensed
+        </button>
+    </div>
+
+    <div id="add-tab" class="tab-content active">
+        <div class="form-group">
+            <label class="form-label">
+                <span style="font-size: 18px; margin-right: 8px;">🆔</span>
+                ID Number (10 digits)
+            </label>
+            <input type="text" class="form-input" id="nationalId" placeholder="1234567890" maxlength="10" pattern="[1-4][0-9]{9}">
+        </div>
+
+        <div class="form-group">
+            <label class="form-label">
+                <span style="font-size: 18px; margin-right: 8px;">📱</span>
+                Phone Number (Optional)
+            </label>
+            <input type="text" class="form-input" id="phoneNumber" placeholder="05xxxxxxxx" maxlength="10">
+        </div>
+
+        <div class="section-title">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--primary)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="12" r="10"></circle>
+                <line x1="12" y1="8" x2="12" y2="12"></line>
+                <line x1="12" y1="16" x2="12.01" y2="16"></line>
+            </svg>
+            Prescriptions
+        </div>
+
+        <div id="prescriptionsContainer"></div>
+
+        <button class="add-prescription-btn" onclick="addPrescription()">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <line x1="12" y1="5" x2="12" y2="19"></line>
+                <line x1="5" y1="12" x2="19" y2="12"></line>
+            </svg>
+            Add Another Prescription
+        </button>
+
+        <div class="form-group" style="margin-top: 25px;">
+            <label class="form-label">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--primary)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                    <line x1="16" y1="2" x2="16" y2="6"></line>
+                    <line x1="8" y1="2" x2="8" y2="6"></line>
+                    <line x1="3" y1="10" x2="21" y2="10"></line>
+                </svg>
+                SELECT REFILL DURATION
+            </label>
+            <p style="font-size: 12px; color: #636E72; margin-bottom: 10px;">Next refill date will auto-calculate</p>
+            <div class="refill-selector">
+                <div class="refill-box active" data-days="24" onclick="selectRefill(24)">
+                    <div class="duration">1</div>
+                    <div class="label">Month</div>
+                </div>
+                <div class="refill-box" data-days="48" onclick="selectRefill(48)">
+                    <div class="duration">2</div>
+                    <div class="label">Months</div>
+                </div>
+                <div class="refill-box" data-days="72" onclick="selectRefill(72)">
+                    <div class="duration">3</div>
+                    <div class="label">Months</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="form-group">
+            <label class="form-label">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--primary)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                    <line x1="16" y1="2" x2="16" y2="6"></line>
+                    <line x1="8" y1="2" x2="8" y2="6"></line>
+                    <line x1="3" y1="10" x2="21" y2="10"></line>
+                </svg>
+                Dispensing Date
+            </label>
+            <input type="date" class="form-input" id="dispensingDate">
+        </div>
+
+        <div class="form-group">
+            <label class="form-label">
+                <span style="font-size: 18px; margin-right: 8px;">🔄</span>
+                Next Refill Date
+            </label>
+            <input type="date" class="form-input" id="nextRefillDate" onclick="this.showPicker()">
+        </div>
+
+        <div class="section-title">
+            <span style="font-size: 18px;">📝</span>
+            Additional Notes
+        </div>
+
+        <div class="quick-notes-grid">
+            <button class="quick-note-btn" onclick="addQuickNote('⭐ VIP')">⭐ VIP</button>
+            <button class="quick-note-btn" onclick="addQuickNote('NEED NEW RX NO')">⚠️ NEED NEW RX NO</button>
+            <button class="quick-note-btn" onclick="addQuickNote('SENSOR')">📡 SENSOR</button>
+            <button class="quick-note-btn" onclick="addQuickNote('INSULIN')">💉 INSULIN</button>
+            <button class="quick-note-btn" onclick="addQuickNote('NO ANSWER')">📞 NO ANSWER</button>
+            <button class="quick-note-btn" onclick="addQuickNote('REJECTED')">❌ REJECTED</button>
+            <button class="quick-note-btn" onclick="addQuickNote('DISPENSED')">✅ DISPENSED</button>
+        </div>
+        <div class="form-group">
+            <textarea class="form-input" id="generalNote" rows="4" placeholder="Add general notes here..." style="resize: vertical;"></textarea>
+        </div>
+
+        <button class="btn-primary" onclick="savePatient()" id="saveBtn">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path>
+                <polyline points="17 21 17 13 7 13 7 21"></polyline>
+                <polyline points="7 3 7 8 15 8"></polyline>
+            </svg>
+            <span id="saveButtonText">ADD PATIENT</span>
+        </button>
+
+        <button class="btn-import" onclick="document.getElementById('importFile').click()">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                <polyline points="17 8 12 3 7 8"></polyline>
+                <line x1="12" y1="3" x2="12" y2="15"></line>
+            </svg>
+            IMPORT DATA
+        </button>
+        <input type="file" id="importFile" accept=".json,.xlsx,.xls,.txt" style="display:none;">
+    </div>
+
+    <div id="patients-tab" class="tab-content">
+        <div class="stats-grid" id="statsGrid"></div>
+
+        <div class="search-box">
+            <div class="search-icon-wrapper">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#B2BEC3" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="11" cy="11" r="8"></circle>
+                    <path d="m21 21-4.35-4.35"></path>
+                </svg>
+            </div>
+            <input type="text" class="search-input" id="searchInput" placeholder="Search by ID, prescription..." oninput="searchPatients()">
+        </div>
+
+        <div class="date-filter">
+            <input type="date" id="filterDateFrom" placeholder="From Date" onchange="applyDateFilter()">
+            <input type="date" id="filterDateTo" placeholder="To Date" onchange="applyDateFilter()">
+        </div>
+
+        <div class="filter-chips">
+            <div class="chip active" onclick="filterPatients('all')">All</div>
+            <div class="chip" onclick="filterPatients('today')">Due Today</div>
+            <div class="chip" onclick="filterPatients('upcoming')">Upcoming Week</div>
+            <div class="chip" onclick="filterPatients('overdue')">Overdue</div>
+            <div class="chip" onclick="filterPatients('imported')">Imported</div>
+        </div>
+
+        <div id="patientsContainer"></div>
+    </div>
+
+    <div id="data-tab" class="tab-content">
+        <div class="export-section">
+            <div class="export-title">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--dark)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                    <polyline points="7 10 12 15 17 10"></polyline>
+                    <line x1="12" y1="15" x2="12" y2="3"></line>
+                </svg>
+                EXPORT DATA
+            </div>
+            <p style="font-size: 12px; color: #636E72; margin-bottom: 15px;">Export database in different formats</p>
+            <div class="export-buttons">
+                <button class="btn-export btn-json" onclick="exportData('json')" data-tooltip="Export JSON">
+                    <svg width="50" height="50" viewBox="0 0 24 24" fill="none">
+                        <rect x="3" y="3" width="18" height="18" rx="3" fill="white" opacity="0.15"/>
+                        <rect x="5" y="5" width="14" height="14" rx="2" stroke="white" stroke-width="1.6"/>
+                        <path d="M10 8.5c-.8 0-1.2.4-1.2 1.2v1.1c0 .6-.3.9-.9.9h-.4M7.9 12.7h.4c.6 0 .9.3.9.9v1.1c0 .8.4 1.2 1.2 1.2" stroke="white" stroke-width="1.4" stroke-linecap="round"/>
+                        <path d="M14 8.5c.8 0 1.2.4 1.2 1.2v1.1c0 .6.3.9.9.9h.4M16.1 12.7h-.4c-.6 0-.9.3-.9.9v1.1c0 .8-.4 1.2-1.2 1.2" stroke="white" stroke-width="1.4" stroke-linecap="round"/>
                     </svg>
-                    Add
                 </button>
-                <button class="nav-tab" onclick="switchTab('patients')">
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                        <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
-                        <circle cx="12" cy="7" r="4"></circle>
+
+                <button class="btn-export btn-excel" onclick="exportData('excel')" data-tooltip="Export Excel">
+                    <svg width="50" height="50" viewBox="0 0 24 24" fill="none">
+                        <path d="M7 3h7l4 4v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2z" fill="#185C37"/>
+                        <path d="M14 3v4h4" fill="#21A366"/>
+                        <rect x="4" y="7" width="9.5" height="10" fill="white" opacity="0.95"/>
+                        <path d="M6.2 9l2.1 3.1L6.1 15h1.4l1.1-1.8L9.7 15h1.4l-2.1-2.9L11 9H9.6L8.5 10.7 7.4 9H6.2z" fill="#185C37"/>
                     </svg>
-                    Patients
                 </button>
-                <button class="nav-tab" onclick="switchTab('data')">
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                        <ellipse cx="12" cy="5" rx="9" ry="3"></ellipse>
-                        <path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"></path>
-                        <path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"></path>
+
+                <button class="btn-export btn-text" onclick="exportData('text')" data-tooltip="Export Text">
+                    <svg width="50" height="50" viewBox="0 0 24 24" fill="none">
+                        <path d="M7 3h7l4 4v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2z" fill="#FF9500"/>
+                        <path d="M14 3v4h4" fill="#FFC766"/>
+                        <line x1="8" y1="11" x2="16" y2="11" stroke="white" stroke-width="1.6" stroke-linecap="round"/>
+                        <line x1="8" y1="14" x2="16" y2="14" stroke="white" stroke-width="1.6" stroke-linecap="round"/>
+                        <line x1="8" y1="17" x2="13" y2="17" stroke="white" stroke-width="1.6" stroke-linecap="round"/>
                     </svg>
-                    Data Hub
                 </button>
             </div>
+        </div>
+
+        <div class="export-section">
+            <div class="export-title">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--dark)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                    <polyline points="17 8 12 3 7 8"></polyline>
+                    <line x1="12" y1="3" x2="12" y2="15"></line>
+                </svg>
+                IMPORT DATA
+            </div>
+            <div class="import-area" onclick="document.getElementById('importFileData').click()">
+                <svg width="60" height="60" viewBox="0 0 24 24" fill="none" stroke="var(--warning)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin: 0 auto 15px; display: block;">
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                    <polyline points="17 8 12 3 7 8"></polyline>
+                    <line x1="12" y1="3" x2="12" y2="15"></line>
+                </svg>
+                <div class="import-text">CLICK TO IMPORT</div>
+                <p style="font-size: 11px; color: #999; margin-top: 10px;">Supports JSON, Excel, Text</p>
+            </div>
+            <input type="file" id="importFileData" accept=".json,.xlsx,.xls,.txt" style="display:none;">
+        </div>
+
+        <div id="importPreview"></div>
+
+        <div class="export-section">
+            <div class="export-title">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--dark)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                    <ellipse cx="12" cy="5" rx="9" ry="3"></ellipse>
+                    <path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"></path>
+                    <path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"></path>
+                </svg>
+                BACKUP SYSTEM
+            </div>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                <button class="btn-export btn-json" onclick="createBackup()">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path>
+                        <polyline points="17 21 17 13 7 13 7 21"></polyline>
+                        <polyline points="7 3 7 8 15 8"></polyline>
+                    </svg>
+                    Backup
+                </button>
+                <button class="btn-export btn-excel" onclick="restoreBackup()">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                        <polyline points="17 8 12 3 7 8"></polyline>
+                        <line x1="12" y1="3" x2="12" y2="15"></line>
+                    </svg>
+                    Restore
+                </button>
+            </div>
+            <button class="btn-export" style="background: linear-gradient(135deg, #FF6B6B, #EE5A6F); color: white; width: 100%; margin-top: 10px;" onclick="deleteAll()">
+                <svg width="16" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                    <polyline points="3 6 5 6 21 6"></polyline>
+                    <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                    <line x1="10" y1="11" x2="10" y2="17"></line>
+                    <line x1="14" y1="11" x2="14" y2="17"></line>
+                </svg>
+                Delete All
+            </button>
+        </div>
+    </div>
+    <div id="dispensed-tab" class="tab-content">
+    <div class="section-title">
+        <span style="font-size: 20px;">💊</span>
+        Daily Dispensing Queue
+    </div>
+
+    <div class="dispense-search-container">
+        <div class="search-box" style="margin-bottom: 0;">
+            <div class="search-icon-wrapper">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#B2BEC3" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="11" cy="11" r="8"></circle>
+                    <path d="m21 21-4.35-4.35"></path>
+                </svg>
+            </div>
+            <input type="text" class="search-input" id="dispenseSearchInput" 
+                   placeholder="Search database to ADD to queue..." 
+                   oninput="searchForDispensing()" autocomplete="off">
+        </div>
+        <div id="dispenseSearchResults" class="dispense-results-dropdown"></div>
+    </div>
+
+    <div class="dispensing-table-container" style="margin-top: 20px;">
+        
+        <div style="display: flex; justify-content: space-between; align-items: center; padding: 15px 20px; border-bottom: 1px solid #eee; background: #fcfcfc;">
+            <div style="font-size: 14px; font-weight: 700; color: var(--primary); display: flex; align-items: center; gap: 8px;">
+                📋 Queue List 
+                <span id="queueCount" style="background: var(--secondary); color: white; padding: 2px 8px; border-radius: 12px; font-size: 11px;">0</span>
+            </div>
+            
+            <div style="position: relative; width: 250px;">
+                <input type="text" id="queueFilterInput" 
+                       placeholder="Filter within list..." 
+                       onkeyup="filterQueue()"
+                       style="width: 100%; padding: 8px 30px 8px 10px; border: 1px solid #ddd; border-radius: 20px; font-size: 12px; outline: none; transition: border 0.3s;">
+                <div style="position: absolute; right: 10px; top: 50%; transform: translateY(-50%); font-size: 12px; opacity: 0.5;">🔍</div>
+            </div>
+        </div>
+
+        <table class="dispensing-table">
+            <thead>
+                <tr>
+                    <th width="40" style="text-align: center; color: #D32F2F;">✖</th>
+                    
+                    <th width="40">#</th>
+                    
+                    <th>Patient Details</th>
+                    <th>Prescriptions</th>
+                    <th>Mobile</th>
+                    
+                    <th width="80" style="text-align: center;">Done</th>
+                </tr>
+            </thead>
+            <tbody id="dispensingQueueBody">
+                </tbody>
+        </table>
+        
+        <div id="emptyDispenseMsg" class="no-data" style="padding: 50px 20px;">
+            <div class="icon icon-pill" style="width: 40px; height: 16px; background: #E0E0E0; margin: 0 auto 15px;"></div>
+            <p style="font-size: 14px; color: #B2BEC3;">Queue is empty. Search above to add patients.</p>
+        </div>
+    </div>
+</div>
             
             <!-- Add Patient Tab -->
             <div id="add-tab" class="tab-content active">
@@ -4716,16 +5132,19 @@ function analyzeImportFailure(skipped) {
     }
 }
 // ============================================
-// 1. STRICT DATA PROCESSOR (Logic: No Date = No Entry)
+// 1. SMART DATA PROCESSOR (With Phone Update Logic)
 // ============================================
+let pendingUpdates = []; // مصفوفة لتخزين التحديثات المقترحة
+
 function processAndValidateData(rawData, isTextFile) {
     let validPatients = {};
+    let updatesToCheck = []; // قائمة الانتظار للتحديث
     let skipped = [];
     
     const patterns = {
         id: /^[1-4]\d{9}$/,
         rx: /^[a-zA-Z]\d{7}$/,
-        phoneExtraction: /(?:966|0)?(5\d{8})/
+        phoneExtraction: /(?:966|0)?(5\d{8})/ // استخراج الرقم السعودي الصحيح (5xxxxxxxx)
     };
 
     const cleanString = (val) => String(val || '').trim();
@@ -4748,20 +5167,63 @@ function processAndValidateData(rawData, isTextFile) {
             const keys = Object.keys(row);
             const getKey = (substr) => keys.find(k => k.toLowerCase().includes(substr.toLowerCase()));
 
-            raw.id = cleanString(row[getKey('ID')] || row['ID']);
-            raw.rx = cleanString(row[getKey('Prescription Number')] || row['Prescription Number']);
-            raw.phone = cleanString(row[getKey('Phone')] || row['Phone']);
-            raw.date = cleanString(row[getKey('Dispensing Date')] || row['Dispensing Date']);
-            raw.nextRefill = cleanString(row[getKey('Next Refill')] || row['Next Refill Date']);
-            raw.rxNote = cleanString(row[getKey('Prescription Note')] || row['Prescription Note']);
-            raw.genNote = cleanString(row[getKey('General Note')] || row['General Note']);
+            raw.id = cleanString(row[getKey('ID')] || row['ID'] || row['National ID']);
+            raw.rx = cleanString(row[getKey('Prescription')] || row['Rx'] || row['Prescription Number']);
+            raw.phone = cleanString(row[getKey('Phone')] || row['Mobile'] || row['Cell']);
+            raw.date = cleanString(row[getKey('Dispensing')] || row['Date']);
+            raw.nextRefill = cleanString(row[getKey('Next')] || row['Refill']);
+            raw.genNote = cleanString(row[getKey('Note')]);
         }
 
-        // --- B. Cleaning ---
+        // --- B. Cleaning & Extraction ---
         const cleanId = raw.id.replace(/\D/g, '');
         const cleanRx = raw.rx.replace(/\s/g, '').toLowerCase();
         
-        // --- C. Dates Analysis ---
+        // استخراج رقم الجوال الصحيح وتوحيد الصيغة (05xxxxxxxx)
+        let extractedPhone = '';
+        // نبحث عن أي صيغة تحتوي على 5 متبوعاً بـ 8 أرقام
+        const phoneMatch = raw.phone.replace(/\D/g, '').match(patterns.phoneExtraction);
+        if (phoneMatch) {
+            extractedPhone = '0' + phoneMatch[1]; // نحوله دائماً للصيغة المحلية 05...
+        }
+
+        // --- C. Validation ---
+        if (!patterns.id.test(cleanId)) {
+            skipped.push({ type: 'error', msg: `Row ${index + 1}: Invalid ID (${raw.id})` });
+            return;
+        }
+
+        // --- D. LOGIC: CHECK FOR UPDATE vs NEW ---
+        
+        // هل المريض موجود بالفعل في قاعدة البيانات؟
+        const existingPatient = patients.find(p => p.nationalId === cleanId);
+
+        if (existingPatient) {
+            // المنطق الذكي للتحديث:
+            // إذا كان عندنا في الإكسل رقم جوال صالح، والمريض في الداتا بيز ليس لديه رقم (أو الرقم مختلف)
+            if (extractedPhone && (!existingPatient.phoneNumber || existingPatient.phoneNumber !== extractedPhone)) {
+                
+                // التأكد أننا لم نضف هذا التحديث بالفعل في هذه الدورة (لمنع التكرار داخل الملف نفسه)
+                const alreadyQueued = updatesToCheck.find(u => u.dbId === existingPatient.id);
+                if (!alreadyQueued) {
+                    updatesToCheck.push({
+                        dbId: existingPatient.id, // الـ ID في قاعدة البيانات
+                        nationalId: cleanId,
+                        oldPhone: existingPatient.phoneNumber || 'Empty',
+                        newPhone: extractedPhone,
+                        name: `Row ${index+1}`
+                    });
+                }
+            } else {
+                // المريض موجود والبيانات مطابقة أو لا يوجد جديد لإضافته (تكرار عادي)
+                skipped.push({ type: 'duplicate', msg: `Row ${index + 1}: Exists & No update needed (${cleanId})` });
+            }
+            return; // لا نضفه كملف جديد
+        }
+
+        // --- E. New Record Logic (إذا لم يكن موجوداً) ---
+        
+        // حساب التواريخ للملفات الجديدة
         let importDispensingDate = (raw.date && !isNaN(new Date(raw.date))) 
             ? new Date(raw.date).toISOString().split('T')[0] 
             : new Date().toISOString().split('T')[0];
@@ -4769,48 +5231,21 @@ function processAndValidateData(rawData, isTextFile) {
         let hasImportedDate = (raw.nextRefill && !isNaN(new Date(raw.nextRefill)));
         let importNextRefillDate = hasImportedDate 
             ? new Date(raw.nextRefill).toISOString().split('T')[0] 
-            : ""; // نتركه فارغاً إذا لم يوجد في الملف
+            : "";
 
-        // --- D. Validation ---
-        if (!patterns.id.test(cleanId) || !patterns.rx.test(cleanRx)) {
-            skipped.push({ type: 'error', msg: `Row ${index + 1}: Data Format Error (ID: ${raw.id} / Rx: ${raw.rx})` });
-            return;
-        }
-
-        // --- E. SMART STRICT DUPLICATE CHECK ---
-        const isDuplicateInDB = patients.some(existingPatient => {
-            const idMatch = existingPatient.nationalId === cleanId;
-            const rxMatch = existingPatient.prescriptions.some(p => p.number.toLowerCase() === cleanRx);
-            
-            if (hasImportedDate) {
-                // الحالة الأولى: لو فيه تاريخ في الملف -> قارن الهوية والوصفة والتاريخ
-                return idMatch && rxMatch && (existingPatient.nextRefillDate === importNextRefillDate);
-            } else {
-                // الحالة الثانية (طلبك): لو مفيش تاريخ ريفل في الملف -> لا يقبل لو الهوية والوصفة موجودين
-                return idMatch && rxMatch;
-            }
-        });
-
-        if (isDuplicateInDB) {
-            let reason = hasImportedDate ? `Date Match: ${importNextRefillDate}` : "ID & Rx already exist (No new date provided)";
-            skipped.push({ type: 'duplicate', msg: `Row ${index + 1}: Skipped (${reason})` });
-            return;
-        }
-
-        // إذا لم يوجد تاريخ في الملف وتم تجاوز فحص التكرار، نقوم بحساب تاريخ افتراضي للحفظ
+        // إذا لم يوجد تاريخ ريفيل، نحسبه تلقائياً (+24 يوم)
         if (!hasImportedDate) {
             let d = new Date(importDispensingDate);
             d.setDate(d.getDate() + 24);
             importNextRefillDate = d.toISOString().split('T')[0];
         }
 
-        // --- F. Aggregation ---
-        const uniqueKey = `${cleanId}_${importNextRefillDate}`;
-
+        // تجميع البيانات للإضافة الجديدة
+        const uniqueKey = `${cleanId}`; // المفتاح هو رقم الهوية فقط لمنع تكرار نفس المريض في الملف الواحد
         if (!validPatients[uniqueKey]) {
             validPatients[uniqueKey] = {
                 nationalId: cleanId,
-                phoneNumber: cleanString(raw.phone).replace(/\D/g, '').match(patterns.phoneExtraction) ? '0' + cleanString(raw.phone).replace(/\D/g, '').match(patterns.phoneExtraction)[1] : '',
+                phoneNumber: extractedPhone, // نستخدم الرقم المستخرج
                 dispensingDate: importDispensingDate,
                 refillPeriod: 24,
                 nextRefillDate: importNextRefillDate,
@@ -4820,7 +5255,8 @@ function processAndValidateData(rawData, isTextFile) {
             };
         }
 
-        if (!validPatients[uniqueKey].prescriptions.find(p => p.number === cleanRx)) {
+        // إضافة الوصفة (إذا كانت صالحة وغير مكررة لهذا المريض)
+        if (cleanRx && !validPatients[uniqueKey].prescriptions.find(p => p.number === cleanRx)) {
             validPatients[uniqueKey].prescriptions.push({
                 number: cleanRx,
                 note: raw.rxNote
@@ -4830,305 +5266,228 @@ function processAndValidateData(rawData, isTextFile) {
 
     return {
         valid: Object.values(validPatients),
+        updates: updatesToCheck, // نرجع قائمة التحديثات الجديدة
         skipped: skipped
     };
 }
+
 // ============================================
-// 3. SMART TEXT PARSER (Enhanced)
+// 2. PREVIEW UI (Modified to show Updates)
 // ============================================
-function parseSmartTextData(text) {
-    let records = [];
-    let lines = text.split('\n');
-    let currentRecord = null;
-
-    // أنماط البحث
-    const idPattern = /[1-4]\d{9}/;
-    const rxPattern = /[a-zA-Z]\d{7}/;
-    const datePattern = /(\d{4}-\d{2}-\d{2})/; // يبحث عن أي تاريخ YYYY-MM-DD
-
-    lines.forEach(line => {
-        line = line.trim();
-        if (!line) return;
-
-        // التقاط الهوية
-        let idMatch = line.match(idPattern);
-        if (idMatch && (line.toLowerCase().includes("id") || line.includes("Patient"))) {
-            if (currentRecord) records.push(currentRecord);
-            currentRecord = {
-                nationalId: idMatch[0],
-                phoneNumber: '',
-                prescription: '',
-                prescriptions: [],
-                dispensingDate: '',
-                nextRefillDate: '',
-                note: ''
-            };
-        } 
-        else if (currentRecord) {
-            // التقاط التواريخ
-            let dates = line.match(new RegExp(datePattern, 'g'));
-            if (dates) {
-                if (line.toLowerCase().includes('dispens')) currentRecord.dispensingDate = dates[0];
-                if (line.toLowerCase().includes('next') || line.toLowerCase().includes('refill')) {
-                    currentRecord.nextRefillDate = dates[dates.length - 1]; // غالباً التاريخ الثاني هو الرفيل
-                }
-            }
-
-            // التقاط الوصفات
-            let rxMatch = line.match(rxPattern);
-            if (rxMatch && rxMatch[0] !== currentRecord.nationalId) {
-                currentRecord.prescriptions.push(rxMatch[0]);
-                if (!currentRecord.prescription) currentRecord.prescription = rxMatch[0];
-            }
-            
-            // التقاط الملاحظات (إذا السطر لا يحتوي تواريخ ولا وصفات)
-            if (!rxMatch && !dates && line.length > 3 && !line.includes('---')) {
-               // افتراض أن السطر الباقي هو ملاحظة
-               currentRecord.note += line + " ";
-            }
-        }
-    });
-
-    if (currentRecord) records.push(currentRecord);
-
-    // تجهيز البيانات
-    let flatRecords = [];
-    records.forEach(rec => {
-        if (rec.prescriptions.length > 0) {
-            rec.prescriptions.forEach(rx => {
-                flatRecords.push({
-                    nationalId: rec.nationalId,
-                    prescription: rx,
-                    phoneNumber: rec.phoneNumber,
-                    dispensingDate: rec.dispensingDate,
-                    nextRefillDate: rec.nextRefillDate,
-                    note: rec.note.trim()
-                });
-            });
-        }
-    });
-
-    return flatRecords;
-}
-// ============================================
-// 2. IMPORT PREVIEW UI (Shows Full Data)
-// ============================================
-function showImportPreview(data, skipped) {
+// هذه الدالة تعرض واجهة المعاينة الجديدة (تحديثات + إضافات)
+function showImportPreviewUI(result) {
     switchTab('data');
+    const container = document.getElementById('importPreview');
     
-    // 1. عرض الأخطاء (تم إصلاح [object Object])
-    let errorReport = '';
-    if (skipped && skipped.length > 0) {
-        errorReport = `
-            <div style="background: #FFF5F5; border: 1px solid #FEB2B2; padding: 15px; border-radius: 12px; margin-bottom: 25px;">
-                <h4 style="color: #C53030; margin-top: 0; margin-bottom: 10px; display: flex; align-items: center; gap: 8px; font-size: 14px;">
-                    ⚠️ Skipped ${skipped.length} Records
-                </h4>
-                <div style="max-height: 120px; overflow-y: auto; font-size: 11px; color: #742A2A; font-family: monospace; line-height: 1.5;">
-                    ${skipped.map(s => {
-                        // التحقق مما إذا كان s كائن أم نص
-                        const msg = typeof s === 'object' ? s.msg : s;
-                        const icon = typeof s === 'object' && s.type === 'duplicate' ? '🔁' : '🚫';
-                        return `<div style="border-bottom: 1px dashed rgba(0,0,0,0.05); padding: 2px 0;">${icon} ${msg}</div>`;
-                    }).join('')}
+    let html = `<div style="background: white; padding: 25px; border-radius: 16px; border: 2px solid var(--primary); margin-top: 20px; box-shadow: 0 10px 40px rgba(0,0,0,0.1);">`;
+
+    // 1. قسم التحديثات (Phones Updates) - القسم الأزرق
+    if (result.updates && result.updates.length > 0) {
+        html += `
+            <div style="background: #E3F2FD; border: 1px solid #90CAF9; padding: 15px; border-radius: 12px; margin-bottom: 20px;">
+                <h3 style="color: #1565C0; margin-top: 0; display: flex; align-items: center; gap: 10px; font-size: 16px;">
+                    <span>📲</span> Found ${result.updates.length} Phone Numbers to Update
+                </h3>
+                <p style="font-size:12px; color:#555; margin-bottom: 10px;">Matching IDs found. These records will be updated with new phone numbers.</p>
+                
+                <div style="max-height: 200px; overflow-y: auto; background: white; border: 1px solid #BBDEFB; border-radius: 8px;">
+                    <table style="width: 100%; border-collapse: collapse; font-size: 12px;">
+                        <thead style="background: #f1f8ff; position: sticky; top: 0;">
+                            <tr>
+                                <th style="padding: 8px; text-align: left; border-bottom: 1px solid #ddd;">ID</th>
+                                <th style="padding: 8px; text-align: left; border-bottom: 1px solid #ddd;">Old Phone</th>
+                                <th style="padding: 8px; text-align: left; border-bottom: 1px solid #ddd;">New Phone</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${result.updates.map(u => `
+                                <tr style="border-bottom: 1px solid #eee;">
+                                    <td style="padding: 8px; font-family: monospace;">${u.nationalId}</td>
+                                    <td style="padding: 8px; color: #aaa;">${u.oldPhone}</td>
+                                    <td style="padding: 8px; color: #2E7D32; font-weight: bold;">${u.newPhone}</td>
+                                </tr>
+                            `).join('')}
+                        </tbody>
+                    </table>
                 </div>
             </div>
         `;
     }
 
-    let container = document.getElementById('importPreview');
-    
-    // 2. بناء HTML للمعاينة (كروت كاملة)
-    container.innerHTML = `
-        <div style="background: white; padding: 25px; border-radius: 16px; border: 2px solid var(--primary); margin-top: 20px; box-shadow: 0 10px 40px rgba(0,0,0,0.1);">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; border-bottom: 1px solid #eee; padding-bottom: 15px;">
-                <h3 style="color: var(--primary); font-size: 18px; display: flex; align-items: center; gap: 10px; margin: 0;">
-                    <div class="icon icon-database" style="color: var(--primary);"></div>
-                    Import Preview
+    // 2. قسم الإضافات الجديدة (New Records) - القسم الأخضر
+    if (result.valid.length > 0) {
+        html += `
+            <div style="margin-bottom: 20px;">
+                <h3 style="color: var(--success); margin-top: 0; font-size: 16px;">
+                    <span>➕</span> ${result.valid.length} New Patients to Add
                 </h3>
-                <span style="background: var(--success); color: white; padding: 5px 12px; border-radius: 20px; font-size: 12px; font-weight: bold;">
-                    ${data.length} Valid Records
-                </span>
+                <div style="max-height: 200px; overflow-y: auto; border: 1px solid #eee; border-radius: 8px; padding: 10px;">
+                    ${result.valid.map((p, i) => `
+                        <div style="padding: 8px; border-bottom: 1px dashed #eee; font-size: 12px; display: flex; justify-content: space-between;">
+                            <span><strong>#${i+1}</strong> ID: ${p.nationalId}</span>
+                            <span>Rx: ${p.prescriptions.length} | Phone: ${p.phoneNumber || '-'}</span>
+                        </div>
+                    `).join('')}
+                </div>
             </div>
-            
-            ${errorReport}
+        `;
+    }
 
-            <div style="max-height: 500px; overflow-y: auto; margin-bottom: 25px; padding-right: 5px;">
-                ${data.map((patient, index) => `
-                    <div style="background: linear-gradient(145deg, #ffffff, #f8f9fe); padding: 18px; border-radius: 14px; margin-bottom: 15px; border: 1px solid #E3E8FF; box-shadow: 0 4px 12px rgba(0,0,0,0.03); position: relative;">
-                        
-                        <div style="position: absolute; top: 15px; right: 15px; font-size: 24px; font-weight: 900; color: rgba(0,0,0,0.05); font-family: sans-serif;">
-                            #${index + 1}
-                        </div>
-
-                        <div style="display: flex; align-items: center; gap: 15px; margin-bottom: 12px;">
-                            <div style="font-weight: 800; color: var(--primary); font-family: 'Courier New', monospace; font-size: 18px; display: flex; align-items: center; gap: 5px;">
-                                <span style="font-size: 14px;">🆔</span> ${patient.nationalId}
-                            </div>
-                            ${patient.phoneNumber ? `
-                                <div style="background: #E3F2FD; color: #1565C0; padding: 4px 10px; border-radius: 20px; font-size: 12px; font-weight: 600; display: flex; align-items: center; gap: 5px;">
-                                    📱 ${patient.phoneNumber}
-                                </div>
-                            ` : '<span style="font-size:11px; color:#aaa;">No Phone</span>'}
-                        </div>
-
-                        <div style="display: flex; gap: 10px; margin-bottom: 15px;">
-                            <div style="flex: 1; background: white; border: 1px solid #E3E8FF; padding: 8px 12px; border-radius: 8px;">
-                                <div style="font-size: 10px; color: #636E72; text-transform: uppercase; margin-bottom: 3px;">Dispensing Date</div>
-                                <div style="font-weight: 700; color: var(--dark); font-size: 13px;">${patient.dispensingDate}</div>
-                            </div>
-                            <div style="flex: 1; background: #FFF3E0; border: 1px solid #FFE0B2; padding: 8px 12px; border-radius: 8px;">
-                                <div style="font-size: 10px; color: #E65100; text-transform: uppercase; margin-bottom: 3px;">Next Refill</div>
-                                <div style="font-weight: 800; color: #E65100; font-size: 13px;">${patient.nextRefillDate}</div>
-                            </div>
-                        </div>
-
-                        <div style="background: white; border: 1px solid #E3E8FF; border-radius: 10px; padding: 12px;">
-                            <div style="font-size: 11px; color: #b2bec3; text-transform: uppercase; font-weight: 700; margin-bottom: 8px;">Prescriptions:</div>
-                            ${patient.prescriptions.map(p => `
-                                <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px dashed #eee; padding: 6px 0;">
-                                    <span style="font-family: 'Courier New', monospace; font-weight: 700; color: var(--dark); font-size: 14px;">
-                                        💊 ${p.number}
-                                    </span>
-                                    ${p.note ? `<span style="font-size: 11px; color: #00B894; background: #E0F2F1; padding: 2px 8px; border-radius: 4px;">📝 ${p.note}</span>` : ''}
-                                </div>
-                            `).join('')}
-                        </div>
-
-                        ${patient.generalNote ? `
-                            <div style="margin-top: 12px; background: #FFF9C4; padding: 10px; border-radius: 8px; font-size: 12px; color: #5D4037; border-left: 4px solid #FBC02D; line-height: 1.4;">
-                                <strong>General Note:</strong> ${patient.generalNote}
-                            </div>
-                        ` : ''}
-
-                    </div>
-                `).join('')}
+    // 3. قسم الأخطاء/التخطي
+    if (result.skipped.length > 0) {
+        html += `
+            <div style="font-size: 11px; color: #999; margin-top: 10px; border-top: 1px solid #eee; padding-top: 10px;">
+                ⚠️ ${result.skipped.length} rows skipped (Duplicates or Errors) - <a href="#" onclick="alert('${result.skipped.length} records skipped because they already exist with same data or invalid format.'); return false;">Details</a>
             </div>
+        `;
+    }
 
-            <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 15px;">
-                <button class="btn-primary" onclick="confirmImport()" style="height: 50px; font-size: 15px;">
-                    <div class="icon icon-save" style="color: white;"></div>
-                    CONFIRM & IMPORT ALL (${data.length})
+    // 4. أزرار التحكم
+    const totalOps = result.valid.length + (result.updates ? result.updates.length : 0);
+    
+    if (totalOps > 0) {
+        html += `
+            <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 15px; margin-top: 20px;">
+                <button class="btn-primary" onclick="confirmSmartImport()" style="height: 50px;">
+                    EXECUTE (${result.updates ? result.updates.length : 0} Updates, ${result.valid.length} New)
                 </button>
                 <button class="btn-secondary" onclick="cancelImport()" style="height: 50px;">
                     CANCEL
                 </button>
             </div>
-        </div>
-    `;
-}
-// 5. Confirm Action (High-Performance Batch Mode with Progress Bar)
-async function confirmImport() {
-    if (!pendingImportData) return;
-    
-    // 1. Setup UI for Loading State (Progress Bar)
-    const container = document.getElementById('importPreview');
-    // Save original content in case of error, though we mostly reset
-    const originalContent = container.innerHTML; 
-    const totalRecords = pendingImportData.length;
-    
-    // Inject Progress Bar HTML
-    container.innerHTML = `
-        <div style="padding: 40px; text-align: center;">
-            <div class="spinner" style="border: 4px solid #f3f3f3; border-top: 4px solid var(--primary); border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; margin: 0 auto 20px;"></div>
-            <h3 style="color: var(--primary); margin-bottom: 10px;">Importing Data...</h3>
-            <div style="background: #E3E8FF; height: 10px; border-radius: 5px; width: 100%; max-width: 400px; margin: 0 auto; overflow: hidden;">
-                <div id="importProgressBar" style="background: var(--primary); height: 100%; width: 0%; transition: width 0.3s ease;"></div>
+        `;
+    } else {
+        html += `
+            <div style="text-align:center; padding:30px;">
+                <div style="font-size: 30px; margin-bottom: 10px;">🤷‍♂️</div>
+                <p style="color: #666;">No new data or updates found.</p>
+                <p style="font-size: 12px; color: #999;">All records in file already exist with matching data.</p>
+                <button class="btn-secondary" onclick="cancelImport()" style="margin-top: 15px;">Close</button>
             </div>
-            <p id="importProgressText" style="margin-top: 10px; color: #636E72; font-family: monospace;">Processing 0 of ${totalRecords}</p>
+        `;
+    }
+
+    html += `</div>`;
+    container.innerHTML = html;
+}
+
+// ============================================
+// 3. EXECUTE IMPORT (Updates + Inserts)
+// ============================================
+async function confirmSmartImport() {
+    const container = document.getElementById('importPreview');
+    container.innerHTML = `
+        <div style="text-align:center; padding:40px;">
+            <div class="loading" style="width:40px; height:40px; border-width:4px; border-color: var(--primary) transparent var(--primary) transparent;"></div>
+            <h3 style="margin-top:20px; color: var(--primary);">Processing Data...</h3>
+            <p style="color: #666;">Updating Phones & Adding Patients</p>
         </div>
-        <style>@keyframes spin {0% {transform: rotate(0deg);} 100% {transform: rotate(360deg);}}</style>
     `;
 
-    // 2. Configuration for Speed
-    const BATCH_SIZE = 50; // Process 50 patients in parallel (Optimal for Supabase)
-    let successCount = 0;
-    let failCount = 0;
-    
+    let updateCount = 0;
+    let addCount = 0;
+
     try {
-        // 3. Batch Processing Loop
-        for (let i = 0; i < totalRecords; i += BATCH_SIZE) {
-            // Get the current chunk
-            const chunk = pendingImportData.slice(i, i + BATCH_SIZE);
-            
-            // Create array of promises (Parallel Execution)
-            const promises = chunk.map(async (patient) => {
-                try {
-                    // Logic: Auto-calc Date
-                    if (!patient.nextRefillDate && patient.dispensingDate) {
-                        let date = new Date(patient.dispensingDate);
-                        if (!isNaN(date.getTime())) {
-                            date.setDate(date.getDate() + patient.refillPeriod);
-                            patient.nextRefillDate = date.toISOString().split('T')[0];
-                        }
-                    }
-                    
-                    // The actual save operation
-                    await savePatientToSupabase(patient);
-                    successCount++;
-                } catch (err) {
-                    console.error("Import Error for ID " + patient.nationalId, err);
-                    failCount++;
-                }
-            });
-
-            // WAIT for the whole chunk to finish
-            await Promise.all(promises);
-
-            // Update Progress Bar UI
-            const processed = Math.min(i + BATCH_SIZE, totalRecords);
-            const percent = Math.round((processed / totalRecords) * 100);
-            
-            const bar = document.getElementById('importProgressBar');
-            const text = document.getElementById('importProgressText');
-            
-            if (bar && text) {
-                bar.style.width = `${percent}%`;
-                text.innerText = `Processing ${processed} of ${totalRecords} (${percent}%)`;
+        // 1. تنفيذ التحديثات (Updates)
+        if (pendingUpdates && pendingUpdates.length > 0) {
+            for (const update of pendingUpdates) {
+                const { error } = await supabaseClient
+                    .from('patients')
+                    .update({ phone_number: update.newPhone })
+                    .eq('id', update.dbId);
+                
+                if (!error) updateCount++;
             }
         }
-        
-        // 4. Finalize
+
+        // 2. تنفيذ الإضافات الجديدة (New Records)
+        if (pendingImportData && pendingImportData.length > 0) {
+            // نستخدم دالة الحفظ الموجودة
+            // للسرعة، يمكن استخدام Promise.all لكن التسلسل أكثر أماناً لتجنب الضغط
+            for (const patient of pendingImportData) {
+                await savePatientToSupabase(patient);
+                addCount++;
+            }
+        }
+
+        // 3. الانتهاء وإعادة التحميل
         await loadPatientsFromSupabase();
         
-        // Prepare Final Message
-        let msg = `<p style="text-align: center; padding: 20px;">
-                Operation finished.<br>
-                <strong style="color:var(--success)">✅ Imported: ${successCount}</strong><br>`;
-        
-        if (failCount > 0) {
-            msg += `<strong style="color:var(--danger)">❌ Failed: ${failCount}</strong><br>`;
-        }
-        
-        if (skippedRecords.length > 0) {
-            msg += `<small style="color:#d63031">(${skippedRecords.length} skipped during validation)</small>`;
-        }
-        
-        msg += `</p>`;
-        
-        // Show Success Modal
         showModal(
-            '<span style="color: var(--secondary);">✅ Import Complete</span>',
-            msg,
-            '<button class="btn-primary" style="grid-column: 1/3;" onclick="closeModal(); switchTab(\'patients\'); displayPatients()">View Patients</button>'
+            '<span style="color: var(--secondary);">✅ Operation Complete</span>',
+            `
+            <div style="text-align: center; padding: 20px;">
+                <div style="width: 60px; height: 60px; background: #E8F5E9; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 15px;">
+                    <span style="font-size: 30px;">🎉</span>
+                </div>
+                <p style="font-size: 16px; margin-bottom: 20px; font-weight: bold; color: var(--dark);">Data processed successfully!</p>
+                
+                <div style="background: #F8F9FE; padding: 15px; border-radius: 12px; text-align: left;">
+                    <div style="margin-bottom: 8px; font-size: 14px; display: flex; justify-content: space-between;">
+                        <span style="color: #1565C0;">📲 Phones Updated:</span>
+                        <b>${updateCount}</b>
+                    </div>
+                    <div style="font-size: 14px; display: flex; justify-content: space-between;">
+                        <span style="color: #2E7D32;">➕ Patients Added:</span>
+                        <b>${addCount}</b>
+                    </div>
+                </div>
+            </div>
+            `,
+            '<button class="btn-primary" style="grid-column: 1/3;" onclick="closeModal(); switchTab(\'patients\'); displayPatients()">View All Patients</button>'
         );
-        
-        // Cleanup
+
+        // تنظيف المتغيرات والواجهة
+        document.getElementById('importPreview').innerHTML = '';
         pendingImportData = null;
-        skippedRecords = [];
-        container.innerHTML = ''; 
+        pendingUpdates = null;
 
     } catch (error) {
-        console.error('Fatal Import Error:', error);
-        // Restore UI is tricky here as data might be half-imported, just show error
-        showModal(
-            '<span style="color: var(--danger);">❌ System Error</span>',
-            `<p style="text-align: center; padding: 20px;">${error.message}</p>`,
-            '<button class="btn-primary" style="grid-column: 1/3;" onclick="closeModal()">OK</button>'
-        );
+        console.error('Import Error:', error);
+        showModal('<span style="color:red">Error</span>', `<p>${error.message}</p>`, '<button class="btn-primary" onclick="closeModal()">OK</button>');
     }
 }
 
+// هام: تحديث دالة التعامل مع الملف لربط كل شيء ببعضه
+function handleImportFile(e) {
+    let file = e.target.files[0];
+    if (!file) return;
+
+    let reader = new FileReader();
+    reader.onload = function(event) {
+        try {
+            let rawData = [];
+            // قراءة الملف حسب نوعه
+            if (file.name.toLowerCase().endsWith('.json')) {
+                let jsonContent = JSON.parse(event.target.result);
+                rawData = Array.isArray(jsonContent) ? jsonContent : (jsonContent.data || []);
+            } else if (file.name.toLowerCase().endsWith('.xlsx') || file.name.toLowerCase().endsWith('.xls')) {
+                let workbook = XLSX.read(event.target.result, { type: 'binary' });
+                rawData = XLSX.utils.sheet_to_json(workbook.Sheets[workbook.SheetNames[0]], { defval: "" });
+            } else if (file.name.toLowerCase().endsWith('.txt')) {
+                rawData = parseSmartTextData(event.target.result);
+            }
+
+            // المعالجة الذكية
+            const result = processAndValidateData(rawData, file.name.toLowerCase().endsWith('.txt'));
+            
+            // تخزين النتائج في المتغيرات العامة
+            pendingImportData = result.valid;
+            pendingUpdates = result.updates; // <--- مصفوفة التحديثات الجديدة
+            
+            // عرض واجهة المعاينة الجديدة
+            showImportPreviewUI(result);
+
+        } catch (error) {
+            console.error(error);
+            showModal('Error', 'Invalid or Corrupted File', 'OK');
+        }
+    };
+
+    if (file.name.match(/xls|xlsx/)) reader.readAsBinaryString(file);
+    else reader.readAsText(file);
+    e.target.value = ''; // تصفير الحقل للسماح برفع نفس الملف مرة أخرى
+}
 // 6. Helpers (Standard Protocol)
 function cancelImport() {
     pendingImportData = null;
@@ -5282,6 +5641,348 @@ function copyRxOnly(nationalId, prescriptionNumber) {
         console.error('Copy failed', err);
     });
 }
+// ============================================
+// SUPABASE LOAD FUNCTION (Updated)
+// ============================================
+// يجب تحديث دالة التحميل لقراءة عمود in_queue
+async function loadPatientsFromSupabase() {
+    try {
+        const { data: patientsData, error } = await supabaseClient
+            .from('patients')
+            .select(`
+                *,
+                prescriptions (*)
+            `)
+            .eq('pharmacy_id', currentUser.id)
+            .order('next_refill_date', { ascending: true });
+
+        if (error) throw error;
+
+        patients = patientsData.map(p => ({
+            id: p.id,
+            nationalId: p.national_id,
+            phoneNumber: p.phone_number,
+            dispensingDate: p.dispensing_date,
+            refillPeriod: p.refill_period,
+            nextRefillDate: p.next_refill_date,
+            generalNote: p.general_note,
+            imported: p.imported,
+            inQueue: p.in_queue, // <--- هام جداً: قراءة حالة القائمة
+            prescriptions: p.prescriptions.map(pr => ({
+                number: pr.prescription_number,
+                note: pr.note
+            }))
+        }));
+
+        // ملء قائمة الانتظار تلقائياً عند فتح البرنامج
+        dispensingQueue = patients.filter(p => p.inQueue === true);
+        renderDispensingQueue(); // رسم الجدول فوراً
+
+    } catch (error) {
+        console.error('Error loading patients:', error);
+    }
+}
+
+// ============================================
+// DISPENSED TAB LOGIC (PERSISTENT QUEUE)
+// ============================================
+
+let dispensingQueue = []; 
+
+// 1. البحث (لم يتغير)
+function searchForDispensing() {
+    const input = document.getElementById('dispenseSearchInput');
+    const dropdown = document.getElementById('dispenseSearchResults');
+    const term = input.value.trim();
+
+    if (term.length < 2) {
+        dropdown.style.display = 'none';
+        return;
+    }
+
+    let results = [];
+    if (fuse) {
+        results = fuse.search(term).slice(0, 5).map(r => r.item);
+    } else {
+        results = patients.filter(p => 
+            p.nationalId.includes(term) || 
+            (p.phoneNumber && p.phoneNumber.includes(term))
+        ).slice(0, 5);
+    }
+
+    if (results.length === 0) {
+        dropdown.style.display = 'none';
+        return;
+    }
+
+    dropdown.innerHTML = results.map(p => `
+        <div class="dispense-result-item" onclick="addToQueue('${String(p.id)}')">
+            <div>
+                <div style="font-weight:800; color:var(--primary); font-family: 'Courier New', monospace;">${p.nationalId}</div>
+                <div style="font-size:11px; color:#666;">${p.phoneNumber || 'No Phone'}</div>
+            </div>
+            <div style="background:var(--light); padding:5px 10px; border-radius:20px; font-size:12px; font-weight:bold; color:var(--primary);">
+                Add +
+            </div>
+        </div>
+    `).join('');
+
+    dropdown.style.display = 'block';
+}
+
+// 2. إضافة مريض للقائمة (تحديث السيرفر)
+async function addToQueue(patientId) {
+    const pId = String(patientId);
+    const patient = patients.find(p => String(p.id) === pId);
+
+    if (!patient) return;
+
+    if (dispensingQueue.find(p => String(p.id) === pId)) {
+        document.getElementById('dispenseSearchInput').value = '';
+        document.getElementById('dispenseSearchResults').style.display = 'none';
+        return; 
+    }
+
+    // تحديث الواجهة فوراً (Optimistic UI)
+    patient.inQueue = true;
+    dispensingQueue.push(patient);
+    filterQueue();
+    
+    document.getElementById('dispenseSearchInput').value = '';
+    document.getElementById('dispenseSearchResults').style.display = 'none';
+
+    // التحديث في قاعدة البيانات
+    try {
+        await supabaseClient
+            .from('patients')
+            .update({ in_queue: true })
+            .eq('id', pId);
+    } catch (err) {
+        console.error("Failed to add to queue DB", err);
+    }
+}
+
+// 3. فلترة الجدول
+function filterQueue() {
+    const input = document.getElementById('queueFilterInput');
+    const filterText = input ? input.value.toLowerCase().trim() : '';
+    renderDispensingQueue(filterText);
+}
+
+// 4. رسم الجدول
+function renderDispensingQueue(filterText = '') {
+    const tbody = document.getElementById('dispensingQueueBody');
+    const emptyMsg = document.getElementById('emptyDispenseMsg');
+    const countBadge = document.getElementById('queueCount');
+
+    const displayList = dispensingQueue.filter(p => {
+        if (!filterText) return true;
+        return p.nationalId.includes(filterText) || 
+               (p.phoneNumber && p.phoneNumber.includes(filterText)) ||
+               p.prescriptions.some(rx => rx.number.toLowerCase().includes(filterText));
+    });
+
+    if (countBadge) countBadge.textContent = dispensingQueue.length;
+
+    if (displayList.length === 0) {
+        tbody.innerHTML = '';
+        if (dispensingQueue.length === 0) {
+            emptyMsg.style.display = 'block';
+        } else {
+            emptyMsg.style.display = 'none';
+            tbody.innerHTML = '<tr><td colspan="5" style="text-align:center; padding:20px; color:#aaa;">No matches found</td></tr>';
+        }
+        return;
+    }
+
+    emptyMsg.style.display = 'none';
+    
+    tbody.innerHTML = displayList.map((p, index) => `
+        <tr id="queue-row-${p.id}" style="transition: background 0.3s;">
+            <td style="text-align: center;">
+                <button class="btn-remove-queue" onclick="confirmRemoveFromQueue('${p.id}')" title="Remove" 
+                        style="background: #FFEBEE; border: none; width: 24px; height: 24px; border-radius: 6px; cursor: pointer; display: inline-flex; align-items: center; justify-content: center;">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#D32F2F" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                        <line x1="18" y1="6" x2="6" y2="18"></line>
+                        <line x1="6" y1="6" x2="18" y2="18"></line>
+                    </svg>
+                </button>
+            </td>
+
+            <td><span style="font-weight:bold; color:#aaa;">${index + 1}</span></td>
+            
+            <td>
+                <div style="font-weight:800; font-family:'Courier New', monospace; color:var(--dark); font-size:16px;">
+                    ${p.nationalId}
+                </div>
+            </td>
+
+            <td>
+                <div class="rx-chips-mini">
+                    ${p.prescriptions.map(rx => `<span class="rx-chip-mini">${rx.number}</span>`).join('')}
+                </div>
+            </td>
+
+            <td style="font-family: 'Courier New', monospace; color: #0984e3; font-weight: 600; font-size: 13px;">
+                ${p.phoneNumber ? `📱 ${p.phoneNumber}` : '<span style="color:#ddd;">-</span>'}
+            </td>
+
+            <td style="text-align: center;">
+                <input type="checkbox" class="dispense-checkbox" 
+                       title="Mark as Dispensed"
+                       onclick="handleDispenseCheck(this, '${p.id}')">
+            </td>
+        </tr>
+    `).join('');
+}
+
+// 5. تأكيد الحذف
+function confirmRemoveFromQueue(patientId) {
+    showModal(
+        '<span style="color: var(--danger);">⚠️ Remove Confirmation</span>',
+        `
+        <div style="text-align: center; padding: 20px;">
+            <p style="font-size: 16px; color: var(--dark); margin-bottom: 10px;">
+                Remove this patient from queue?
+            </p>
+        </div>
+        `,
+        `
+        <button class="btn-secondary" onclick="closeModal()">Cancel</button>
+        <button class="btn-action btn-delete" onclick="executeRemoval('${patientId}')" style="justify-content: center; padding: 10px 20px;">
+            Yes, Remove
+        </button>
+        `
+    );
+}
+
+// 6. تنفيذ الحذف (تحديث السيرفر)
+async function executeRemoval(patientId) {
+    // تحديث الواجهة
+    dispensingQueue = dispensingQueue.filter(p => String(p.id) !== String(patientId));
+    filterQueue();
+    closeModal();
+
+    // تحديث قاعدة البيانات
+    try {
+        await supabaseClient
+            .from('patients')
+            .update({ in_queue: false })
+            .eq('id', patientId);
+    } catch (err) {
+        console.error("Failed to remove from queue DB", err);
+    }
+}
+
+// 7. زر "تم"
+function handleDispenseCheck(checkbox, patientId) {
+    if (checkbox.checked) {
+        const row = document.getElementById(`queue-row-${patientId}`);
+        if(row) row.style.backgroundColor = '#e8f5e9'; 
+
+        setTimeout(() => {
+            openRefillDateModal(patientId);
+        }, 300);
+    }
+}
+
+// 8. مودال التاريخ
+function openRefillDateModal(patientId) {
+    const pId = String(patientId);
+    const patient = patients.find(p => String(p.id) === pId);
+    if (!patient) return;
+
+    let defaultNextDate = new Date();
+    defaultNextDate.setDate(defaultNextDate.getDate() + (parseInt(patient.refillPeriod) || 24));
+    let defaultDateStr = defaultNextDate.toISOString().split('T')[0];
+
+    showModal(
+        '<span style="color: var(--secondary);">✅ Confirm Dispensing</span>',
+        `
+        <div style="text-align: center; padding: 15px;">
+            <p style="margin-bottom: 15px; color: #2D3436; font-weight:600;">Update Next Refill Date:</p>
+            <input type="date" id="modalNewRefillDate" class="form-input" 
+                   value="${defaultDateStr}" 
+                   style="font-size: 18px; padding: 15px; text-align: center; font-weight: 800; color: var(--primary); border: 2px solid var(--primary);">
+        </div>
+        `,
+        `
+        <button class="btn-secondary" onclick="cancelDispense('${pId}')">Cancel</button>
+        <button class="btn-primary" onclick="confirmDispenseAndSave('${pId}')">Confirm & Save</button>
+        `
+    );
+}
+
+// 9. إلغاء العملية
+function cancelDispense(patientId) {
+    const row = document.getElementById(`queue-row-${patientId}`);
+    if (row) {
+        row.style.backgroundColor = 'white';
+        const checkbox = row.querySelector('.dispense-checkbox');
+        if (checkbox) checkbox.checked = false;
+    }
+    closeModal();
+}
+
+// 10. الحفظ النهائي (تحديث السيرفر)
+async function confirmDispenseAndSave(patientId) {
+    const newDate = document.getElementById('modalNewRefillDate').value;
+    if (!newDate) return;
+
+    const confirmBtn = document.querySelector('.modal-actions .btn-primary');
+    if(confirmBtn) {
+        confirmBtn.innerHTML = '<span class="loading"></span> Saving...';
+        confirmBtn.disabled = true;
+    }
+
+    const pId = String(patientId);
+    let patient = patients.find(p => String(p.id) === pId);
+
+    const oldNextRefill = patient.nextRefillDate;
+    const oldDispensing = patient.dispensingDate;
+
+    // تحديث البيانات محلياً
+    patient.dispensingDate = new Date().toISOString().split('T')[0];
+    patient.nextRefillDate = newDate;
+    patient.inQueue = false; // خروجه من القائمة
+
+    try {
+        // تحديث البيانات في سوبابيز (بما فيها إخراجه من القائمة)
+        await supabaseClient
+            .from('patients')
+            .update({
+                dispensing_date: patient.dispensingDate,
+                next_refill_date: patient.nextRefillDate,
+                in_queue: false // <--- هام: إخراجه من القائمة في الداتابيز
+            })
+            .eq('id', pId);
+        
+        // إزالة من القائمة المحلية
+        dispensingQueue = dispensingQueue.filter(p => String(p.id) !== pId);
+        renderDispensingQueue();
+        displayPatients(); 
+        closeModal();
+
+    } catch (error) {
+        console.error('Save Failed:', error);
+        // التراجع عند الخطأ
+        patient.nextRefillDate = oldNextRefill;
+        patient.dispensingDate = oldDispensing;
+        patient.inQueue = true;
+        
+        closeModal();
+        cancelDispense(pId);
+        showModal('<span style="color:var(--danger)">❌ Error</span>', '<p>Data not saved.</p>', '<button class="btn-primary" onclick="closeModal()">OK</button>');
+    }
+}
+
+// إغلاق البحث
+document.addEventListener('click', function(e) {
+    const container = document.querySelector('.dispense-search-container');
+    if (container && !container.contains(e.target)) {
+        document.getElementById('dispenseSearchResults').style.display = 'none';
+    }
+});
     </script>
 </body>
 </html>
