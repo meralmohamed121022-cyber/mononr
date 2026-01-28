@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>MONO - Patient Management System</title>
+    <title>MONO - Mono Wasfaty System</title>
     <title>WASFATYREFILL-MONO</title>
 <link rel="icon" href="https://raw.githubusercontent.com/meralmohamed121022-cyber/Drug-Monograph/858ba78ce2719a0e7069fd4807b725e0002a17d8/6_20251129_184528_0005.png">
 <link rel="apple-touch-icon" href="https://raw.githubusercontent.com/meralmohamed121022-cyber/Drug-Monograph/858ba78ce2719a0e7069fd4807b725e0002a17d8/6_20251129_184528_0005.png">
@@ -2366,22 +2366,103 @@
     font-size: 10px;
     font-family: monospace;
 }
+/* ============================================ */
+/* MOBILE RESPONSIVENESS FIXES */
+/* ============================================ */
+
+/* 1. ضبط الحاوية الرئيسية لتتناسب مع عرض الشاشة */
+@media (max-width: 768px) {
+    .container {
+        width: 100% !important;
+        max-width: 100% !important;
+        padding: 0 10px !important;
+        overflow-x: hidden; /* منع الصفحة كاملة من الانزلاق يميناً ويساراً */
+    }
+
+    /* 2. تحسين عرض التابات */
+    .nav-tabs {
+        flex-wrap: nowrap;
+        overflow-x: auto; /* السماح بالتمرير إذا كثرت التابات */
+        padding-bottom: 5px;
+    }
+    
+    .nav-tab {
+        padding: 12px 5px;
+        font-size: 11px;
+        min-width: 70px;
+    }
+
+    /* 3. إصلاح جدول الـ Dispensed على الموبايل */
+    .dispensing-table-container {
+        border-radius: 12px;
+        border: 1px solid #eee;
+        overflow-x: auto; /* يجعل الجدول هو فقط من يتحرك يميناً ويساراً */
+        -webkit-overflow-scrolling: touch; /* حركة ناعمة على الآيفون */
+        margin-top: 15px;
+        width: 100%;
+        display: block;
+    }
+
+    .dispensing-table {
+        width: 100%;
+        min-width: 600px; /* تحديد حد أدنى للعرض لضمان عدم تداخل النصوص */
+    }
+
+    /* تحسين المسافات داخل الجدول للموبايل */
+    .dispensing-table th, 
+    .dispensing-table td {
+        padding: 10px 8px; /* تقليل الحواف */
+        font-size: 12px;
+    }
+
+    /* 4. ضبط شريط البحث والفلتر في صفحة Dispensed */
+    .dispense-search-container {
+        width: 100%;
+        padding: 0;
+    }
+
+    /* جعل شريط الفلتر والعداد يظهرون بشكل مرتب عمودياً */
+    .dispensing-table-container > div:first-child {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 10px;
+    }
+
+    .dispensing-table-container > div:first-child > div:last-child {
+        width: 100% !important; /* شريط البحث الداخلي يأخذ العرض كامل */
+    }
+
+    /* 5. تصغير الأزرار والأيقونات قليلاً */
+    .btn-remove-queue {
+        width: 24px;
+        height: 24px;
+    }
+    
+    .dispense-checkbox {
+        width: 20px;
+        height: 20px;
+    }
+
+    .rx-chip-mini {
+        padding: 2px 5px;
+        font-size: 10px;
+    }
+}
     </style>
 </head>
 <body>
-    <!-- Modals -->
     <div id="modalOverlay" class="modal-overlay">
         <div class="modal-box" id="modalContent">
-            <!-- Dynamic content -->
-        </div>
+            </div>
     </div>
     
-    <!-- Auth Pages -->
     <div id="authPage" class="auth-container">
         <div class="auth-box">
             <div class="auth-logo">
-                <h1>MONO</h1>
-                <p>Patient Management</p>
+                <img src="https://raw.githubusercontent.com/meralmohamed121022-cyber/Drug-Monograph/refs/heads/main/M%20(512%20x%20512%20px)_20251114_182650_0000.gif" 
+                     alt="MONO Logo" 
+                     style="width: 150px; height: auto; border-radius: 50%; box-shadow: 0 4px 15px rgba(0,0,0,0.1); margin-bottom: 10px;">
+                <p>Mono Wasfaty</p>
             </div>
             
             <div class="auth-toggle">
@@ -2466,12 +2547,14 @@
             </form>
         </div>
     </div>
-    
-    <!-- Main App -->
     <div id="mainApp" style="display:none;">
         <div class="header">
-            <h1>M O N O</h1>
-            <p id="pharmacyInfo">PATIENT MANAGEMENT SYSTEM</p>
+            <img src="https://raw.githubusercontent.com/meralmohamed121022-cyber/Drug-Monograph/refs/heads/main/M%20(512%20x%20512%20px)_20251114_182650_0000.gif" 
+                 alt="MONO Logo" 
+                 style="width: 80px; height: auto; border-radius: 50%; margin-bottom: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.2);">
+            
+            <p id="pharmacyInfo">Mono Wasfaty SYSTEM</p>
+            
             <button class="logout-btn" onclick="handleLogout()">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                     <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
@@ -2481,7 +2564,6 @@
                 Logout
             </button>
         </div>
-        
       <div class="container">
     <div class="nav-tabs">
         <button class="nav-tab active" onclick="switchTab('add')">
@@ -3111,224 +3193,9 @@
     
     <div id="whatsappExportContainer" class="whatsapp-export-container"></div>
 
-<img src="https://peach-far-deer-276.mypinata.cloud/ipfs/bafkreic7ppqw7wk7p4qftmlajioj74knf5aqkbu447rndoetlreprhth3a" alt="Ph Mohamed Kholeif"
+<img src="https://raw.githubusercontent.com/meralmohamed121022-cyber/Drug-Monograph/refs/heads/main/6_20251129_184528_0005.png" alt="Ph Mohamed Kholeif"
 style="position: fixed; bottom: 10px; right: 10px; width: 100px; height: 100px; border-radius: 50%; border: 3px solid white; box-shadow: 0 3px 10px rgba(0,0,0,0.4); background: white; padding: 2px; animation: float 4s ease-in-out infinite; z-index: 1000; cursor: pointer;"
 id="profileImage" />
-
-<div id="infoBox"
-     style="position: fixed; bottom: 115px; right: 10px; width: 300px;
-     background: linear-gradient(135deg, #3575cf 0%, #101c33 100%);
-     color: #e0f7fa; padding: 30px 26px; border-radius: 16px;
-     box-shadow: 0 10px 30px rgba(30,60,130, 0.7);
-     font-family: 'Segoe UI', Arial, Helvetica, sans-serif;
-     display: none; z-index: 1001; transform-origin: bottom right; cursor: pointer;">
-  
-  <!-- Name -->
-  <div style="font-size:2em; font-weight:900; line-height:1; letter-spacing:0.5px; color:#b8e8ff; margin-bottom:8px; margin-top:0;">
-    Mohamed<br>
-    <span style="color:#ffffff; font-size:1em;">Kholeif</span>
-  </div>
-  
-  <!-- Supervisor -->
-  <div style="font-size:1em; font-weight:600; color:#4ec3f7; margin-bottom:16px; letter-spacing:0.5px;">
-    SUPERVISOR:Dr. Ibrahim Gamea
-  </div>
-  
-  <!-- Email Row -->
-  <div style="margin:20px 0 0 0; padding-bottom:6px; border-bottom:1px solid #4ec3f7; display:flex; justify-content:space-between; align-items:center;">
-    <span style="font-weight:700; color:#57b2fc; font-size:1.1em; letter-spacing:0.02em;">Email</span>
-    <div onclick="openEmail(); event.stopPropagation();" style="cursor: pointer; display: flex; align-items: center; transition: transform 0.2s;">
-      <!-- Email Icon -->
-      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" style="filter: drop-shadow(0 2px 4px rgba(0,0,0,0.3));" onmouseover="this.style.transform='scale(1.1)'" onmouseout="this.style.transform='scale(1)'">
-        <path d="M20 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 4l-8 5-8-5V6l8 5 8-5v2z" fill="#ff6b6b"/>
-      </svg>
-    </div>
-  </div>
-  
-  <!-- WhatsApp Row -->
-  <div style="margin:16px 0 0 0; padding-bottom:6px; border-bottom:1px solid #4ec3f7; display:flex; justify-content:space-between; align-items:center;">
-    <span style="font-weight:700; color:#57b2fc; font-size:1.1em; letter-spacing:0.02em;">WhatsApp</span>
-    <div onclick="openWhatsApp(); event.stopPropagation();" style="cursor: pointer; display: flex; align-items: center; transition: transform 0.2s;">
-      <!-- WhatsApp Icon -->
-      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" style="filter: drop-shadow(0 2px 4px rgba(0,0,0,0.3));" onmouseover="this.style.transform='scale(1.1)'" onmouseout="this.style.transform='scale(1)'">
-        <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z" fill="#25D366"/>
-      </svg>
-    </div>
-  </div>
-  
-  <!-- Facebook Row -->
-  <div style="margin:16px 0 0 0; display:flex; justify-content:space-between; align-items:center;">
-    <span style="font-weight:700; color:#57b2fc; font-size:1.1em; letter-spacing:0.02em;">Facebook</span>
-    <div onclick="openFacebook(); event.stopPropagation();" style="cursor: pointer; display: flex; align-items: center; transition: transform 0.2s;">
-      <!-- Facebook Icon -->
-      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" style="filter: drop-shadow(0 2px 4px rgba(0,0,0,0.3));" onmouseover="this.style.transform='scale(1.1)'" onmouseout="this.style.transform='scale(1)'">
-        <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z" fill="#1877F2"/>
-      </svg>
-    </div>
-  </div>
-</div>
-
-<style>
-@keyframes fadeScaleIn {
-  0% {
-    opacity: 0;
-    transform: scale(0.7);
-  }
-  100% {
-    opacity: 1;
-    transform: scale(1);
-  }
-}
-@keyframes fadeScaleOut {
-  0% {
-    opacity: 1;
-    transform: scale(1);
-  }
-  100% {
-    opacity: 0;
-    transform: scale(0.7);
-  }
-}
-
-/* Media Queries للموبايل والتابليت */
-@media only screen and (max-width: 768px) {
-  /* تعديلات للتابليت */
-  #profileImage {
-    width: 80px !important;
-    height: 80px !important;
-    bottom: 8px !important;
-    right: 8px !important;
-  }
-  
-  #infoBox {
-    width: 280px !important;
-    padding: 25px 20px !important;
-    bottom: 95px !important;
-    right: 8px !important;
-  }
-  
-  #infoBox > div:first-child {
-    font-size: 1.8em !important;
-  }
-}
-
-@media only screen and (max-width: 480px) {
-  /* تعديلات للموبايل */
-  #profileImage {
-    width: 70px !important;
-    height: 70px !important;
-    bottom: 6px !important;
-    right: 6px !important;
-  }
-  
-  #infoBox {
-    width: calc(100vw - 20px) !important;
-    max-width: 250px !important;
-    padding: 20px 16px !important;
-    bottom: 82px !important;
-    right: 6px !important;
-  }
-  
-  #infoBox > div:first-child {
-    font-size: 1.6em !important;
-    margin-bottom: 6px !important;
-  }
-  
-  #infoBox > div:nth-child(2) {
-    margin: 15px 0 0 0 !important;
-    font-size: 1.05em !important;
-  }
-  
-  #infoBox > div:nth-child(3) {
-    font-size: 1.05em !important;
-    margin: 14px 0 0 0 !important;
-  }
-}
-
-@media only screen and (max-width: 320px) {
-  /* تعديلات للشاشات الصغيرة جداً */
-  #profileImage {
-    width: 60px !important;
-    height: 60px !important;
-  }
-  
-  #infoBox {
-    width: calc(100vw - 16px) !important;
-    max-width: 220px !important;
-    padding: 18px 14px !important;
-    bottom: 72px !important;
-  }
-  
-  #infoBox > div:first-child {
-    font-size: 1.4em !important;
-  }
-}
-</style>
-
-<script>
-// Email Function
-function openEmail() {
-    const emailAddress = "Muhammedkhulif@yahoo.com";
-    const mailtoUrl = `mailto:${emailAddress}`;
-    window.location.href = mailtoUrl;
-}
-
-// WhatsApp Function
-function openWhatsApp() {
-    const whatsappUrl = "https://wa.me/966541932559";
-    window.open(whatsappUrl, '_blank');
-}
-
-// Facebook Function
-function openFacebook() {
-    const facebookUrl = "https://www.facebook.com/share/1Ghv7eEw6A/";
-    window.open(facebookUrl, '_blank');
-}
-
-// Original functionality
-const infoBox = document.getElementById('infoBox');
-const profileImage = document.getElementById('profileImage');
-let hideTimeout = null;
-
-function showInfoBox() {
-  if (infoBox.style.display !== 'block') {
-    infoBox.style.display = 'block';
-    infoBox.style.animation = 'fadeScaleIn 0.4s forwards';
-  }
-  // كل مرة يظهر فيها infoBox، نعيد ضبط العداد
-  if (hideTimeout) clearTimeout(hideTimeout);
-  hideTimeout = setTimeout(hideInfoBox, 3000);
-}
-
-function hideInfoBox() {
-  infoBox.style.animation = 'fadeScaleOut 0.3s forwards';
-  infoBox.addEventListener('animationend', () => {
-    infoBox.style.display = 'none';
-    infoBox.style.animation = '';
-  }, { once: true });
-  if (hideTimeout) clearTimeout(hideTimeout);
-}
-
-// ظهور فوري أول ما الصفحة تفتح
-showInfoBox();
-
-// ظهور تلقائي كل 20 ثانية
-setInterval(() => {
-  showInfoBox();
-}, 60000);
-
-// الضغط على الصورة أو على البوكس يخفي/يظهر البوكس
-function toggleInfoBox() {
-  if (infoBox.style.display === 'block') {
-    hideInfoBox();
-  } else {
-    showInfoBox();
-  }
-}
-
-profileImage.addEventListener('click', toggleInfoBox);
-infoBox.addEventListener('click', toggleInfoBox);
-</script>
 
 <script src="https://unpkg.com/jspdf@latest/dist/jspdf.umd.min.js"></script>
 <script src="https://unpkg.com/html2canvas@latest/dist/html2canvas.min.js"></script>
@@ -4911,7 +4778,7 @@ function exportExcel() {
 }
 
 function exportText() {
-    let text = `MONO PATIENT MANAGEMENT SYSTEM\n`;
+    let text = `MONO Mono Wasfaty SYSTEM\n`;
     text += `Export Date: ${new Date().toLocaleString()}\n`;
     text += `Total Records: ${patients.length}\n`;
     text += `================================================================\n\n`;
