@@ -2448,6 +2448,153 @@
         font-size: 10px;
     }
 }
+/* ============================================ */
+/* FLOATING DOCS BOX STYLES */
+/* ============================================ */
+.floating-docs-btn {
+    position: fixed;
+    right: 0;
+    top: 50%;
+    transform: translateY(-50%);
+    background: linear-gradient(180deg, var(--primary), var(--primary-dark));
+    color: white;
+    padding: 20px 8px;
+    border-radius: 12px 0 0 12px;
+    cursor: pointer;
+    z-index: 9999;
+    box-shadow: -4px 4px 15px rgba(0,0,0,0.2);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+    border: 1px solid rgba(255,255,255,0.2);
+    border-right: none;
+}
+
+.floating-docs-btn:hover {
+    padding-right: 15px;
+    background: linear-gradient(180deg, var(--secondary), #00D2A0);
+    transform: translateY(-50%) translateX(-5px);
+}
+
+.floating-docs-btn .icon-doc {
+    writing-mode: vertical-rl;
+    text-orientation: mixed;
+    font-weight: 700;
+    font-size: 12px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+}
+
+/* File List Styles inside Modal */
+.file-upload-area {
+    border: 2px dashed #B2BEC3;
+    border-radius: 12px;
+    padding: 30px;
+    text-align: center;
+    background: #F8F9FE;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    margin-bottom: 20px;
+}
+
+.file-upload-area:hover {
+    border-color: var(--primary);
+    background: #E3F2FD;
+}
+
+.files-list-container {
+    max-height: 300px;
+    overflow-y: auto;
+}
+
+.file-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: white;
+    padding: 12px;
+    border-radius: 10px;
+    border: 1px solid #eee;
+    margin-bottom: 10px;
+    transition: all 0.2s ease;
+}
+
+.file-item:hover {
+    box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+    border-color: var(--primary);
+}
+
+.file-info {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex: 1;
+    overflow: hidden;
+}
+
+.file-icon {
+    width: 40px;
+    height: 40px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 20px;
+    font-weight: bold;
+    color: white;
+    flex-shrink: 0;
+}
+
+.type-pdf { background: #FF6B6B; }
+.type-excel { background: #21A366; }
+.type-img { background: #54A0FF; }
+.type-txt { background: #FFA502; }
+.type-other { background: #636E72; }
+
+.file-details {
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+.file-name {
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--dark);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.file-size {
+    font-size: 10px;
+    color: #999;
+}
+
+.file-actions {
+    display: flex;
+    gap: 5px;
+}
+
+.btn-icon-small {
+    width: 28px;
+    height: 28px;
+    border-radius: 6px;
+    border: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.btn-view { background: #E3F2FD; color: var(--primary); }
+.btn-share { background: #E0F2F1; color: #00B894; }
+.btn-del { background: #FFEBEE; color: #FF6B6B; }
+
+.btn-icon-small:hover { transform: scale(1.1); }
     </style>
 </head>
 <body>
@@ -3190,7 +3337,17 @@
             </div>
         </div>
     </div>
-    
+    <div class="floating-docs-btn" onclick="openDocsManager()">
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+        <polyline points="14 2 14 8 20 8"></polyline>
+        <line x1="12" y1="18" x2="12" y2="12"></line>
+        <line x1="9" y1="15" x2="15" y2="15"></line>
+    </svg>
+    <span class="icon-doc">DOCS</span>
+</div>
+
+<input type="file" id="docsUploader" multiple accept=".txt,.xlsx,.xls,.pdf,.jpg,.jpeg,.png" style="display: none;" onchange="handleDocsUpload(this)">
     <div id="whatsappExportContainer" class="whatsapp-export-container"></div>
 
 <img src="https://raw.githubusercontent.com/meralmohamed121022-cyber/Drug-Monograph/refs/heads/main/6_20251129_184528_0005.png" alt="Ph Mohamed Kholeif"
@@ -5868,6 +6025,246 @@ document.addEventListener('click', function(e) {
         document.getElementById('dispenseSearchResults').style.display = 'none';
     }
 });
+// ============================================
+// DOCUMENT MANAGER LOGIC (SUPABASE CONNECTED)
+// ============================================
+
+// مصفوفة لتخزين الملفات القادمة من قاعدة البيانات
+let storedFiles = []; 
+
+// 1. فتح المودال وجلب الملفات من السيرفر
+async function openDocsManager() {
+    renderDocsModal(); // رسم الهيكل أولاً
+    await fetchDocsFromSupabase(); // بدء جلب البيانات
+}
+
+// 2. دالة جلب الملفات من قاعدة البيانات (Supabase)
+async function fetchDocsFromSupabase() {
+    const container = document.getElementById('filesListRender');
+    const titleEl = document.getElementById('docsModalTitle');
+    
+    // عرض حالة التحميل
+    if(container) container.innerHTML = '<div style="text-align:center; padding:20px;"><div class="loading" style="border-color:var(--primary) transparent var(--primary) transparent;"></div></div>';
+
+    try {
+        // جلب الملفات الخاصة بالصيدلية الحالية فقط
+        const { data, error } = await supabaseClient
+            .from('pharmacy_docs')
+            .select('*')
+            .eq('pharmacy_id', currentUser.id)
+            .order('created_at', { ascending: false });
+
+        if (error) throw error;
+
+        storedFiles = data || [];
+        renderDocsList(); // إعادة رسم القائمة بالبيانات الحقيقية
+        
+        // تحديث العنوان بالعدد الصحيح
+        if(titleEl) titleEl.textContent = `MY FILES (${storedFiles.length})`;
+
+    } catch (err) {
+        console.error('Error fetching docs:', err);
+        if(container) container.innerHTML = '<div style="text-align:center; color:#e74c3c; padding:20px;">Failed to load files from cloud ☁️</div>';
+    }
+}
+
+// 3. دالة رفع الملفات (رفع للسحابة + حفظ في القاعدة)
+async function handleDocsUpload(input) {
+    if (!input.files || input.files.length === 0) return;
+
+    // حفظ المحتوى الحالي لعرضه في حالة الفشل
+    const container = document.getElementById('filesListRender');
+    const originalContent = container.innerHTML;
+    
+    // عرض مؤشر التحميل
+    container.innerHTML = `
+        <div style="text-align:center; padding:30px;">
+            <div class="loading" style="width:30px; height:30px; margin-bottom:10px;"></div>
+            <p style="color:var(--primary); font-weight:bold; font-size:12px;">Uploading to Cloud...</p>
+        </div>
+    `;
+
+    try {
+        for (const file of Array.from(input.files)) {
+            // A. تجهيز اسم فريد للملف (لمنع التكرار في التخزين)
+            // نستخدم Timestamp + تنظيف الاسم من الرموز الغريبة
+            const cleanName = file.name.replace(/[^a-zA-Z0-9.-]/g, '_');
+            const filePath = `${currentUser.id}/${Date.now()}_${cleanName}`; 
+
+            // B. الرفع إلى Supabase Storage Bucket
+            const { data: storageData, error: storageError } = await supabaseClient.storage
+                .from('mono_docs')
+                .upload(filePath, file);
+
+            if (storageError) throw storageError;
+
+            // C. الحصول على الرابط العام المباشر للملف
+            const { data: { publicUrl } } = supabaseClient.storage
+                .from('mono_docs')
+                .getPublicUrl(filePath);
+
+            // D. حفظ معلومات الملف في قاعدة البيانات (Table)
+            const { error: dbError } = await supabaseClient
+                .from('pharmacy_docs')
+                .insert([{
+                    pharmacy_id: currentUser.id,
+                    file_name: file.name,
+                    file_url: publicUrl,
+                    file_type: getFileType(file.name),
+                    file_size: (file.size / 1024).toFixed(1) + ' KB',
+                    storage_path: filePath
+                }]);
+
+            if (dbError) throw dbError;
+        }
+
+        // E. نجاح! إعادة تحميل القائمة من السيرفر
+        await fetchDocsFromSupabase();
+
+    } catch (error) {
+        console.error('Upload Error:', error);
+        showModal('Error', `<p style="text-align:center;">Upload Failed: ${error.message}</p>`, '<button class="btn-primary" onclick="closeModal()">OK</button>');
+        container.innerHTML = originalContent; // استرجاع القائمة القديمة
+    }
+    
+    input.value = ''; // تصفير حقل الإدخال
+}
+
+// 4. حذف ملف (من القاعدة والتخزين)
+async function deleteDoc(id, storagePath) {
+    if(!confirm('Are you sure you want to permanently delete this file?')) return;
+
+    try {
+        // A. حذف السجل من قاعدة البيانات
+        const { error: dbError } = await supabaseClient
+            .from('pharmacy_docs')
+            .delete()
+            .eq('id', id);
+
+        if (dbError) throw dbError;
+
+        // B. حذف الملف الفعلي من الـ Storage (لتوفير المساحة)
+        if (storagePath) {
+            await supabaseClient.storage.from('mono_docs').remove([storagePath]);
+        }
+
+        // تحديث الواجهة محلياً فوراً (للسرعة)
+        storedFiles = storedFiles.filter(f => f.id !== id);
+        renderDocsList();
+        
+        // تحديث العداد
+        const titleEl = document.getElementById('docsModalTitle');
+        if(titleEl) titleEl.textContent = `MY FILES (${storedFiles.length})`;
+
+    } catch (error) {
+        console.error('Delete Error:', error);
+        alert('Failed to delete file from server');
+    }
+}
+
+// 5. رسم المودال (الواجهة الرئيسية)
+function renderDocsModal() {
+    const content = `
+        <div class="file-upload-area" onclick="document.getElementById('docsUploader').click()">
+            <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#B2BEC3" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-bottom: 10px;">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                <polyline points="17 8 12 3 7 8"></polyline>
+                <line x1="12" y1="3" x2="12" y2="15"></line>
+            </svg>
+            <div style="font-weight: 700; color: var(--primary);">Click to Upload Files</div>
+            <div style="font-size: 11px; color: #999; margin-top: 5px;">PDF, Excel, TXT, Photos</div>
+        </div>
+        
+        <div style="font-size: 12px; font-weight: 700; color: var(--dark); margin-bottom: 10px; display: flex; justify-content: space-between;">
+            <span id="docsModalTitle">MY FILES (...)</span>
+        </div>
+
+        <div class="files-list-container" id="filesListRender">
+            </div>
+    `;
+
+    showModal(
+        '<span style="color: var(--primary);">📁 Documents Manager</span>',
+        content,
+        '<button class="btn-primary" onclick="closeModal()">Done</button>'
+    );
+}
+
+// 6. رسم قائمة الملفات
+function renderDocsList() {
+    const container = document.getElementById('filesListRender');
+    if (!container) return;
+
+    if (storedFiles.length === 0) {
+        container.innerHTML = `
+            <div style="text-align:center; padding:30px 20px; color:#ccc;">
+                <div style="font-size:30px; margin-bottom:10px; opacity:0.5;">☁️</div>
+                No files stored yet.<br>Uploaded files will appear here.
+            </div>`;
+    } else {
+        // إنشاء HTML لكل ملف
+        container.innerHTML = storedFiles.map((file) => generateFileHTML(file)).join('');
+    }
+}
+
+// 7. توليد HTML لملف واحد
+function generateFileHTML(file) {
+    let icon = '';
+    let typeClass = 'type-other';
+
+    // تحديد الأيقونة واللون بناءً على النوع المسجل في الداتابيز
+    if (file.file_type === 'pdf') { icon = 'PDF'; typeClass = 'type-pdf'; }
+    else if (file.file_type === 'excel') { icon = 'XLS'; typeClass = 'type-excel'; }
+    else if (file.file_type === 'img') { icon = 'IMG'; typeClass = 'type-img'; }
+    else if (file.file_type === 'txt') { icon = 'TXT'; typeClass = 'type-txt'; }
+    else { icon = 'DOC'; }
+
+    return `
+        <div class="file-item">
+            <div class="file-info">
+                <div class="file-icon ${typeClass}">${icon}</div>
+                <div class="file-details">
+                    <div class="file-name" title="${file.file_name}">
+                        <a href="${file.file_url}" target="_blank" style="text-decoration:none; color:inherit;">${file.file_name}</a>
+                    </div>
+                    <div class="file-size">
+                        ${file.file_size} • ${new Date(file.created_at).toLocaleDateString()}
+                    </div>
+                </div>
+            </div>
+            <div class="file-actions">
+                <button class="btn-icon-small btn-view" onclick="window.open('${file.file_url}', '_blank')" title="View">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+                </button>
+                
+                <button class="btn-icon-small btn-share" onclick="shareDocWhatsApp('${file.file_url}', '${file.file_name}')" title="Share Link">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z"/></svg>
+                </button>
+                
+                <button class="btn-icon-small btn-del" onclick="deleteDoc('${file.id}', '${file.storage_path}')" title="Delete">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+                </button>
+            </div>
+        </div>
+    `;
+}
+
+// 8. دالة مساعدة لتحديد نوع الملف
+function getFileType(fileName) {
+    const ext = fileName.split('.').pop().toLowerCase();
+    if (['jpg', 'jpeg', 'png', 'gif'].includes(ext)) return 'img';
+    if (['pdf'].includes(ext)) return 'pdf';
+    if (['xlsx', 'xls', 'csv'].includes(ext)) return 'excel';
+    if (['txt'].includes(ext)) return 'txt';
+    return 'other';
+}
+
+// 9. دالة المشاركة عبر واتساب (ترسل الرابط المباشر)
+function shareDocWhatsApp(fileUrl, fileName) {
+    // لأن الملف الآن مرفوع "أونلاين"، يمكننا إرسال الرابط مباشرة للطرف الآخر ليقوم بتحميله
+    const text = `*Attached File:* ${fileName}\n*Download Link:* ${fileUrl}`;
+    window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(text)}`, '_blank');
+}
     </script>
 </body>
 </html>
