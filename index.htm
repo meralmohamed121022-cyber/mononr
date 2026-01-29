@@ -5508,6 +5508,7 @@ function copyRxOnly(nationalId, prescriptionNumber) {
         console.error('Copy failed', err);
     });
 }
+
 // ============================================
 // SUPABASE LOAD FUNCTION (Updated)
 // ============================================
@@ -5540,9 +5541,21 @@ async function loadPatientsFromSupabase() {
                 note: pr.note
             }))
         }));
+// ... (داخل دالة loadPatientsFromSupabase في النهاية)
 
         // ملء قائمة الانتظار تلقائياً عند فتح البرنامج
         dispensingQueue = patients.filter(p => p.inQueue === true);
+        
+        // --- التعديل الجديد: تعيين أرقام أولية عند التحميل ---
+        // نقوم بترتيبهم حسب وقت التحديث لضمان التسلسل (اختياري)
+        dispensingQueue.sort((a, b) => new Date(a.updatedAt) - new Date(b.updatedAt));
+        
+        dispensingQueue.forEach((p, index) => {
+            // نمنحهم أرقاماً متسلسلة مبدئية لكي لا تكون فارغة
+            p.queueNumber = index + 1;
+        });
+        // -----------------------------------------------------
+
         renderDispensingQueue(); // رسم الجدول فوراً
 
     } catch (error) {
@@ -5596,7 +5609,6 @@ function searchForDispensing() {
 
     dropdown.style.display = 'block';
 }
-
 // 2. إضافة مريض للقائمة (تحديث السيرفر)
 async function addToQueue(patientId) {
     const pId = String(patientId);
@@ -5609,6 +5621,14 @@ async function addToQueue(patientId) {
         document.getElementById('dispenseSearchResults').style.display = 'none';
         return; 
     }
+
+    // --- التعديل الجديد: حساب الرقم الثابت ---
+    // 1. نوجد أكبر رقم موجود حالياً في القائمة
+    const maxNumber = dispensingQueue.reduce((max, p) => (p.queueNumber > max ? p.queueNumber : max), 0);
+    
+    // 2. نمنح المريض الجديد الرقم التالي (أكبر رقم + 1)
+    patient.queueNumber = maxNumber + 1;
+    // ----------------------------------------
 
     // تحديث الواجهة فوراً (Optimistic UI)
     patient.inQueue = true;
@@ -5628,7 +5648,6 @@ async function addToQueue(patientId) {
         console.error("Failed to add to queue DB", err);
     }
 }
-
 // 3. فلترة الجدول
 function filterQueue() {
     const input = document.getElementById('queueFilterInput');
@@ -5675,8 +5694,7 @@ function renderDispensingQueue(filterText = '') {
                     </svg>
                 </button>
             </td>
-
-            <td><span style="font-weight:bold; color:#aaa;">${index + 1}</span></td>
+<td><span style="font-weight:bold; color:#aaa;">${p.queueNumber || (index + 1)}</span></td>
             
             <td>
                 <div style="font-weight:800; font-family:'Courier New', monospace; color:var(--dark); font-size:16px;">
