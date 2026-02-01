@@ -2697,7 +2697,74 @@
     background-color: #E3F2FD !important;
 }
 
+/* تنسيق بوكس تجميع الواردات */
+.import-batch-container {
+    background: white;
+    border: 2px solid #E0E0E0;
+    border-radius: 16px;
+    margin-bottom: 25px;
+    overflow: hidden;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+}
 
+.import-batch-header {
+    background: linear-gradient(135deg, #2d3436 0%, #636e72 100%);
+    color: white;
+    padding: 12px 20px;
+    font-size: 13px;
+    font-weight: 700;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    letter-spacing: 0.5px;
+}
+
+.import-batch-header .batch-time {
+    background: rgba(255,255,255,0.2);
+    padding: 4px 10px;
+    border-radius: 12px;
+    font-size: 11px;
+    font-family: monospace;
+}
+
+.import-batch-grid {
+    padding: 15px;
+    display: grid;
+    /* نفس تصميم الكروت العادية */
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); 
+    gap: 15px;
+    background: #FAFAFA;
+}
+/* تنسيق بوكس تجميع الواردات */
+.import-batch-container {
+    background: #f8f9fa;
+    border: 1px solid #dcdcdc;
+    border-radius: 12px;
+    margin-bottom: 30px;
+    overflow: hidden; /* عشان الهيدر يبقى جوه الحدود */
+    box-shadow: 0 4px 10px rgba(0,0,0,0.08);
+    animation: slideUp 0.3s ease;
+}
+
+/* الهيدر الأسود */
+.import-batch-header {
+    background: #2D3436; /* لون أسود فحمي */
+    color: white;
+    padding: 15px 20px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 4px solid #00B894; /* خط أخضر جمالي تحت الهيدر */
+}
+
+/* شبكة الكروت داخل البوكس */
+.import-batch-grid {
+    padding: 20px;
+    display: grid;
+    /* هذا السطر يجعل الكروت تتجاوب مع الشاشة: كارتين أو ثلاثة بجانب بعض */
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); 
+    gap: 15px;
+}
     </style>
 </head>
 <body>
@@ -3898,6 +3965,10 @@ async function savePatientToSupabase(patient) {
             next_refill_date: patient.nextRefillDate,
             general_note: patient.generalNote,
             imported: patient.imported,
+            
+            // 🔥 هذا هو التعديل المطلوب: حفظ تاريخ الاستيراد (Batch Timestamp)
+            import_date: patient.importDate || null, 
+
             updated_at: new Date().toISOString()
         };
         
@@ -3959,7 +4030,6 @@ async function savePatientToSupabase(patient) {
         throw error;
     }
 }
-
 async function deletePatientFromSupabase(patientId) {
     try {
         console.log(`🗑️ Attempting to delete patient: ${patientId}`);
@@ -4486,23 +4556,22 @@ document.addEventListener('DOMContentLoaded', function() {
                 displayPatients();
             }
         }
-        
-      function displayPatients() {
+   function displayPatients() {
     updateStats();
     
-  let filteredPatients = filterPatientsByStatus(currentFilter);
+    let filteredPatients = filterPatientsByStatus(currentFilter);
 
-// لو فيه فلترة بالتاريخ، نطبقها على النتيجة
-if (dateFilterActive && dateFilterFrom && dateFilterTo) {
-    filteredPatients = filteredPatients.filter(p => {
-        let refillDate = new Date(p.nextRefillDate);
-        refillDate.setHours(0, 0, 0, 0);
-        return refillDate >= dateFilterFrom && refillDate <= dateFilterTo;
-    });
-}
+    // تطبيق فلتر التاريخ (Date Range Filter)
+    if (dateFilterActive && dateFilterFrom && dateFilterTo) {
+        filteredPatients = filteredPatients.filter(p => {
+            let refillDate = new Date(p.nextRefillDate);
+            refillDate.setHours(0, 0, 0, 0);
+            return refillDate >= dateFilterFrom && refillDate <= dateFilterTo;
+        });
+    }
 
-    let searchTerm = document.getElementById('searchInput').value.trim(); // نحتفظ بكلمة البحث
-
+    // تطبيق البحث (Search Filter)
+    let searchTerm = document.getElementById('searchInput').value.trim();
     if (fuse && searchTerm) {
         let results = fuse.search(searchTerm);
         let searchedIds = results.map(r => r.item.id);
@@ -4510,7 +4579,9 @@ if (dateFilterActive && dateFilterFrom && dateFilterTo) {
     }
     
     let container = document.getElementById('patientsContainer');
+    container.innerHTML = ''; // تنظيف الحاوية
     
+    // حالة عدم وجود نتائج
     if (filteredPatients.length === 0) {
         container.innerHTML = `
             <div class="no-data">
@@ -4522,14 +4593,92 @@ if (dateFilterActive && dateFilterFrom && dateFilterTo) {
         `;
         return;
     }
-    
-    container.innerHTML = '';
-    
-    filteredPatients.forEach(patient => {
-        // نمرر كلمة البحث للكارت عشان يعمل Highlight
-        let card = createPatientCard(patient, searchTerm); 
-        container.appendChild(card);
-    });
+
+    // 🔥🔥🔥 اللوجيك الخاص بقسم IMPORTED 🔥🔥🔥
+    if (currentFilter === 'imported') {
+        
+        // 1. تجميع الكروت حسب تاريخ الاستيراد (importDate)
+        const batches = {};
+        
+        filteredPatients.forEach(p => {
+            // إذا كان للكارت تاريخ استيراد نستخدمه، وإلا نضعه في مجموعة "قديم/يدوي"
+            const key = p.importDate || 'Manual / Old Entry';
+            
+            if (!batches[key]) batches[key] = [];
+            batches[key].push(p);
+        });
+
+        // 2. ترتيب المجموعات (الأحدث يظهر في الأعلى)
+        const sortedKeys = Object.keys(batches).sort((a, b) => {
+            if (a.includes('Manual')) return 1; // اليدوي دائماً في الأسفل
+            if (b.includes('Manual')) return -1;
+            return new Date(b) - new Date(a); // تنازلي حسب التاريخ
+        });
+
+        // 3. رسم البوكسات (The Black Boxes)
+        sortedKeys.forEach(dateKey => {
+            const batchList = batches[dateKey];
+            
+            // تنسيق التاريخ والوقت للعرض
+            let displayHeader = dateKey; // الافتراضي
+            
+            if (!dateKey.includes('Manual')) {
+                const d = new Date(dateKey);
+                if (!isNaN(d)) {
+                    // تنسيق: 02 Feb 2026
+                    const dateStr = d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+                    // تنسيق: 02:30 PM
+                    const timeStr = d.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+                    
+                    // الشكل النهائي للعنوان: 📂 Batch: 02 Feb 2026 | 🕒 02:30 PM
+                    displayHeader = `
+                        <div style="display:flex; gap:15px; align-items:center;">
+                            <span>📅 ${dateStr}</span>
+                            <span style="background:rgba(255,255,255,0.15); padding:2px 8px; border-radius:4px; font-size:11px;">
+                                🕒 ${timeStr}
+                            </span>
+                        </div>
+                    `;
+                }
+            } else {
+                displayHeader = `📁 Manual / Old Entry`;
+            }
+
+            // إنشاء عنصر البوكس الحاوي
+            const batchBox = document.createElement('div');
+            batchBox.className = 'import-batch-container'; // كلاس الـ CSS للبوكس
+            
+            // تصميم الهيدر الأسود
+            batchBox.innerHTML = `
+                <div class="import-batch-header">
+                    <div style="font-size:14px; font-weight:bold;">
+                        ${displayHeader}
+                    </div>
+                    <div style="background:#00B894; color:white; padding:3px 10px; border-radius:12px; font-size:11px; font-weight:bold; box-shadow:0 2px 5px rgba(0,0,0,0.2);">
+                        ${batchList.length} Cards
+                    </div>
+                </div>
+                <div class="import-batch-grid"></div>
+            `;
+
+            // إضافة الكروت داخل شبكة البوكس
+            const grid = batchBox.querySelector('.import-batch-grid');
+            batchList.forEach(patient => {
+                let card = createPatientCard(patient, searchTerm);
+                grid.appendChild(card);
+            });
+
+            // إضافة البوكس للحاوية الرئيسية
+            container.appendChild(batchBox);
+        });
+
+    } else {
+        // 🔥 العرض العادي (لباقي التابات: All, Today, etc.)
+        filteredPatients.forEach(patient => {
+            let card = createPatientCard(patient, searchTerm);
+            container.appendChild(card);
+        });
+    }
 }
         // دالة مساعدة لعمل Highlight للنص
 function highlightMatch(text, searchTerm) {
@@ -5389,11 +5538,15 @@ function analyzeImportFailure(skipped) {
         );
     }
 }
+
 function processAndValidateData(rawData, isTextFile) {
     let validPatients = {}; // لتجميع البيانات الجديدة
     let updatesToCheck = []; // لتخزين التحديثات
     let skipped = []; // لتخزين ما تم تخطيه مع السبب
     
+    // 🔥 1. تحديد وقت موحد للملف بالكامل (عشان ميزة تجميع الواردات في بوكس واحد)
+    const batchTimestamp = new Date().toISOString(); 
+
     const patterns = {
         id: /^[1-4]\d{9}$/,
         rx: /^[a-zA-Z]\d{7}$/,
@@ -5405,7 +5558,7 @@ function processAndValidateData(rawData, isTextFile) {
     rawData.forEach((row, index) => {
         let raw = {};
         
-        // --- Mapping (نفس السابق) ---
+        // --- Mapping (ربط الأعمدة) ---
         if (isTextFile || row.nationalId) {
             raw = { id: cleanString(row.nationalId), rx: cleanString(row.prescription), phone: cleanString(row.phoneNumber), date: cleanString(row.dispensingDate), nextRefill: cleanString(row.nextRefillDate), rxNote: '', genNote: cleanString(row.note) };
         } else {
@@ -5422,7 +5575,7 @@ function processAndValidateData(rawData, isTextFile) {
         const cleanId = raw.id.replace(/\D/g, '');
         const cleanRx = raw.rx.replace(/\s/g, '').toLowerCase();
         
-        // استخراج الجوال
+        // استخراج الجوال بصيغة سعودية صحيحة
         let extractedPhone = '';
         const phoneMatch = raw.phone.replace(/\D/g, '').match(patterns.phoneExtraction);
         if (phoneMatch) extractedPhone = '0' + phoneMatch[1];
@@ -5453,7 +5606,7 @@ function processAndValidateData(rawData, isTextFile) {
                 changes.push(`Phone: ${existingExactMatch.phoneNumber || 'None'} ➝ ${extractedPhone}`);
             }
             
-            // ب) فحص تاريخ الريفيل (اختياري لو عايز تحدثه من الملف)
+            // ب) فحص تاريخ الريفيل
             if (raw.nextRefill) {
                 const newDate = new Date(raw.nextRefill).toISOString().split('T')[0];
                 if (existingExactMatch.nextRefillDate !== newDate) {
@@ -5467,13 +5620,13 @@ function processAndValidateData(rawData, isTextFile) {
             }
 
             if (changes.length > 0) {
-                // نمنع التكرار داخل القائمة
+                // نمنع التكرار داخل القائمة لنفس المريض
                 const alreadyQueued = updatesToCheck.find(u => u.dbId === existingExactMatch.id);
                 if (!alreadyQueued) {
                     updatesToCheck.push({
                         dbId: existingExactMatch.id,
                         nationalId: cleanId,
-                        changes: changes, // قائمة التغييرات للعرض
+                        changes: changes, // قائمة التغييرات للعرض في البريفيو
                         newPhone: extractedPhone || existingExactMatch.phoneNumber,
                         newDate: raw.nextRefill ? new Date(raw.nextRefill).toISOString().split('T')[0] : existingExactMatch.nextRefillDate,
                         newNote: raw.genNote ? (existingExactMatch.generalNote + ", " + raw.genNote) : existingExactMatch.generalNote
@@ -5491,14 +5644,15 @@ function processAndValidateData(rawData, isTextFile) {
         }
 
         // === حالة جديد (New Card) ===
-        // هنا نحدد نوع الجديد: هل هو هوية جديدة تماماً أم وصفة جديدة لهوية موجودة؟
         
+        // تحديد النوع: هل الهوية موجودة مسبقاً (مع وصفة أخرى) أم جديدة كلياً؟
         const isIdentityExists = patients.some(p => p.nationalId === cleanId);
         const typeLabel = isIdentityExists ? "وصفة جديدة (هوية موجودة)" : "هوية جديدة بالكامل";
         
         // حساب التواريخ
         let importDispensingDate = (raw.date && !isNaN(new Date(raw.date))) ? new Date(raw.date).toISOString().split('T')[0] : new Date().toISOString().split('T')[0];
         let importNextRefillDate = (raw.nextRefill && !isNaN(new Date(raw.nextRefill))) ? new Date(raw.nextRefill).toISOString().split('T')[0] : "";
+        
         if (!importNextRefillDate) {
             let d = new Date(importDispensingDate);
             d.setDate(d.getDate() + 24);
@@ -5517,7 +5671,10 @@ function processAndValidateData(rawData, isTextFile) {
                 prescriptions: [],
                 generalNote: raw.genNote,
                 imported: true,
-                importType: typeLabel // 🔥 تخزين نوع الجديد
+                
+                // 🔥 معلومات إضافية مهمة للفلترة والعرض
+                importType: typeLabel, 
+                importDate: batchTimestamp 
             };
         }
 
@@ -5963,31 +6120,30 @@ function copyRxOnly(nationalId, prescriptionNumber) {
     }).catch(err => {
         console.error('Copy failed', err);
     });
-}
-// تعريف متغير عالمي لتخزين العدد الحقيقي (تأكد إنه موجود في أعلى ملف السكريبت)
+}// تعريف متغير عالمي لتخزين العدد الحقيقي (تأكد إنه موجود في أعلى ملف السكريبت)
 let totalRealCount = 0;
 
 async function loadPatientsFromSupabase() {
     try {
         console.log('🔄 Loading patients from Database...');
         
-        // 1. التعديل هنا: طلبنا العدد الكلي (exact) وزودنا المدى لـ 2000
+        // 1. جلب البيانات (أول 2000 صف) مع العدد الكلي
         const { data: patientsData, error, count } = await supabaseClient
             .from('patients')
             .select(`
                 *,
                 prescriptions (*)
-            `, { count: 'exact' }) // <--- هام جداً: يجيب العدد الكلي
+            `, { count: 'exact' }) 
             .eq('pharmacy_id', currentUser.id)
             .order('next_refill_date', { ascending: true })
-            .range(0, 1999); // <--- هام: يجيب أول 2000 صف بدلاً من 1000
+            .range(0, 1999); 
         
         if (error) throw error;
         
         // 2. تحديث العدد الحقيقي في المتغير العالمي
         totalRealCount = count;
         
-        // تحويل البيانات
+        // 3. تحويل البيانات (Mapping)
         patients = patientsData.map(p => ({
             id: p.id,
             nationalId: p.national_id,
@@ -5997,6 +6153,10 @@ async function loadPatientsFromSupabase() {
             nextRefillDate: p.next_refill_date,
             generalNote: p.general_note,
             imported: p.imported,
+            
+            // 🔥🔥🔥 هذا هو السطر الأهم لعرض تاريخ الرفع 🔥🔥🔥
+            importDate: p.import_date, 
+
             inQueue: p.in_queue,
             cardColor: p.cardcolor || 'none',
             createdAt: p.created_at,
@@ -6007,7 +6167,7 @@ async function loadPatientsFromSupabase() {
             }))
         }));
         
-        // ملء Dispensing Queue
+        // 4. ملء Dispensing Queue
         dispensingQueue = patients.filter(p => p.inQueue === true);
         
         dispensingQueue.sort((a, b) => {
@@ -6020,10 +6180,10 @@ async function loadPatientsFromSupabase() {
             p.queueNumber = index + 1;
         });
         
-        // طباعة العدد الحقيقي للـ Console للتأكد
+        // طباعة تأكيد التحميل
         console.log(`✅ Loaded ${patients.length} rows. Real Total in DB: ${totalRealCount}`);
         
-        // 3. استدعاء تحديث الإحصائيات فوراً
+        // 5. استدعاء تحديث الإحصائيات فوراً
         updateStats(); 
         
     } catch (error) {
