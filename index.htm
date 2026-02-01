@@ -5459,19 +5459,19 @@ function analyzeImportFailure(skipped) {
     }
 }
 // ============================================
-// 1. SMART DATA PROCESSOR (With Phone Update Logic)
+// 1. SMART DATA PROCESSOR (Comprehensive Logic)
 // ============================================
-let pendingUpdates = []; // مصفوفة لتخزين التحديثات المقترحة
+let pendingUpdates = []; 
 
 function processAndValidateData(rawData, isTextFile) {
-    let validPatients = {};
-    let updatesToCheck = []; // قائمة الانتظار للتحديث
-    let skipped = [];
+    let validPatients = {}; // للإضافات الجديدة (New Cards)
+    let updatesToCheck = []; // للتعديلات (Updates)
+    let skipped = []; // للمطابق تماماً (Duplicates)
     
     const patterns = {
         id: /^[1-4]\d{9}$/,
         rx: /^[a-zA-Z]\d{7}$/,
-        phoneExtraction: /(?:966|0)?(5\d{8})/ // استخراج الرقم السعودي الصحيح (5xxxxxxxx)
+        phoneExtraction: /(?:966|0)?(5\d{8})/ 
     };
 
     const cleanString = (val) => String(val || '').trim();
@@ -5506,13 +5506,15 @@ function processAndValidateData(rawData, isTextFile) {
         const cleanId = raw.id.replace(/\D/g, '');
         const cleanRx = raw.rx.replace(/\s/g, '').toLowerCase();
         
-        // استخراج رقم الجوال الصحيح وتوحيد الصيغة (05xxxxxxxx)
+        // استخراج الجوال
         let extractedPhone = '';
-        // نبحث عن أي صيغة تحتوي على 5 متبوعاً بـ 8 أرقام
         const phoneMatch = raw.phone.replace(/\D/g, '').match(patterns.phoneExtraction);
-        if (phoneMatch) {
-            extractedPhone = '0' + phoneMatch[1]; // نحوله دائماً للصيغة المحلية 05...
-        }
+        if (phoneMatch) extractedPhone = '0' + phoneMatch[1];
+
+        // ضبط التواريخ (مهم جداً للمقارنة)
+        let importNextRefillDate = (raw.nextRefill && !isNaN(new Date(raw.nextRefill))) 
+            ? new Date(raw.nextRefill).toISOString().split('T')[0] 
+            : ""; // لو فاضي بنسيبه فاضي عشان نقارن
 
         // --- C. Validation ---
         if (!patterns.id.test(cleanId)) {
@@ -5520,118 +5522,132 @@ function processAndValidateData(rawData, isTextFile) {
             return;
         }
 
-        // --- D. LOGIC: CHECK FOR UPDATE vs NEW ---
+        // --- D. CORE LOGIC (THE USER REQUIREMENT) ---
         
-        // هل المريض موجود بالفعل في قاعدة البيانات؟
+        // 1. هل المريض موجود؟
         const existingPatient = patients.find(p => p.nationalId === cleanId);
 
-        if (existingPatient) {
-            // المنطق الذكي للتحديث:
-            // إذا كان عندنا في الإكسل رقم جوال صالح، والمريض في الداتا بيز ليس لديه رقم (أو الرقم مختلف)
-            if (extractedPhone && (!existingPatient.phoneNumber || existingPatient.phoneNumber !== extractedPhone)) {
-                
-                // التأكد أننا لم نضف هذا التحديث بالفعل في هذه الدورة (لمنع التكرار داخل الملف نفسه)
-                const alreadyQueued = updatesToCheck.find(u => u.dbId === existingPatient.id);
-                if (!alreadyQueued) {
-                    updatesToCheck.push({
-                        dbId: existingPatient.id, // الـ ID في قاعدة البيانات
-                        nationalId: cleanId,
-                        oldPhone: existingPatient.phoneNumber || 'Empty',
-                        newPhone: extractedPhone,
-                        name: `Row ${index+1}`
-                    });
-                }
-            } else {
-                // المريض موجود والبيانات مطابقة أو لا يوجد جديد لإضافته (تكرار عادي)
-                skipped.push({ type: 'duplicate', msg: `Row ${index + 1}: Exists & No update needed (${cleanId})` });
+        // 2. هل الوصفة موجودة عند هذا المريض؟
+        const existingRx = existingPatient ? existingPatient.prescriptions.find(p => p.number === cleanRx) : null;
+
+        // الحالة الأولى: إضافة كارت جديد (Add New)
+        // الشرط: المريض غير موجود أصلاً OR المريض موجود لكن الوصفة جديدة
+        if (!existingPatient || !existingRx) {
+            
+            // حساب تواريخ افتراضية للكارت الجديد لو مش موجودة
+            let dispDate = (raw.date && !isNaN(new Date(raw.date))) 
+                ? new Date(raw.date).toISOString().split('T')[0] 
+                : new Date().toISOString().split('T')[0];
+            
+            let refDate = importNextRefillDate;
+            if (!refDate) {
+                let d = new Date(dispDate);
+                d.setDate(d.getDate() + 24);
+                refDate = d.toISOString().split('T')[0];
             }
-            return; // لا نضفه كملف جديد
-        }
 
-        // --- E. New Record Logic (إذا لم يكن موجوداً) ---
-        
-        // حساب التواريخ للملفات الجديدة
-        let importDispensingDate = (raw.date && !isNaN(new Date(raw.date))) 
-            ? new Date(raw.date).toISOString().split('T')[0] 
-            : new Date().toISOString().split('T')[0];
-        
-        let hasImportedDate = (raw.nextRefill && !isNaN(new Date(raw.nextRefill)));
-        let importNextRefillDate = hasImportedDate 
-            ? new Date(raw.nextRefill).toISOString().split('T')[0] 
-            : "";
+            const uniqueKey = `${cleanId}`; 
+            // نتأكد إنه مش مضاف مرتين في نفس الملف
+            if (!validPatients[uniqueKey]) {
+                validPatients[uniqueKey] = {
+                    nationalId: cleanId,
+                    phoneNumber: extractedPhone, 
+                    dispensingDate: dispDate,
+                    refillPeriod: 24,
+                    nextRefillDate: refDate,
+                    prescriptions: [],
+                    generalNote: raw.genNote,
+                    imported: true
+                };
+            }
+            // إضافة الوصفة للكارت الجديد
+            if (cleanRx && !validPatients[uniqueKey].prescriptions.find(p => p.number === cleanRx)) {
+                validPatients[uniqueKey].prescriptions.push({ number: cleanRx, note: raw.rxNote });
+            }
 
-        // إذا لم يوجد تاريخ ريفيل، نحسبه تلقائياً (+24 يوم)
-        if (!hasImportedDate) {
-            let d = new Date(importDispensingDate);
-            d.setDate(d.getDate() + 24);
-            importNextRefillDate = d.toISOString().split('T')[0];
-        }
+        } 
+        // الحالة الثانية: المريض موجود والوصفة موجودة -> فحص التحديث (Update Check)
+        else {
+            let changes = {};
+            let hasChanges = false;
+            let changesDesc = [];
 
-        // تجميع البيانات للإضافة الجديدة
-        const uniqueKey = `${cleanId}`; // المفتاح هو رقم الهوية فقط لمنع تكرار نفس المريض في الملف الواحد
-        if (!validPatients[uniqueKey]) {
-            validPatients[uniqueKey] = {
-                nationalId: cleanId,
-                phoneNumber: extractedPhone, // نستخدم الرقم المستخرج
-                dispensingDate: importDispensingDate,
-                refillPeriod: 24,
-                nextRefillDate: importNextRefillDate,
-                prescriptions: [],
-                generalNote: raw.genNote,
-                imported: true
-            };
-        }
+            // فحص الجوال (Phone)
+            if (extractedPhone && extractedPhone !== existingPatient.phoneNumber) {
+                changes.phone_number = extractedPhone;
+                changesDesc.push(`Phone (${existingPatient.phoneNumber || 'None'} ➔ ${extractedPhone})`);
+                hasChanges = true;
+            }
 
-        // إضافة الوصفة (إذا كانت صالحة وغير مكررة لهذا المريض)
-        if (cleanRx && !validPatients[uniqueKey].prescriptions.find(p => p.number === cleanRx)) {
-            validPatients[uniqueKey].prescriptions.push({
-                number: cleanRx,
-                note: raw.rxNote
-            });
+            // فحص تاريخ الريفيل (Refill Date)
+            // نقارن فقط لو التاريخ موجود في الملف
+            if (importNextRefillDate && importNextRefillDate !== existingPatient.nextRefillDate) {
+                changes.next_refill_date = importNextRefillDate;
+                changesDesc.push(`Date (${existingPatient.nextRefillDate} ➔ ${importNextRefillDate})`);
+                hasChanges = true;
+            }
+
+            // فحص الملاحظات (General Note) - إضافة وليست استبدال
+            // لو الملف فيه ملاحظة، والملاحظة دي مش موجودة عند المريض
+            if (raw.genNote && (!existingPatient.generalNote || !existingPatient.generalNote.includes(raw.genNote))) {
+                let newNote = existingPatient.generalNote ? existingPatient.generalNote + ', ' + raw.genNote : raw.genNote;
+                changes.general_note = newNote;
+                changesDesc.push(`Note Added`);
+                hasChanges = true;
+            }
+
+            if (hasChanges) {
+                // نضيفه لقائمة التحديثات
+                updatesToCheck.push({
+                    dbId: existingPatient.id,
+                    nationalId: cleanId,
+                    changes: changes, // أوبجكت يحتوي على الحقول المتغيرة فقط
+                    desc: changesDesc.join(', ') // وصف نصي للعرض
+                });
+            } else {
+                // لا يوجد أي تغيير -> Duplicate
+                skipped.push({ type: 'duplicate', msg: `Row ${index + 1}: Exact Match (No Changes)` });
+            }
         }
     });
 
     return {
         valid: Object.values(validPatients),
-        updates: updatesToCheck, // نرجع قائمة التحديثات الجديدة
+        updates: updatesToCheck,
         skipped: skipped
     };
 }
-
 // ============================================
-// 2. PREVIEW UI (Modified to show Updates)
+// 2. PREVIEW UI (Shows Update Details)
 // ============================================
-// هذه الدالة تعرض واجهة المعاينة الجديدة (تحديثات + إضافات)
 function showImportPreviewUI(result) {
     switchTab('data');
     const container = document.getElementById('importPreview');
     
     let html = `<div style="background: white; padding: 25px; border-radius: 16px; border: 2px solid var(--primary); margin-top: 20px; box-shadow: 0 10px 40px rgba(0,0,0,0.1);">`;
 
-    // 1. قسم التحديثات (Phones Updates) - القسم الأزرق
+    // 1. قسم التحديثات (Updates) - معدل ليعرض الوصف
     if (result.updates && result.updates.length > 0) {
         html += `
             <div style="background: #E3F2FD; border: 1px solid #90CAF9; padding: 15px; border-radius: 12px; margin-bottom: 20px;">
                 <h3 style="color: #1565C0; margin-top: 0; display: flex; align-items: center; gap: 10px; font-size: 16px;">
-                    <span>📲</span> Found ${result.updates.length} Phone Numbers to Update
+                    <span>🔄</span> Found ${result.updates.length} Records to Update
                 </h3>
-                <p style="font-size:12px; color:#555; margin-bottom: 10px;">Matching IDs found. These records will be updated with new phone numbers.</p>
+                <p style="font-size:12px; color:#555; margin-bottom: 10px;">ID & Rx Matched. Updating details (Phone, Date, Note).</p>
                 
                 <div style="max-height: 200px; overflow-y: auto; background: white; border: 1px solid #BBDEFB; border-radius: 8px;">
                     <table style="width: 100%; border-collapse: collapse; font-size: 12px;">
                         <thead style="background: #f1f8ff; position: sticky; top: 0;">
                             <tr>
                                 <th style="padding: 8px; text-align: left; border-bottom: 1px solid #ddd;">ID</th>
-                                <th style="padding: 8px; text-align: left; border-bottom: 1px solid #ddd;">Old Phone</th>
-                                <th style="padding: 8px; text-align: left; border-bottom: 1px solid #ddd;">New Phone</th>
+                                <th style="padding: 8px; text-align: left; border-bottom: 1px solid #ddd;">Changes Detected</th>
                             </tr>
                         </thead>
                         <tbody>
                             ${result.updates.map(u => `
                                 <tr style="border-bottom: 1px solid #eee;">
-                                    <td style="padding: 8px; font-family: monospace;">${u.nationalId}</td>
-                                    <td style="padding: 8px; color: #aaa;">${u.oldPhone}</td>
-                                    <td style="padding: 8px; color: #2E7D32; font-weight: bold;">${u.newPhone}</td>
+                                    <td style="padding: 8px; font-family: monospace; font-weight:bold;">${u.nationalId}</td>
+                                    <td style="padding: 8px; color: #E65100;">${u.desc}</td>
                                 </tr>
                             `).join('')}
                         </tbody>
@@ -5641,18 +5657,18 @@ function showImportPreviewUI(result) {
         `;
     }
 
-    // 2. قسم الإضافات الجديدة (New Records) - القسم الأخضر
+    // 2. قسم الإضافات الجديدة (New Records)
     if (result.valid.length > 0) {
         html += `
             <div style="margin-bottom: 20px;">
                 <h3 style="color: var(--success); margin-top: 0; font-size: 16px;">
-                    <span>➕</span> ${result.valid.length} New Patients to Add
+                    <span>➕</span> ${result.valid.length} New Cards (New Patient or New Rx)
                 </h3>
                 <div style="max-height: 200px; overflow-y: auto; border: 1px solid #eee; border-radius: 8px; padding: 10px;">
                     ${result.valid.map((p, i) => `
                         <div style="padding: 8px; border-bottom: 1px dashed #eee; font-size: 12px; display: flex; justify-content: space-between;">
                             <span><strong>#${i+1}</strong> ID: ${p.nationalId}</span>
-                            <span>Rx: ${p.prescriptions.length} | Phone: ${p.phoneNumber || '-'}</span>
+                            <span>Rx: ${p.prescriptions.map(r=>r.number).join(', ')}</span>
                         </div>
                     `).join('')}
                 </div>
@@ -5664,7 +5680,7 @@ function showImportPreviewUI(result) {
     if (result.skipped.length > 0) {
         html += `
             <div style="font-size: 11px; color: #999; margin-top: 10px; border-top: 1px solid #eee; padding-top: 10px;">
-                ⚠️ ${result.skipped.length} rows skipped (Duplicates or Errors) - <a href="#" onclick="alert('${result.skipped.length} records skipped because they already exist with same data or invalid format.'); return false;">Details</a>
+                ⚠️ ${result.skipped.length} rows skipped (Exact Duplicates or Errors).
             </div>
         `;
     }
@@ -5686,9 +5702,7 @@ function showImportPreviewUI(result) {
     } else {
         html += `
             <div style="text-align:center; padding:30px;">
-                <div style="font-size: 30px; margin-bottom: 10px;">🤷‍♂️</div>
                 <p style="color: #666;">No new data or updates found.</p>
-                <p style="font-size: 12px; color: #999;">All records in file already exist with matching data.</p>
                 <button class="btn-secondary" onclick="cancelImport()" style="margin-top: 15px;">Close</button>
             </div>
         `;
@@ -5697,7 +5711,6 @@ function showImportPreviewUI(result) {
     html += `</div>`;
     container.innerHTML = html;
 }
-
 // ============================================
 // 3. EXECUTE IMPORT (Updates + Inserts)
 // ============================================
@@ -5707,7 +5720,7 @@ async function confirmSmartImport() {
         <div style="text-align:center; padding:40px;">
             <div class="loading" style="width:40px; height:40px; border-width:4px; border-color: var(--primary) transparent var(--primary) transparent;"></div>
             <h3 style="margin-top:20px; color: var(--primary);">Processing Data...</h3>
-            <p style="color: #666;">Updating Phones & Adding Patients</p>
+            <p style="color: #666;">Updating Records & Adding New Cards</p>
         </div>
     `;
 
@@ -5718,9 +5731,10 @@ async function confirmSmartImport() {
         // 1. تنفيذ التحديثات (Updates)
         if (pendingUpdates && pendingUpdates.length > 0) {
             for (const update of pendingUpdates) {
+                // نحدث فقط الحقول التي تغيرت (الموجودة في changes)
                 const { error } = await supabaseClient
                     .from('patients')
-                    .update({ phone_number: update.newPhone })
+                    .update(update.changes) // تحديث ديناميكي (جوال، تاريخ، ملاحظة)
                     .eq('id', update.dbId);
                 
                 if (!error) updateCount++;
@@ -5729,8 +5743,6 @@ async function confirmSmartImport() {
 
         // 2. تنفيذ الإضافات الجديدة (New Records)
         if (pendingImportData && pendingImportData.length > 0) {
-            // نستخدم دالة الحفظ الموجودة
-            // للسرعة، يمكن استخدام Promise.all لكن التسلسل أكثر أماناً لتجنب الضغط
             for (const patient of pendingImportData) {
                 await savePatientToSupabase(patient);
                 addCount++;
@@ -5744,18 +5756,14 @@ async function confirmSmartImport() {
             '<span style="color: var(--secondary);">✅ Operation Complete</span>',
             `
             <div style="text-align: center; padding: 20px;">
-                <div style="width: 60px; height: 60px; background: #E8F5E9; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 15px;">
-                    <span style="font-size: 30px;">🎉</span>
-                </div>
                 <p style="font-size: 16px; margin-bottom: 20px; font-weight: bold; color: var(--dark);">Data processed successfully!</p>
-                
                 <div style="background: #F8F9FE; padding: 15px; border-radius: 12px; text-align: left;">
                     <div style="margin-bottom: 8px; font-size: 14px; display: flex; justify-content: space-between;">
-                        <span style="color: #1565C0;">📲 Phones Updated:</span>
+                        <span style="color: #1565C0;">🔄 Records Updated:</span>
                         <b>${updateCount}</b>
                     </div>
                     <div style="font-size: 14px; display: flex; justify-content: space-between;">
-                        <span style="color: #2E7D32;">➕ Patients Added:</span>
+                        <span style="color: #2E7D32;">➕ Cards Added:</span>
                         <b>${addCount}</b>
                     </div>
                 </div>
@@ -5764,7 +5772,6 @@ async function confirmSmartImport() {
             '<button class="btn-primary" style="grid-column: 1/3;" onclick="closeModal(); switchTab(\'patients\'); displayPatients()">View All Patients</button>'
         );
 
-        // تنظيف المتغيرات والواجهة
         document.getElementById('importPreview').innerHTML = '';
         pendingImportData = null;
         pendingUpdates = null;
@@ -5774,7 +5781,6 @@ async function confirmSmartImport() {
         showModal('<span style="color:red">Error</span>', `<p>${error.message}</p>`, '<button class="btn-primary" onclick="closeModal()">OK</button>');
     }
 }
-
 // هام: تحديث دالة التعامل مع الملف لربط كل شيء ببعضه
 function handleImportFile(e) {
     let file = e.target.files[0];
