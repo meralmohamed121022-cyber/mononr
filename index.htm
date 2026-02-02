@@ -3916,71 +3916,8 @@ id="profileImage" />
                 showLogin();
             });
         }
-        async function loadPatientsFromSupabase() {
-    try {
-        console.log('🔄 Loading ALL patients from Database...');
         
-        // التعديل الجذري هنا: زودنا range عشان يجيب أكتر من 1000
-        const { data: patientsData, error } = await supabaseClient
-            .from('patients')
-            .select(`
-                *,
-                prescriptions (*)
-            `)
-            .eq('pharmacy_id', currentUser.id)
-            .order('next_refill_date', { ascending: true })
-            .range(0, 9999); // <--- ده السطر السحري اللي بيحل مشكلة الـ 1000
-
-        if (error) throw error;
-        
-        // تحويل البيانات
-        patients = patientsData.map(p => ({
-            id: p.id,
-            nationalId: p.national_id,
-            phoneNumber: p.phone_number,
-            dispensingDate: p.dispensing_date,
-            refillPeriod: p.refill_period,
-            nextRefillDate: p.next_refill_date,
-            generalNote: p.general_note,
-            imported: p.imported,
-            inQueue: p.in_queue,
-            cardColor: p.cardcolor || 'none',
-            createdAt: p.created_at,
-            updatedAt: p.updated_at,
-            prescriptions: p.prescriptions.map(pr => ({
-                number: pr.prescription_number,
-                note: pr.note
-            }))
-        }));
-        
-        // ملء Dispensing Queue
-        dispensingQueue = patients.filter(p => p.inQueue === true);
-        
-        dispensingQueue.sort((a, b) => {
-            const dateA = a.updatedAt ? new Date(a.updatedAt) : new Date(0);
-            const dateB = b.updatedAt ? new Date(b.updatedAt) : new Date(0);
-            return dateA - dateB;
-        });
-        
-        dispensingQueue.forEach((p, index) => {
-            p.queueNumber = index + 1;
-        });
-        
-        console.log(`✅ Loaded ${patients.length} patients (Limit Fixed)`);
-        
-        // تحديث العدادات فوراً بعد التحميل
-        updateStats(); 
-
-    } catch (error) {
-        console.error('❌ Error loading patients:', error);
-        showModal(
-            '<span style="color: var(--danger);">❌ Error</span>',
-            `<p style="text-align: center; padding: 20px;">Error loading data: ${error.message}</p>`,
-            '<button class="btn-primary" style="grid-column: 1/3;" onclick="closeModal()">OK</button>'
-        );
-    }
-}
-
+     
 async function savePatientToSupabase(patient) {
     try {
         const patientData = {
@@ -4138,7 +4075,7 @@ async function deletePatient(patientId) {
 }
 
 // ============================================
-// ACTUAL SAVE PATIENT (بعد Check Duplicates)
+// ACTUAL SAVE PATIENT (تم التعديل لإصلاح البحث والتحديث)
 // ============================================
 async function actualSavePatient(patient) {
     const saveBtn = document.getElementById('saveBtn');
@@ -4154,22 +4091,40 @@ async function actualSavePatient(patient) {
         // 1. حفظ في Database
         await savePatientToSupabase(patient);
         
-        // 2. إعادة تحميل من Database (هتنادي updateStats() جواها)
+        // 2. إعادة تحميل من Database (لجلب البيانات الجديدة + التحديثات)
         await loadPatientsFromSupabase();
         
-        // 3. تحديث الواجهة (بدون updateStats لأنها اتنادت في loadPatientsFromSupabase)
+        // 3. 🔥 تحديث محرك البحث يدوياً هنا لضمان ظهور الاسم فوراً 🔥
+        if (window.Fuse) {
+            fuse = new Fuse(patients, {
+                keys: [
+                    'nationalId', 
+                    'phoneNumber', 
+                    'generalNote',
+                    'prescriptions.number', 
+                    'prescriptions.note'
+                ],
+                threshold: 0.0,
+                ignoreLocation: true,
+                useExtendedSearch: true
+            });
+            console.log("🔍 Search Engine Force Updated after Save!");
+        }
+
+        // 4. تحديث العدادات والواجهة
+        updateStats();
         displayPatients();
         
         console.log(`✅ Total patients after save: ${patients.length}`);
         
-        // 4. رسالة نجاح
+        // 5. رسالة نجاح
         showModal(
             '<span style="color: var(--secondary)">✅ Success</span>',
             `<p style="text-align: center; padding: 20px">تم ${editingPatientId ? 'تحديث' : 'إضافة'} المريض بنجاح! 💊<br><small style="color: #636E72;">Total: ${patients.length}</small></p>`,
             '<button class="btn-primary" style="grid-column: 1/3" onclick="closeModal(); switchTab(\'patients\')">عرض المرضى</button>'
         );
         
-        // 5. إعادة تعيين النموذج
+        // 6. إعادة تعيين النموذج
         resetForm();
         editingPatientId = null;
         
@@ -4191,22 +4146,29 @@ async function actualSavePatient(patient) {
 // ============================================
 document.addEventListener('DOMContentLoaded', function() {
     const savedUser = localStorage.getItem('monoCurrentUser');
+    
     if (savedUser) {
         currentUser = JSON.parse(savedUser);
-        document.getElementById('pharmacyInfo').textContent = currentUser.pharmacy_name || currentUser.pharmacy_code;
+        
+        // عرض اسم الصيدلية
+        const pharmacyInfoElement = document.getElementById('pharmacyInfo');
+        if (pharmacyInfoElement) {
+            pharmacyInfoElement.textContent = currentUser.pharmacy_name || currentUser.pharmacy_code;
+        }
+
         document.getElementById('authPage').style.display = 'none';
         document.getElementById('mainApp').style.display = 'block';
         
         console.log('🚀 Initializing app...');
         
-        // تحميل البيانات
+        // تحميل البيانات وبدء التطبيق
         loadPatientsFromSupabase().then(() => {
             console.log('📱 Loading UI components...');
             
-            // تحديث الواجهة بعد التحميل (updateStats اتنادت جوا loadPatientsFromSupabase)
+            // تهيئة القوائم والعرض
+            initializeApp();
             displayPatients();
             renderDispensingQueue();
-            initializeApp();
             
             console.log('✅ App initialized successfully');
         }).catch(error => {
@@ -4214,8 +4176,6 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 });
-
-
       function initializeApp() {
             // 1. الإعدادات الأولية للعناصر
             document.getElementById('dispensingDate').valueAsDate = new Date();
@@ -4518,38 +4478,7 @@ document.addEventListener('DOMContentLoaded', function() {
             
             actualSavePatient(patient);
         }
-        async function actualSavePatient(patient) {
-    const saveBtn = document.getElementById('saveBtn');
-    saveBtn.disabled = true;
-    
-    try {
-        await savePatientToSupabase(patient);
-        await loadPatientsFromSupabase();
-        
-        // ✅ إضافة السطر ده
-        displayPatients(); // عشان يظهر الكارد الجديد فوراً
-        updateStats();     // عشان يتحدث الرقم في Total
-        
-        showModal(
-            '<span style="color: var(--secondary)">✅ Success</span>',
-            '<p style="text-align: center; padding: 20px">Patient saved successfully!</p>',
-            '<button class="btn-primary" style="grid-column: 1/3" onclick="closeModal(); switchTab(\'patients\'); displayPatients()">View Patients</button>'
-        );
-        
-        resetForm();
-        
-    } catch (error) {
-        console.error('Save error:', error);
-        showModal(
-            '<span style="color: var(--danger)">❌ Error</span>',
-            `<p style="text-align: center; padding: 20px">Error: ${error.message}</p>`,
-            '<button class="btn-primary" style="grid-column: 1/3" onclick="closeModal()">OK</button>'
-        );
-    } finally {
-        saveBtn.disabled = false;
-    }
-}
-
+       
         
         function resetForm() {
             editingPatientId = null;
@@ -4583,12 +4512,17 @@ document.addEventListener('DOMContentLoaded', function() {
                 displayPatients();
             }
         }
-   function displayPatients() {
+      function displayPatients() {
     updateStats();
     
+    let searchTerm = document.getElementById('searchInput').value.trim();
+    let container = document.getElementById('patientsContainer');
+    container.innerHTML = ''; // تنظيف الحاوية
+
+    // 1. أولاً: نحدد القائمة بناءً على التاب المختار (All, Today, Imported...)
     let filteredPatients = filterPatientsByStatus(currentFilter);
 
-    // تطبيق فلتر التاريخ (Date Range Filter)
+    // 2. ثانياً: نطبق فلتر التاريخ (Date Range) إذا كان مفعلاً
     if (dateFilterActive && dateFilterFrom && dateFilterTo) {
         filteredPatients = filteredPatients.filter(p => {
             let refillDate = new Date(p.nextRefillDate);
@@ -4597,17 +4531,18 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
-    // تطبيق البحث (Search Filter)
-    let searchTerm = document.getElementById('searchInput').value.trim();
+    // 3. ثالثاً: نطبق البحث (Search) على القائمة المفلترة حالياً
+    // هذا يضمن أن البحث يتم "داخل" الفلتر المختار
     if (fuse && searchTerm) {
-        let results = fuse.search(searchTerm);
-        let searchedIds = results.map(r => r.item.id);
-        filteredPatients = filteredPatients.filter(p => searchedIds.includes(p.id));
+        let fuseResults = fuse.search(searchTerm);
+        let searchIds = fuseResults.map(r => r.item.id);
+        
+        // احتفظ فقط بالمرضى الذين: (هم في الفلتر الحالي) و (موجودين في نتائج البحث)
+        filteredPatients = filteredPatients.filter(p => searchIds.includes(p.id));
     }
-    
-    let container = document.getElementById('patientsContainer');
-    container.innerHTML = ''; // تنظيف الحاوية
-    
+
+    // --- (مرحلة الرسم) Rendering ---
+
     // حالة عدم وجود نتائج
     if (filteredPatients.length === 0) {
         container.innerHTML = `
@@ -4615,49 +4550,42 @@ document.addEventListener('DOMContentLoaded', function() {
                 <div class="no-data-icon">
                     <div class="icon icon-search" style="width: 40px; height: 40px; border-width: 4px; color: #B2BEC3; margin: 0 auto;"></div>
                 </div>
-                <p style="font-size: 18px; font-weight: 700; color: #95A5A6;">No results found</p>
+                <p style="font-size: 18px; font-weight: 700; color: #95A5A6;">
+                    ${searchTerm ? 'No matching results in this list' : 'No patients found'}
+                </p>
             </div>
         `;
         return;
     }
 
-    // 🔥🔥🔥 اللوجيك الخاص بقسم IMPORTED 🔥🔥🔥
-    if (currentFilter === 'imported') {
+    // منطق العرض الخاص بقسم Imported (على شكل مجموعات/Boxes)
+    // يظهر فقط إذا كنا في تاب Imported + لا يوجد بحث نشط (عشان البحث بيحب القائمة تكون تحت بعض)
+    if (currentFilter === 'imported' && !searchTerm && !dateFilterActive) {
         
-        // 1. تجميع الكروت حسب تاريخ الاستيراد (importDate)
         const batches = {};
         
         filteredPatients.forEach(p => {
-            // إذا كان للكارت تاريخ استيراد نستخدمه، وإلا نضعه في مجموعة "قديم/يدوي"
             const key = p.importDate || 'Manual / Old Entry';
-            
             if (!batches[key]) batches[key] = [];
             batches[key].push(p);
         });
 
-        // 2. ترتيب المجموعات (الأحدث يظهر في الأعلى)
         const sortedKeys = Object.keys(batches).sort((a, b) => {
-            if (a.includes('Manual')) return 1; // اليدوي دائماً في الأسفل
+            if (a.includes('Manual')) return 1;
             if (b.includes('Manual')) return -1;
-            return new Date(b) - new Date(a); // تنازلي حسب التاريخ
+            return new Date(b) - new Date(a);
         });
 
-        // 3. رسم البوكسات (The Black Boxes)
         sortedKeys.forEach(dateKey => {
             const batchList = batches[dateKey];
-            
-            // تنسيق التاريخ والوقت للعرض
-            let displayHeader = dateKey; // الافتراضي
+            let displayHeader = dateKey;
             
             if (!dateKey.includes('Manual')) {
                 const d = new Date(dateKey);
                 if (!isNaN(d)) {
-                    // تنسيق: 02 Feb 2026
                     const dateStr = d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
-                    // تنسيق: 02:30 PM
                     const timeStr = d.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
                     
-                    // الشكل النهائي للعنوان: 📂 Batch: 02 Feb 2026 | 🕒 02:30 PM
                     displayHeader = `
                         <div style="display:flex; gap:15px; align-items:center;">
                             <span>📅 ${dateStr}</span>
@@ -4671,11 +4599,8 @@ document.addEventListener('DOMContentLoaded', function() {
                 displayHeader = `📁 Manual / Old Entry`;
             }
 
-            // إنشاء عنصر البوكس الحاوي
             const batchBox = document.createElement('div');
-            batchBox.className = 'import-batch-container'; // كلاس الـ CSS للبوكس
-            
-            // تصميم الهيدر الأسود
+            batchBox.className = 'import-batch-container';
             batchBox.innerHTML = `
                 <div class="import-batch-header">
                     <div style="font-size:14px; font-weight:bold;">
@@ -4688,19 +4613,16 @@ document.addEventListener('DOMContentLoaded', function() {
                 <div class="import-batch-grid"></div>
             `;
 
-            // إضافة الكروت داخل شبكة البوكس
             const grid = batchBox.querySelector('.import-batch-grid');
             batchList.forEach(patient => {
-                let card = createPatientCard(patient, searchTerm);
-                grid.appendChild(card);
+                grid.appendChild(createPatientCard(patient, searchTerm));
             });
 
-            // إضافة البوكس للحاوية الرئيسية
             container.appendChild(batchBox);
         });
 
     } else {
-        // 🔥 العرض العادي (لباقي التابات: All, Today, etc.)
+        // 🔥 العرض العادي (لباقي التابات: All, Today, etc. أو عند البحث)
         filteredPatients.forEach(patient => {
             let card = createPatientCard(patient, searchTerm);
             container.appendChild(card);
@@ -6205,14 +6127,14 @@ function checkPrescription(nationalId, prescriptionNumber) {
         window.open('https://ul.wasfaty.sa/support', '_blank');
     }, 100);
 }
-// تعريف متغير عالمي لتخزين العدد الحقيقي (تأكد إنه موجود في أعلى ملف السكريبت)
+// تعريف متغير عالمي لتخزين العدد الحقيقي
 let totalRealCount = 0;
 
 async function loadPatientsFromSupabase() {
     try {
         console.log('🔄 Loading patients from Database...');
         
-        // 1. جلب البيانات (أول 2000 صف) مع العدد الكلي
+        // 1. جلب البيانات (أول 10000 صف)
         const { data: patientsData, error, count } = await supabaseClient
             .from('patients')
             .select(`
@@ -6220,64 +6142,66 @@ async function loadPatientsFromSupabase() {
                 prescriptions (*)
             `, { count: 'exact' }) 
             .eq('pharmacy_id', currentUser.id)
-            .order('next_refill_date', { ascending: true })
-            .range(0, 1999); 
+            .order('created_at', { ascending: false }) // الأحدث يظهر أولاً
+            .range(0, 9999); 
         
         if (error) throw error;
         
-        // 2. تحديث العدد الحقيقي في المتغير العالمي
         totalRealCount = count;
         
-        // 3. تحويل البيانات (Mapping)
+        // 2. تحويل البيانات (Mapping) مع ضمان تحويل الهوية لنص
         patients = patientsData.map(p => ({
             id: p.id,
-            nationalId: p.national_id,
-            phoneNumber: p.phone_number,
+            nationalId: String(p.national_id || ''), // 🔥 تحويل لنص لضمان البحث
+            phoneNumber: String(p.phone_number || ''),
             dispensingDate: p.dispensing_date,
             refillPeriod: p.refill_period,
             nextRefillDate: p.next_refill_date,
             generalNote: p.general_note,
             imported: p.imported,
-            
-            // 🔥🔥🔥 هذا هو السطر الأهم لعرض تاريخ الرفع 🔥🔥🔥
             importDate: p.import_date, 
-
             inQueue: p.in_queue,
             cardColor: p.cardcolor || 'none',
             createdAt: p.created_at,
             updatedAt: p.updated_at,
             prescriptions: p.prescriptions.map(pr => ({
-                number: pr.prescription_number,
+                number: String(pr.prescription_number || ''),
                 note: pr.note
             }))
         }));
         
-        // 4. ملء Dispensing Queue
+        // 3. ملء طابور الصرف
         dispensingQueue = patients.filter(p => p.inQueue === true);
+        dispensingQueue.sort((a, b) => new Date(a.updatedAt) - new Date(b.updatedAt));
+        dispensingQueue.forEach((p, index) => p.queueNumber = index + 1);
         
-        dispensingQueue.sort((a, b) => {
-            const dateA = a.updatedAt ? new Date(a.updatedAt) : new Date(0);
-            const dateB = b.updatedAt ? new Date(b.updatedAt) : new Date(0);
-            return dateA - dateB;
-        });
+        console.log(`✅ Loaded ${patients.length} rows.`);
         
-        dispensingQueue.forEach((p, index) => {
-            p.queueNumber = index + 1;
-        });
-        
-        // طباعة تأكيد التحميل
-        console.log(`✅ Loaded ${patients.length} rows. Real Total in DB: ${totalRealCount}`);
-        
-        // 5. استدعاء تحديث الإحصائيات فوراً
+        // 4. تحديث الإحصائيات
         updateStats(); 
-        
+
+        // 5. 🔥 إعداد محرك البحث (Fuse.js) بإعدادات مرنة 🔥
+        if (window.Fuse) {
+            fuse = new Fuse(patients, {
+                keys: [
+                    'nationalId', 
+                    'phoneNumber', 
+                    'generalNote',
+                    'prescriptions.number', 
+                    'prescriptions.note'
+                ],
+                threshold: 0.3, // ⚠️ خليناها 0.3 عشان يقبل بحث جزئي
+                distance: 100,
+                minMatchCharLength: 2, // يبدأ بحث من حرفين
+                ignoreLocation: true,
+                useExtendedSearch: true
+            });
+            console.log('🔍 Fuse Engine Configured (Flexible Mode)');
+        }
+
     } catch (error) {
         console.error('❌ Error loading patients:', error);
-        showModal(
-            '<span style="color: var(--danger);">❌ Error</span>',
-            `<p style="text-align: center; padding: 20px;">Error loading data: ${error.message}</p>`,
-            '<button class="btn-primary" style="grid-column: 1/3;" onclick="closeModal()">OK</button>'
-        );
+        showModal('Error', `Failed to load data: ${error.message}`, '<button class="btn-primary" onclick="closeModal()">OK</button>');
     }
 }
 // ============================================
