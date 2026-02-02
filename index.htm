@@ -2765,6 +2765,31 @@
     grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); 
     gap: 15px;
 }
+/* رسالة تنبيه سريعة (Toast) بدلاً من المودال التقيل */
+.toast-notification {
+    position: fixed;
+    bottom: 30px;
+    left: 50%;
+    transform: translateX(-50%) translateY(100px); /* مخفية تحت */
+    background: rgba(0, 0, 0, 0.85);
+    color: white;
+    padding: 12px 24px;
+    border-radius: 50px;
+    font-size: 13px;
+    font-weight: 600;
+    box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    z-index: 10000;
+    opacity: 0;
+    transition: all 0.3s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+}
+
+.toast-notification.show {
+    transform: translateX(-50%) translateY(0);
+    opacity: 1;
+}
     </style>
 </head>
 <body>
@@ -3545,7 +3570,9 @@
 
 <input type="file" id="docsUploader" multiple accept=".txt,.xlsx,.xls,.pdf,.jpg,.jpeg,.png" style="display: none;" onchange="handleDocsUpload(this)">
     <div id="whatsappExportContainer" class="whatsapp-export-container"></div>
-
+<div id="toastNotification" class="toast-notification">
+    <span>✅</span> <span id="toastText">Copied to clipboard!</span>
+</div>
 <img src="https://raw.githubusercontent.com/meralmohamed121022-cyber/Drug-Monograph/refs/heads/main/6_20251129_184528_0005.png" alt="Ph Mohamed Kholeif"
 style="position: fixed; bottom: 10px; right: 10px; width: 100px; height: 100px; border-radius: 50%; border: 3px solid white; box-shadow: 0 3px 10px rgba(0,0,0,0.4); background: white; padding: 2px; animation: float 4s ease-in-out infinite; z-index: 1000; cursor: pointer;"
 id="profileImage" />
@@ -6097,30 +6124,88 @@ function addQuickNote(text) {
         noteArea.value = text;
     }
 }
+// ============================================
+// ⚡ FAST COPY UTILITIES (NO LAG)
+// ============================================
+
+// دالة عرض التنبيه السريع (بديل المودال)
+function showToast(message) {
+    const toast = document.getElementById('toastNotification');
+    const textEl = document.getElementById('toastText');
+    
+    if (toast && textEl) {
+        textEl.textContent = message;
+        toast.classList.add('show');
+        
+        // إخفاء تلقائي بعد 2 ثانية
+        setTimeout(() => {
+            toast.classList.remove('show');
+        }, 2000);
+    }
+}
+
+// دالة النسخ الهجين (الأكثر سرعة واستقراراً)
+function fastCopyText(text) {
+    // محاولة استخدام الطريقة القديمة (Synchronous) لأنها أسرع في الاستجابة اللحظية
+    const textArea = document.createElement("textarea");
+    textArea.value = text;
+    
+    // إخفاء العنصر تماماً عشان ميبوظش الشكل
+    textArea.style.top = "0";
+    textArea.style.left = "0";
+    textArea.style.position = "fixed";
+    textArea.style.opacity = "0";
+    
+    document.body.appendChild(textArea);
+    textArea.focus();
+    textArea.select();
+
+    let successful = false;
+    try {
+        successful = document.execCommand('copy');
+    } catch (err) {
+        console.warn('Fallback copy failed, trying Async API', err);
+    }
+    document.body.removeChild(textArea);
+
+    // لو الطريقة القديمة فشلت، نجرب الحديثة (Async)
+    if (!successful && navigator.clipboard) {
+        navigator.clipboard.writeText(text).catch(err => {
+            console.error('Async copy failed', err);
+            showModal('Error', 'Failed to copy text', 'OK');
+        });
+    }
+}
+
+// ============================================
+// ⚡ UPDATED BUTTON FUNCTIONS
+// ============================================
+
 function copyRxOnly(nationalId, prescriptionNumber) {
-    // دمج الرقمين مع مسافة بينهما
     const textToCopy = `${nationalId} ${prescriptionNumber}`;
     
-    navigator.clipboard.writeText(textToCopy).then(() => {
-        // عرض رسالة صغيرة تؤكد النسخ وتختفي بسرعة
-        showModal(
-            '<span style="color: var(--secondary);">✅ تم النسخ</span>',
-            `<div style="text-align:center; font-weight:bold; color:#2d3436; padding:15px;">
-                ${textToCopy}
-             </div>
-             <div style="text-align:center; font-size:12px; color:#636e72;">جاهز للصق (Ctrl+V)</div>`,
-            '' // لا نحتاج أزرار لأننا سنغلقه تلقائياً
-        );
-        
-        // إغلاق المودال تلقائياً بعد ثانية واحدة لسرعة العمل
-        setTimeout(() => {
-            closeModal();
-        }, 1000);
-        
-    }).catch(err => {
-        console.error('Copy failed', err);
-    });
-}// تعريف متغير عالمي لتخزين العدد الحقيقي (تأكد إنه موجود في أعلى ملف السكريبت)
+    // 1. تنفيذ النسخ فوراً (بدون انتظار Promise)
+    fastCopyText(textToCopy);
+    
+    // 2. عرض رسالة خفيفة (Toast) بدلاً من المودال الكبير
+    showToast(`تم النسخ: ${prescriptionNumber}`);
+}
+
+function checkPrescription(nationalId, prescriptionNumber) {
+    const combinedData = `${nationalId} ${prescriptionNumber}`;
+    
+    // 1. نسخ فوري
+    fastCopyText(combinedData);
+    
+    // 2. عرض تنبيه سريع
+    showToast('تم النسخ وفتح وصفتي 🚀');
+    
+    // 3. فتح الموقع (بتأخير بسيط جداً لضمان ان المتصفح استوعب النسخ)
+    setTimeout(() => {
+        window.open('https://ul.wasfaty.sa/support', '_blank');
+    }, 100);
+}
+// تعريف متغير عالمي لتخزين العدد الحقيقي (تأكد إنه موجود في أعلى ملف السكريبت)
 let totalRealCount = 0;
 
 async function loadPatientsFromSupabase() {
