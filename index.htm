@@ -2790,6 +2790,307 @@
     transform: translateX(-50%) translateY(0);
     opacity: 1;
 }
+/* زر Check History الجديد */
+.btn-history {
+    background: linear-gradient(135deg, #6c5ce7, #a29bfe); /* لون بنفسجي مميز */
+    color: white;
+    box-shadow: 0 4px 12px rgba(108, 92, 231, 0.3);
+}
+
+.btn-history:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(108, 92, 231, 0.4);
+    background: linear-gradient(135deg, #5f27cd, #6c5ce7);
+}
+/* تنسيق الأزرار المصغرة بجوار الهوية */
+.header-actions {
+    display: flex;
+    gap: 5px;
+    margin-top: 5px;
+}
+
+.btn-mini {
+    width: 28px;
+    height: 28px;
+    border-radius: 6px;
+    border: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+}
+
+.btn-mini:hover { transform: translateY(-2px); }
+
+/* ألوان الأزرار المصغرة */
+.mini-edit { background: #E3F2FD; color: #0984e3; }
+.mini-delete { background: #FFEBEE; color: #d63031; }
+.mini-history { background: #F3E5F5; color: #8e44ad; }
+.mini-whatsapp { background: #E0F2F1; color: #00b894; }
+
+/* تنسيق الكارت المستورد داخل الـ Modal (Check History) */
+.duplicate-card.is-imported {
+    background: linear-gradient(135deg, #FFF3E0, #FFE0B2) !important;
+    border: 2px solid #EF6C00 !important;
+}
+
+.duplicate-card.is-imported::before {
+    content: 'IMPORTED';
+    position: absolute;
+    top: 5px;
+    right: 5px;
+    font-size: 9px;
+    font-weight: bold;
+    color: #E65100;
+    background: rgba(255,255,255,0.5);
+    padding: 2px 6px;
+    border-radius: 4px;
+}
+/* زر Check الصغير بجوار الهوية */
+.btn-check-inline {
+    background: linear-gradient(135deg, #6c5ce7, #8e44ad);
+    color: white;
+    border: none;
+    border-radius: 6px;
+    padding: 4px 10px;
+    font-size: 10px;
+    font-weight: bold;
+    cursor: pointer;
+    margin-left: 8px; /* مسافة بينه وبين الرقم */
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    box-shadow: 0 2px 5px rgba(108, 92, 231, 0.3);
+    transition: all 0.2s ease;
+    vertical-align: middle;
+}
+
+.btn-check-inline:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(108, 92, 231, 0.4);
+}
+
+/* تمييز الكارت المستورد داخل الـ Pop-up */
+.duplicate-card.is-imported {
+    background: linear-gradient(135deg, #FFF3E0, #FFE0B2) !important;
+    border: 2px solid #EF6C00 !important;
+}
+
+/* علامة IMPORTED صغيرة داخل كارت الهيستوري */
+.duplicate-card.is-imported::after {
+    content: 'IMPORTED';
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    font-size: 9px;
+    font-weight: 800;
+    color: #E65100;
+    background: rgba(255, 255, 255, 0.6);
+    padding: 2px 6px;
+    border-radius: 4px;
+}
+/* بوكس التواريخ والمعلومات */
+.card-section-info {
+    background: #F8F9FA;
+    border: 1px solid #E9ECEF;
+    border-radius: 8px;
+    padding: 10px;
+    margin-top: 10px;
+}
+
+/* بوكس الملاحظات */
+.card-section-note {
+    background: #FFF8E1; /* أصفر فاتح جداً */
+    border: 1px solid #FFECB3;
+    border-left: 4px solid #FFC107; /* شريط جانبي ذهبي */
+    border-radius: 8px;
+    padding: 10px;
+    margin-top: 10px;
+}
+
+/* عناوين صغيرة داخل البوكسات */
+.box-label {
+    font-size: 10px;
+    font-weight: 700;
+    color: #636E72;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 4px;
+    display: block;
+}
+/* تصميم الكارت الأساسي */
+.patient-card {
+    background: white;
+    border: 1px solid #E0E0E0; /* حدود ناعمة */
+    border-radius: 16px; /* حواف دائرية أكثر */
+    padding: 20px;
+    margin-bottom: 15px;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.05); /* ظل ناعم جداً */
+    transition: all 0.3s ease;
+    position: relative;
+    overflow: hidden;
+}
+
+.patient-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 8px 25px rgba(0,0,0,0.1);
+}
+
+/* تنسيق الهيدر (الهوية والبادج) */
+.patient-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 15px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid #f0f0f0;
+}
+
+.patient-id {
+    font-family: 'Courier New', monospace;
+    font-size: 20px;
+    font-weight: 800;
+    color: #2d3436;
+    letter-spacing: -0.5px;
+}
+
+/* --- القسم 1: بوكس المعلومات (تواريخ) --- */
+.section-info {
+    background: #F8F9FA; /* رصاصي فاتح جداً */
+    border: 1px solid #E9ECEF;
+    border-radius: 12px;
+    padding: 12px;
+    display: grid;
+    grid-template-columns: 1fr 1fr; /* عمودين */
+    gap: 15px;
+    position: relative;
+}
+
+/* العناوين الصغيرة */
+.info-label {
+    font-size: 9px;
+    color: #95a5a6;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: 4px;
+    display: block;
+}
+
+/* القيم (التواريخ) */
+.info-value {
+    font-size: 13px;
+    font-weight: 700;
+    color: #2d3436;
+}
+
+/* شريط الحالة داخل بوكس المعلومات */
+.status-bar {
+    grid-column: span 2; /* يأخذ العرض كامل */
+    margin-top: 5px;
+    padding-top: 8px;
+    border-top: 1px dashed #dfe6e9;
+    text-align: center;
+}
+
+/* --- القسم 2: بوكس الوصفات --- */
+.section-prescriptions {
+    margin-top: 15px;
+}
+
+.rx-item {
+    background: white;
+    border: 1px solid #dfe6e9;
+    border-radius: 8px;
+    padding: 6px 10px;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    margin-right: 5px;
+    margin-bottom: 5px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.03);
+}
+
+/* --- القسم 3: بوكس الملاحظات --- */
+.section-notes {
+    margin-top: 15px;
+    background: #FFF8E1; /* أصفر فاتح */
+    border: 1px solid #FFECB3;
+    border-left: 4px solid #FFC107;
+    border-radius: 8px;
+    padding: 12px;
+}
+
+/* --- القسم 4: الكيو آر كود --- */
+.section-qr {
+    margin-top: 15px;
+    display: flex;
+    justify-content: center;
+    gap: 10px;
+    padding: 10px;
+    background: #FAFAFA;
+    border-radius: 12px;
+    border: 1px dashed #dfe6e9;
+}
+
+/* --- الفوتر: الأزرار --- */
+.card-footer {
+    margin-top: 15px;
+    display: grid;
+    gap: 10px;
+    /* سيتم تحديد عدد الأعمدة في الجافاسكريبت */
+}
+/* تنسيق منطقة الكيو آر لتكون قابلة للسكرول */
+.section-qr {
+    margin-top: 15px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px;
+    background: #FAFAFA;
+    border-radius: 12px;
+    border: 1px dashed #dfe6e9;
+    
+    /* أهم جزء للسكرول */
+    overflow-x: auto; 
+    white-space: nowrap; 
+    cursor: pointer; /* عشان يعرف إنه قابل للضغط */
+    transition: background 0.2s;
+}
+
+.section-qr:hover {
+    background: #F0F4C3; /* لون تلميح عند المرور */
+    border-color: #CDDC39;
+}
+
+/* تنسيق شريط السكرول ليكون رفيع وأنيق */
+.section-qr::-webkit-scrollbar {
+    height: 6px;
+}
+.section-qr::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 10px;
+}
+.section-qr::-webkit-scrollbar-thumb {
+    background: #bdc3c7; 
+    border-radius: 10px;
+}
+.section-qr::-webkit-scrollbar-thumb:hover {
+    background: #95a5a6; 
+}
+
+/* تثبيت حجم بوكس الكيو آر عشان ما ينضغطش */
+.qr-box {
+    flex: 0 0 auto; /* ممنوع الانكماش */
+    min-width: 100px; /* عرض ثابت */
+    background: white;
+    padding: 8px;
+    border-radius: 8px;
+    border: 1px solid #eee;
+    text-align: center;
+}
     </style>
 </head>
 <body>
@@ -3656,70 +3957,75 @@ id="profileImage" />
             }
             return false;
         }
+       function showDuplicatesModal(duplicates, newID, newPrescriptions) {
+    const duplicatesHTML = duplicates.map(patient => {
+        const matchID = patient.nationalId === newID;
+        const matchPrescriptions = patient.prescriptions.some(p => newPrescriptions.includes(p.number));
         
-        function showDuplicatesModal(duplicates, newID, newPrescriptions) {
-            const duplicatesHTML = duplicates.map(patient => {
-                const matchID = patient.nationalId === newID;
-                const matchPrescriptions = patient.prescriptions.some(p => newPrescriptions.includes(p.number));
+        // 🔥 الطلب الثالث: إضافة كلاس للتمييز إذا كان الكارت مستورداً
+        const importedClass = patient.imported ? 'is-imported' : '';
+        
+        return `
+            <div class="duplicate-card ${importedClass}">
+                <div class="card-id">
+                    ${matchID ? '🔴 ' : ''}ID: ${patient.nationalId}
+                    ${patient.imported ? '<span style="float:right; font-size:10px; background:rgba(255,255,255,0.6); padding:2px 6px; border-radius:4px; color:#E65100;">IMPORTED</span>' : ''}
+                </div>
+                <div style="font-size: 12px; color: #636E72; margin-bottom: 10px;">
+                    <strong>Dispensing:</strong> ${patient.dispensingDate}<br>
+                    <strong>Next Refill:</strong> ${patient.nextRefillDate}
+                </div>
+                <div class="card-prescriptions">
+                    <strong style="font-size: 11px; color: var(--primary);">Prescriptions:</strong><br>
+                    ${patient.prescriptions.map(p => 
+                        `<span class="presc-tag" style="${newPrescriptions.includes(p.number) ? 'background: var(--danger);' : ''}">${p.number}</span>`
+                    ).join('')}
+                </div>
                 
-                return `
-                    <div class="duplicate-card">
-                        <div class="card-id">
-                            ${matchID ? '🔴 ' : ''}ID: ${patient.nationalId}
-                        </div>
-                        <div style="font-size: 12px; color: #636E72; margin-bottom: 10px;">
-                            <strong>Dispensing:</strong> ${patient.dispensingDate}<br>
-                            <strong>Next Refill:</strong> ${patient.nextRefillDate}
-                        </div>
-                        <div class="card-prescriptions">
-                            <strong style="font-size: 11px; color: var(--primary);">Prescriptions:</strong><br>
-                            ${patient.prescriptions.map(p => 
-                                `<span class="presc-tag" style="${newPrescriptions.includes(p.number) ? 'background: var(--danger);' : ''}">${p.number}</span>`
-                            ).join('')}
-                        </div>
-                        <div class="qr-mini" id="qr-modal-${patient.id}"></div>
-                        <div class="card-actions">
-                            <button class="btn-action btn-edit" onclick="closeModal(); editPatient('${patient.id}')">
-                                <div class="icon icon-edit" style="color: white; width: 14px; height: 14px;"></div>
-                                Edit
-                            </button>
-                            <button class="btn-action btn-delete" onclick="closeModal(); deletePatient('${patient.id}')">
-                                <div class="icon icon-delete" style="color: white; width: 12px; height: 14px;"></div>
-                                Delete
-                            </button>
-                        </div>
-                    </div>
-                `;
-            }).join('');
-            
-            showModal(
-                '<span style="color: var(--danger);">⚠️ Duplicate Records Found</span>',
-                `
-                    <p style="margin-bottom: 20px; color: #636E72;">Found ${duplicates.length} existing record(s) matching this data:</p>
-                    <div style="max-height: 400px; overflow-y: auto;">${duplicatesHTML}</div>
-                `,
-                `
-                    <button class="btn-primary" onclick="closeModal(); proceedWithSave()">Continue Anyway</button>
-                    <button class="btn-secondary" onclick="closeModal()">Cancel</button>
-                `
-            );
-            
-            // Generate QR codes for duplicates
-            setTimeout(() => {
-                duplicates.forEach(patient => {
-                    const container = document.getElementById(`qr-modal-${patient.id}`);
-                    if (container) {
-                        container.innerHTML = '';
-                        const qrID = createMiniQR(patient.nationalId, 'ID');
-                        container.appendChild(qrID);
-                        patient.prescriptions.forEach((presc, idx) => {
-                            const qrPresc = createMiniQR(presc.number, `RX${idx + 1}`);
-                            container.appendChild(qrPresc);
-                        });
-                    }
+                <div class="qr-mini" id="qr-modal-${patient.id}"></div>
+                
+                <div class="card-actions">
+                    <button class="btn-action btn-edit" onclick="closeModal(); editPatient('${patient.id}')">
+                        <div class="icon icon-edit" style="color: white; width: 14px; height: 14px;"></div> Edit
+                    </button>
+                    <button class="btn-action btn-delete" onclick="closeModal(); deletePatient('${patient.id}')">
+                        <div class="icon icon-delete" style="color: white; width: 12px; height: 14px;"></div> Delete
+                    </button>
+                </div>
+            </div>
+        `;
+    }).join('');
+    
+    showModal(
+        '<span style="color: var(--primary);">📋 History & Duplicates</span>',
+        `
+            <div style="margin-bottom: 15px; color: #636E72; font-size:13px;">
+                Searching entire database... Found <b>${duplicates.length}</b> matches:
+            </div>
+            <div style="max-height: 400px; overflow-y: auto; padding: 5px;">${duplicatesHTML}</div>
+        `,
+        `
+            <button class="btn-primary" onclick="closeModal(); proceedWithSave()">Continue Anyway</button>
+            <button class="btn-secondary" onclick="closeModal()">Close</button>
+        `
+    );
+    
+    // Generate QR codes
+    setTimeout(() => {
+        duplicates.forEach(patient => {
+            const container = document.getElementById(`qr-modal-${patient.id}`);
+            if (container) {
+                container.innerHTML = '';
+                const qrID = createMiniQR(patient.nationalId, 'ID');
+                container.appendChild(qrID);
+                patient.prescriptions.forEach((presc, idx) => {
+                    const qrPresc = createMiniQR(presc.number, `RX${idx + 1}`);
+                    container.appendChild(qrPresc);
                 });
-            }, 100);
-        }
+            }
+        });
+    }, 100);
+}
         
         function createMiniQR(text, label) {
             const box = document.createElement('div');
@@ -4638,11 +4944,104 @@ function highlightMatch(text, searchTerm) {
     const regex = new RegExp(`(${searchTerm.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi');
     return text.toString().replace(regex, '<span class="highlight-text">$1</span>');
 }
+// دالة فحص الهيستوري للكروت المستوردة
+function checkImportedHistory(importedId) {
+    // 1. العثور على الكارت الحالي
+    const currentPatient = patients.find(p => p.id === importedId);
+    if (!currentPatient) return;
+
+    const targetID = currentPatient.nationalId;
+    const targetRx = currentPatient.prescriptions.map(p => p.number);
+
+    // 2. البحث عن مطابقات في باقي الداتا بيز (باستثناء الكارت الحالي)
+    const duplicates = patients.filter(p => 
+        p.id !== importedId && // استثناء الكارت الحالي عشان ما يطلعش نفسه
+        (
+            p.nationalId === targetID || 
+            p.prescriptions.some(presc => targetRx.includes(presc.number))
+        )
+    );
+
+    // 3. عرض النتائج
+    if (duplicates.length > 0) {
+        // نستخدم نفس البوب أب الموجودة للتكرار
+        showDuplicatesModal(duplicates, targetID, targetRx);
+    } else {
+        // لو السجل نظيف ومفيش زيه
+        showModal(
+            '<span style="color: var(--secondary);">✅ Clean Record</span>',
+            `<div style="text-align: center; padding: 30px;">
+                <div style="font-size: 40px; margin-bottom: 10px;">✨</div>
+                <p style="font-weight: bold; color: var(--dark);">No history found.</p>
+                <p style="font-size: 13px; color: #666;">This patient/prescription is unique in your database.</p>
+             </div>`,
+            '<button class="btn-primary" onclick="closeModal()">OK</button>'
+        );
+    }
+}
+// دالة لفتح نافذة بها كل الكيو آر كود بحجم كبير
+function openQRGallery(patientId) {
+    const patient = patients.find(p => p.id === patientId);
+    if (!patient) return;
+
+    // تجهيز الحاوية للكيو آر
+    // سنقوم بتوليدها داخل المودال
+    const modalContent = `
+        <div style="text-align: center; margin-bottom: 20px;">
+            <h3 style="color: var(--primary);">${patient.nationalId}</h3>
+            <p style="color: #666; font-size: 12px;">Click on any QR to download/copy</p>
+        </div>
+        <div id="gallery-container" style="display: flex; flex-wrap: wrap; gap: 20px; justify-content: center; padding: 10px;">
+            </div>
+    `;
+
+    showModal(
+        '<span style="color: var(--primary);">📱 QR Code Gallery</span>',
+        modalContent,
+        '<button class="btn-secondary" onclick="closeModal()">Close</button>'
+    );
+
+    // توليد الكيو آر كود داخل المودال (بحجم أكبر)
+    setTimeout(() => {
+        const container = document.getElementById('gallery-container');
+        if (container) {
+            // 1. كود الهوية
+            container.appendChild(createLargeQR(patient.nationalId, 'National ID'));
+            
+            // 2. أكواد الوصفات
+            patient.prescriptions.forEach((presc, idx) => {
+                container.appendChild(createLargeQR(presc.number, `Rx ${idx + 1}`));
+            });
+        }
+    }, 100);
+}
+
+// دالة مساعدة لإنشاء كيو آر كبير
+function createLargeQR(text, label) {
+    const box = document.createElement('div');
+    box.style.cssText = "text-align: center; background: white; padding: 15px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); border: 2px solid #eee;";
+    
+    try {
+        // توليد كيو آر بحجم أكبر
+        const qr = qrcode(0, 'M');
+        qr.addData(text);
+        qr.make();
+        const imgTag = qr.createImgTag(5, 10); // تكبير الحجم (Cell size 5)
+        
+        box.innerHTML = `
+            ${imgTag}
+            <div style="font-weight: bold; margin-top: 10px; font-size: 16px; color: var(--dark); font-family: monospace;">${text}</div>
+            <div style="font-size: 12px; color: var(--primary); text-transform: uppercase;">${label}</div>
+        `;
+    } catch (e) {
+        box.innerHTML = "Error generating QR";
+    }
+    return box;
+}
 function createPatientCard(patient, searchTerm = '') {
     let card = document.createElement('div');
     card.className = 'patient-card';
     
-    // 1. تحديد حالة الريفيل وتنسيق الكروت المستوردة
     let status = getRefillStatus(patient.nextRefillDate);
     if (status) card.classList.add(status);
     if (patient.imported) card.classList.add('imported');
@@ -4651,163 +5050,126 @@ function createPatientCard(patient, searchTerm = '') {
                     status === 'overdue' ? 'OVERDUE' : 
                     status === 'upcoming' ? 'UPCOMING' : 'SCHEDULED';
 
-    // 2. تجهيز رابط الواتساب
     let whatsappLink = '';
     if (patient.phoneNumber) {
         let cleanPhone = patient.phoneNumber.replace(/\D/g, '');
-        if (cleanPhone.startsWith('05')) {
-            cleanPhone = '966' + cleanPhone.substring(1);
-        }
+        if (cleanPhone.startsWith('05')) cleanPhone = '966' + cleanPhone.substring(1);
         whatsappLink = `https://wa.me/${cleanPhone}`;
     }
-// 3. دالة لمعالجة النوت وتحويل الكلمات إلى بادجات ملونة
-    const processNotes = (note) => {
-        if (!note) return '';
-        
-        let badgesHtml = '<div style="display:flex; flex-wrap:wrap; gap:5px; margin-bottom:6px;">';
-        
-        // تقسيم النص بناءً على الفواصل لإنشاء صناديق منفصلة
-        // مثلاً: "VIP, SENSOR, مريض مستعجل" -> ستصبح 3 صناديق
-        let parts = note.split(',').map(s => s.trim()).filter(s => s.length > 0);
 
-        // تعريف الكلمات الخاصة وألوانها
-        const tagsMap = {
-            'VIP': { class: 'badge-vip', icon: '' }, // الـ VIP الجديد
-            'NEED NEW RX NO': { class: 'badge-need-rx', icon: '⚠️' },
-            'SENSOR': { class: 'badge-sensor', icon: '📡' },
-            'INSULIN': { class: 'badge-insulin', icon: '💉' },
-            'NO ANSWER': { class: 'badge-no-answer', icon: '📞' },
-            'REJECTED': { class: 'badge-rejected', icon: '❌' },
-            'DISPENSED': { class: 'badge-dispensed', icon: '✅' }
-        };
-
-        parts.forEach(part => {
-            let cssClass = 'badge-default'; // اللون الأزرق الافتراضي لأي نص يدوي
-            let icon = ''; 
-            let textToShow = part;
-
-            // البحث هل النص يحتوي على كلمة مفتاحية من القائمة أعلاه؟
-            // تم استخدام Object.keys للبحث بذكاء
-            for (const [key, config] of Object.entries(tagsMap)) {
-                if (part.toUpperCase().includes(key)) {
-                    cssClass = config.class;
-                    // إذا لم يكن النص يحتوي على الأيقونة بالفعل، نستخدم أيقونة التاج
-                    if (!part.includes(config.icon) && config.icon) {
-                        // icon = config.icon; // يمكن تفعيل هذا إذا أردت فصل الأيقونة
-                    }
-                    break; 
-                }
-            }
-
-            // إنشاء البوكس (الصندوق)
-            badgesHtml += `<span class="note-badge ${cssClass}" style="font-size: 11px; padding: 5px 12px;">${highlightMatch(textToShow, searchTerm)}</span>`;
-        });
-        
-        badgesHtml += '</div>';
-        return badgesHtml;
-    };
-    // 4. تطبيق الـ Highlight على النصوص الأساسية
     const hl_nationalId = highlightMatch(patient.nationalId, searchTerm);
     const hl_phone = highlightMatch(patient.phoneNumber, searchTerm);
 
-    // 5. بناء كود HTML للكارت
+    const processNotes = (note) => {
+        if (!note) return '';
+        let badgesHtml = '<div style="display:flex; flex-wrap:wrap; gap:5px; margin-top:5px;">';
+        let parts = note.split(',').map(s => s.trim()).filter(s => s.length > 0);
+        const tagsMap = {
+            'VIP': { class: 'badge-vip' }, 'NEED NEW RX NO': { class: 'badge-need-rx' },
+            'SENSOR': { class: 'badge-sensor' }, 'INSULIN': { class: 'badge-insulin' },
+            'NO ANSWER': { class: 'badge-no-answer' }, 'REJECTED': { class: 'badge-rejected' },
+            'DISPENSED': { class: 'badge-dispensed' }
+        };
+        parts.forEach(part => {
+            let cssClass = 'badge-default';
+            let textToShow = part;
+            for (const [key, config] of Object.entries(tagsMap)) {
+                if (part.toUpperCase().includes(key)) { cssClass = config.class; break; }
+            }
+            badgesHtml += `<span class="note-badge ${cssClass}" style="font-size: 10px; padding: 4px 8px;">${highlightMatch(textToShow, searchTerm)}</span>`;
+        });
+        badgesHtml += '</div>';
+        return badgesHtml;
+    };
+
+    // --- HTML ---
     card.innerHTML = `
         <div class="patient-header">
-            <div>
-                <div class="patient-id">${hl_nationalId}</div>
-                
+            <div style="flex: 1;">
+                <div style="display: flex; align-items: center;">
+                    <div class="patient-id">${hl_nationalId}</div>
+                    
+                    <button class="btn-check-inline" onclick="checkHistory('${patient.id}'); event.stopPropagation();" title="Check History">
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+                        CHECK
+                    </button>
+                </div>
+
                 ${patient.phoneNumber ? `
                 <div style="display: flex; align-items: center; gap: 8px; margin-top: 5px;">
-                    <div class="patient-phone" style="color: #636E72; font-weight: 600;">
-                        📱 ${hl_phone}
-                    </div>
-
-                    <a href="tel:${patient.phoneNumber}" title="اتصال هاتفي" style="display: inline-flex; align-items: center; justify-content: center; width: 24px; height: 24px; background: #0984e3; border-radius: 50%; color: white; box-shadow: 0 2px 5px rgba(9, 132, 227, 0.3); transition: transform 0.2s; text-decoration: none;" onmouseover="this.style.transform='scale(1.1)'" onmouseout="this.style.transform='scale(1)'">
-                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                            <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path>
-                        </svg>
-                    </a>
-
-                    <a href="${whatsappLink}" target="_blank" title="مراسلة واتساب" style="display: inline-flex; align-items: center; justify-content: center; width: 24px; height: 24px; background: #25D366; border-radius: 50%; color: white; box-shadow: 0 2px 5px rgba(37, 211, 102, 0.3); transition: transform 0.2s; text-decoration: none;" onmouseover="this.style.transform='scale(1.1)'" onmouseout="this.style.transform='scale(1)'">
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
-                            <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z"/>
-                        </svg>
-                    </a>
+                    <div class="patient-phone" style="color: #636E72; font-weight: 600;">📱 ${hl_phone}</div>
+                    <a href="tel:${patient.phoneNumber}" class="btn-icon-small" style="background:#E3F2FD; color:#0984e3; width:22px; height:22px; border-radius:50%; display:flex; align-items:center; justify-content:center; text-decoration:none;">📞</a>
                 </div>
                 ` : ''}
-
             </div>
-            <div class="patient-badge">${badgeText}</div>
+            <div class="patient-badge" style="font-size:10px;">${badgeText}</div>
         </div>
         
-        <div class="patient-info">
-            <strong>Dispensing Date:</strong> ${patient.dispensingDate}<br>
-            <strong>Next Refill:</strong> ${patient.nextRefillDate}
-            <span class="date-badge ${status}">${getDaysUntilRefill(patient.nextRefillDate)}</span>
+        <div class="card-section-info">
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                <div>
+                    <span class="box-label">Dispensing Date</span>
+                    <div style="font-weight: 700; color: #2D3436; font-size: 13px;">${patient.dispensingDate}</div>
+                </div>
+                <div>
+                    <span class="box-label">Next Refill</span>
+                    <div style="font-weight: 700; color: ${status === 'overdue' ? '#d63031' : '#0984e3'}; font-size: 13px;">${patient.nextRefillDate}</div>
+                </div>
+            </div>
+            <div style="margin-top: 8px; border-top: 1px dashed #ced6e0; padding-top: 5px;">
+                <span class="date-badge ${status}" style="width: 100%; display: block; text-align: center;">${getDaysUntilRefill(patient.nextRefillDate)}</span>
+            </div>
         </div>
 
-        <div class="prescriptions-list">
-            <strong style="font-size: 11px; color: var(--primary); text-transform: uppercase; letter-spacing: 0.5px;">Prescriptions (${patient.prescriptions.length}):</strong><br>
+        <div class="section-prescriptions">
+            <span class="info-label" style="margin-bottom: 8px;">Active Prescriptions</span>
+            <div style="overflow-x: auto; white-space: nowrap; padding-bottom: 5px;">
             ${patient.prescriptions.map(p => `
-                <div style="display: inline-flex; align-items: center; gap: 6px; margin: 5px 5px 5px 0; background: white; padding: 4px 8px; border-radius: 8px; border: 2px solid #E3E8FF;">
-                    <span class="prescription-tag" style="margin: 0; border: none; padding: 4px 10px;">
+                <div class="rx-item">
+                    <span style="font-family:monospace; font-weight:700; font-size:12px; color:#2d3436;">
                         ${highlightMatch(p.number, searchTerm)}
                     </span>
-                    ${p.note ? `<span style="font-size:11px; color:#666;">(${highlightMatch(p.note, searchTerm)})</span>` : ''}
-                    
-                    <button class="btn-copy-only" onclick="copyRxOnly('${patient.nationalId}', '${p.number}')" title="نسخ فقط">
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                            <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
-                            <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
-                        </svg>
+                    <button class="btn-copy-only" onclick="copyRxOnly('${patient.nationalId}', '${p.number}')" title="Copy" style="width:20px; height:20px;">
+                        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
                     </button>
-
-                    <button class="btn-check-wasfaty" onclick="checkPrescription('${patient.nationalId}', '${p.number}')" title="نسخ وفتح وصفتي">
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
-                            <polyline points="20 6 9 17 4 12"></polyline>
-                        </svg>
+                    <button class="btn-check-wasfaty" onclick="checkPrescription('${patient.nationalId}', '${p.number}')" title="Wasfaty" style="width:20px; height:20px;">
+                        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"></polyline></svg>
                     </button>
                 </div>
             `).join('')}
+            </div>
         </div>
         
         ${patient.generalNote ? `
-            <div class="info-box" style="background: #FFF9C4; border-left: 4px solid #FBC02D; color: #333;">
+            <div class="section-notes">
+                <span class="info-label" style="color:#F39C12;">📝 Notes</span>
                 ${processNotes(patient.generalNote)}
             </div>
         ` : ''}
         
-        <div class="qr-display" id="qr-${patient.id}"></div>
-        
-        <div class="patient-actions">
-            <button class="btn-action btn-edit" onclick="editPatient('${patient.id}')" data-tooltip="Edit">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                    <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
-                    <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
-                </svg>
+        <div style="position:relative;">
+            <div class="section-qr" id="qr-${patient.id}" onclick="openQRGallery('${patient.id}')" title="Click to Expand All QRs"></div>
+            <div style="position:absolute; top:20px; right:5px; font-size:10px; color:#aaa; pointer-events:none;">🔍 Expand</div>
+        </div>
+
+        <div class="card-footer" style="grid-template-columns: ${patient.imported ? 'repeat(3, 1fr)' : 'repeat(3, 1fr)'};">
+            <button class="btn-action btn-edit" onclick="editPatient('${patient.id}')">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg> Edit
             </button>
-            <button class="btn-action btn-delete" onclick="deletePatient('${patient.id}')" data-tooltip="Delete">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                    <polyline points="3 6 5 6 21 6"></polyline>
-                    <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
-                    <line x1="10" y1="11" x2="10" y2="17"></line>
-                    <line x1="14" y1="11" x2="14" y2="17"></line>
-                </svg>
+            <button class="btn-action btn-delete" onclick="deletePatient('${patient.id}')">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg> Delete
             </button>
-            <button class="btn-action btn-whatsapp" onclick="shareWhatsApp('${patient.id}')" data-tooltip="Share Card">
-               <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
-                   <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z"/>
-               </svg>
+            <button class="btn-action btn-whatsapp" onclick="shareWhatsApp('${patient.id}')">
+               <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z"/></svg> Share
             </button>
         </div>
     `;
     
-    // حل مشكلة تكرار الكيو ار (تنظيف الحاوية قبل الإضافة)
+    // QR Code Generation
     setTimeout(() => {
         let qrContainer = document.getElementById('qr-' + patient.id);
         if (qrContainer) {
-            qrContainer.innerHTML = ''; // هذا السطر يمنع التكرار
-            
+            qrContainer.innerHTML = '';
             qrContainer.appendChild(createQRElement(patient.nationalId, 'ID', patient.nationalId));
             patient.prescriptions.forEach((presc, idx) => {
                 qrContainer.appendChild(createQRElement(presc.number, 'RX ' + (idx + 1), presc.number));
@@ -7177,6 +7539,79 @@ async function executeBatchDeletion() {
         console.error(err);
         showModal('<span style="color:var(--danger)">❌ خطأ</span>', `<p>حدث خطأ غير متوقع: ${err.message}</p>`, '<button class="btn-primary" onclick="closeModal()">OK</button>');
     }
+}
+// 1. دالة الفحص (تم تغيير الاسم ليعكس أنها تفحص الكل)
+function checkHistory(targetId) {
+    const currentPatient = patients.find(p => p.id === targetId);
+    if (!currentPatient) return;
+
+    const targetNationalId = currentPatient.nationalId;
+    const targetRxNumbers = currentPatient.prescriptions.map(p => p.number);
+
+    // البحث في كل البيانات (بما فيها الكارت الحالي نفسه إذا أردت رؤيته، أو استثنائه)
+    // هنا سنبحث عن أي كارت يحمل نفس الهوية أو نفس الوصفة
+    const historyMatches = patients.filter(p => 
+        // استثناء الكارت الذي ضغطت عليه عشان ما يظهرش مرتين (اختياري، لو عايز تشوفه شيل السطر ده)
+        p.id !== targetId && 
+        (
+            p.nationalId === targetNationalId || 
+            p.prescriptions.some(presc => targetRxNumbers.includes(presc.number))
+        )
+    );
+
+    if (historyMatches.length > 0) {
+        showDuplicatesModal(historyMatches, targetNationalId, targetRxNumbers);
+        
+        // تغيير عنوان المودال
+        const modalTitle = document.querySelector('.modal-title');
+        if (modalTitle) modalTitle.innerHTML = '<span style="color: var(--primary);">📜 Patient History</span>';
+    } else {
+        showModal(
+            '<span style="color: var(--secondary);">✅ Clean Record</span>',
+            `<div style="text-align:center; padding:20px;">
+                <p>No other history found for this patient.</p>
+                <small style="color:#777;">This is the only record for ID: ${targetNationalId}</small>
+             </div>`,
+            '<button class="btn-primary" onclick="closeModal()">OK</button>'
+        );
+    }
+}
+
+// 2. دالة عرض الكروت داخل البوب أب (تعديل الألوان)
+function showDuplicatesModal(duplicates, newID, newPrescriptions) {
+    const duplicatesHTML = duplicates.map(patient => {
+        // 🔥 هنا السحر: لو الكارت مستورد، نضيف كلاس "is-imported"
+        const importedClass = patient.imported ? 'is-imported' : '';
+        
+        return `
+            <div class="duplicate-card ${importedClass}" style="position: relative;">
+                <div class="card-id">
+                    ID: ${patient.nationalId}
+                </div>
+                <div style="font-size: 12px; color: #636E72; margin-bottom: 10px;">
+                    <strong>Dispensing:</strong> ${patient.dispensingDate}<br>
+                    <strong>Next Refill:</strong> ${patient.nextRefillDate}
+                </div>
+                <div class="card-prescriptions">
+                    <strong style="font-size: 11px; color: var(--primary);">Prescriptions:</strong><br>
+                    ${patient.prescriptions.map(p => 
+                        `<span class="presc-tag">${p.number}</span>`
+                    ).join('')}
+                </div>
+                
+                <div class="card-actions">
+                    <button class="btn-action btn-edit" onclick="closeModal(); editPatient('${patient.id}')">Edit</button>
+                    <button class="btn-action btn-delete" onclick="closeModal(); deletePatient('${patient.id}')">Delete</button>
+                </div>
+            </div>
+        `;
+    }).join('');
+    
+    showModal(
+        '<span style="color: var(--primary);">📋 History Records</span>',
+        `<div style="max-height: 400px; overflow-y: auto; padding: 5px;">${duplicatesHTML}</div>`,
+        `<button class="btn-primary" onclick="closeModal()">Close</button>`
+    );
 }
     </script>
 </body>
