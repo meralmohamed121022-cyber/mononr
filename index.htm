@@ -7576,17 +7576,20 @@ function checkHistory(targetId) {
         );
     }
 }
-
-// 2. دالة عرض الكروت داخل البوب أب (تعديل الألوان)
+// استبدل الدالة القديمة بهذا الكود كاملاً
 function showDuplicatesModal(duplicates, newID, newPrescriptions) {
     const duplicatesHTML = duplicates.map(patient => {
-        // 🔥 هنا السحر: لو الكارت مستورد، نضيف كلاس "is-imported"
+        // تحديد ما إذا كان هذا هو نفس رقم الهوية الجديد
+        const matchID = patient.nationalId === newID;
+        
+        // التحقق مما إذا كان الكارت مستورداً لإضافة التنسيق الخاص به
         const importedClass = patient.imported ? 'is-imported' : '';
         
         return `
             <div class="duplicate-card ${importedClass}" style="position: relative;">
                 <div class="card-id">
-                    ID: ${patient.nationalId}
+                    ${matchID ? '🔴 ' : ''}ID: ${patient.nationalId}
+                    ${patient.imported ? '<span style="float:right; font-size:10px; background:rgba(255,255,255,0.6); padding:2px 6px; border-radius:4px; color:#E65100;">IMPORTED</span>' : ''}
                 </div>
                 <div style="font-size: 12px; color: #636E72; margin-bottom: 10px;">
                     <strong>Dispensing:</strong> ${patient.dispensingDate}<br>
@@ -7595,23 +7598,54 @@ function showDuplicatesModal(duplicates, newID, newPrescriptions) {
                 <div class="card-prescriptions">
                     <strong style="font-size: 11px; color: var(--primary);">Prescriptions:</strong><br>
                     ${patient.prescriptions.map(p => 
-                        `<span class="presc-tag">${p.number}</span>`
+                        `<span class="presc-tag" style="${newPrescriptions.includes(p.number) ? 'background: var(--danger);' : ''}">${p.number}</span>`
                     ).join('')}
                 </div>
                 
+                <div class="qr-mini" id="qr-modal-${patient.id}"></div>
+                
                 <div class="card-actions">
-                    <button class="btn-action btn-edit" onclick="closeModal(); editPatient('${patient.id}')">Edit</button>
-                    <button class="btn-action btn-delete" onclick="closeModal(); deletePatient('${patient.id}')">Delete</button>
+                    <button class="btn-action btn-edit" onclick="closeModal(); editPatient('${patient.id}')">
+                        <div class="icon icon-edit" style="color: white; width: 14px; height: 14px;"></div> Edit
+                    </button>
+                    <button class="btn-action btn-delete" onclick="closeModal(); deletePatient('${patient.id}')">
+                        <div class="icon icon-delete" style="color: white; width: 12px; height: 14px;"></div> Delete
+                    </button>
                 </div>
             </div>
         `;
     }).join('');
     
+    // 🔥 هذا هو الجزء المهم: إضافة زر الاستمرار (Continue Adding)
     showModal(
-        '<span style="color: var(--primary);">📋 History Records</span>',
-        `<div style="max-height: 400px; overflow-y: auto; padding: 5px;">${duplicatesHTML}</div>`,
-        `<button class="btn-primary" onclick="closeModal()">Close</button>`
+        '<span style="color: var(--primary);">⚠️ Existing Records Found</span>',
+        `
+        <div style="margin-bottom: 15px; color: #636E72; font-size:13px;">
+            This ID or Prescription already exists. Do you want to add a NEW card anyway?
+        </div>
+        <div style="max-height: 400px; overflow-y: auto; padding: 5px;">${duplicatesHTML}</div>
+        `,
+        `
+        <button class="btn-primary" onclick="closeModal(); proceedWithSave()">Continue Adding (إضافة جديد)</button>
+        <button class="btn-secondary" onclick="closeModal()">Cancel</button>
+        `
     );
+    
+    // إنشاء كود QR صغير داخل المودال (ميزة إضافية مفيدة)
+    setTimeout(() => {
+        duplicates.forEach(patient => {
+            const container = document.getElementById(`qr-modal-${patient.id}`);
+            if (container && window.createMiniQR) {
+                container.innerHTML = '';
+                const qrID = createMiniQR(patient.nationalId, 'ID');
+                container.appendChild(qrID);
+                patient.prescriptions.forEach((presc, idx) => {
+                    const qrPresc = createMiniQR(presc.number, `RX${idx + 1}`);
+                    container.appendChild(qrPresc);
+                });
+            }
+        });
+    }, 100);
 }
     </script>
 </body>
