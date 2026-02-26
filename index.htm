@@ -4856,17 +4856,17 @@ document.addEventListener('DOMContentLoaded', function() {
                 displayPatients();
             }
         }
-      function displayPatients() {
+        function displayPatients() {
     updateStats();
     
     let searchTerm = document.getElementById('searchInput').value.trim();
     let container = document.getElementById('patientsContainer');
     container.innerHTML = ''; // تنظيف الحاوية
 
-    // 1. أولاً: نحدد القائمة بناءً على التاب المختار (All, Today, Imported...)
+    // 1. أولاً: نحدد القائمة بناءً على التاب المختار
     let filteredPatients = filterPatientsByStatus(currentFilter);
 
-    // 2. ثانياً: نطبق فلتر التاريخ (Date Range) إذا كان مفعلاً
+    // 2. ثانياً: نطبق فلتر التاريخ إذا كان مفعلاً
     if (dateFilterActive && dateFilterFrom && dateFilterTo) {
         filteredPatients = filteredPatients.filter(p => {
             let refillDate = new Date(p.nextRefillDate);
@@ -4875,19 +4875,15 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
-    // 3. ثالثاً: نطبق البحث (Search) على القائمة المفلترة حالياً
-    // هذا يضمن أن البحث يتم "داخل" الفلتر المختار
+    // 3. ثالثاً: نطبق البحث
     if (fuse && searchTerm) {
         let fuseResults = fuse.search(searchTerm);
         let searchIds = fuseResults.map(r => r.item.id);
-        
-        // احتفظ فقط بالمرضى الذين: (هم في الفلتر الحالي) و (موجودين في نتائج البحث)
         filteredPatients = filteredPatients.filter(p => searchIds.includes(p.id));
     }
 
     // --- (مرحلة الرسم) Rendering ---
 
-    // حالة عدم وجود نتائج
     if (filteredPatients.length === 0) {
         container.innerHTML = `
             <div class="no-data">
@@ -4903,7 +4899,6 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     // منطق العرض الخاص بقسم Imported (على شكل مجموعات/Boxes)
-    // يظهر فقط إذا كنا في تاب Imported + لا يوجد بحث نشط (عشان البحث بيحب القائمة تكون تحت بعض)
     if (currentFilter === 'imported' && !searchTerm && !dateFilterActive) {
         
         const batches = {};
@@ -4945,13 +4940,24 @@ document.addEventListener('DOMContentLoaded', function() {
 
             const batchBox = document.createElement('div');
             batchBox.className = 'import-batch-container';
+            
+            // 🔥 التعديل هنا: إضافة زر الحذف في الهيدر الخاص بكل Batch
             batchBox.innerHTML = `
-                <div class="import-batch-header">
+                <div class="import-batch-header" style="display:flex; justify-content:space-between; align-items:center;">
                     <div style="font-size:14px; font-weight:bold;">
                         ${displayHeader}
                     </div>
-                    <div style="background:#00B894; color:white; padding:3px 10px; border-radius:12px; font-size:11px; font-weight:bold; box-shadow:0 2px 5px rgba(0,0,0,0.2);">
-                        ${batchList.length} Cards
+                    <div style="display:flex; gap:10px; align-items:center;">
+                        <div style="background:#00B894; color:white; padding:3px 10px; border-radius:12px; font-size:11px; font-weight:bold; box-shadow:0 2px 5px rgba(0,0,0,0.1);">
+                            ${batchList.length} Cards
+                        </div>
+                        ${!dateKey.includes('Manual') ? `
+                            <button onclick="deleteImportBatch('${dateKey}')" 
+                                    style="background:#ff7675; border:none; color:white; padding:5px 10px; border-radius:8px; cursor:pointer; font-size:10px; font-weight:bold; display:flex; align-items:center; gap:5px; transition:0.2s;">
+                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+                                DELETE BATCH
+                            </button>
+                        ` : ''}
                     </div>
                 </div>
                 <div class="import-batch-grid"></div>
@@ -4966,7 +4972,7 @@ document.addEventListener('DOMContentLoaded', function() {
         });
 
     } else {
-        // 🔥 العرض العادي (لباقي التابات: All, Today, etc. أو عند البحث)
+        // 🔥 العرض العادي
         filteredPatients.forEach(patient => {
             let card = createPatientCard(patient, searchTerm);
             container.appendChild(card);
