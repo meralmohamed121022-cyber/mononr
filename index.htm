@@ -4379,7 +4379,45 @@ async function deletePatient(patientId) {
         }
     });
 }
+// دالة حذف مجموعة كاملة بناءً على وقت الاستيراد
+async function deleteImportBatch(importTimestamp) {
+    if (!importTimestamp || importTimestamp.includes('Manual')) return;
 
+    confirmAction(`Are you sure you want to delete ALL cards imported at this specific time?`, async function() {
+        closeModal();
+        
+        try {
+            // 1. تحديد الـ IDs المستهدفة للحذف محلياً أولاً
+            const targets = patients.filter(p => p.importDate === importTimestamp);
+            const targetIds = targets.map(p => p.id);
+
+            if (targetIds.length === 0) return;
+
+            // 2. الحذف من قاعدة البيانات (Supabase)
+            const { error } = await supabaseClient
+                .from('patients')
+                .delete()
+                .in('id', targetIds);
+
+            if (error) throw error;
+
+            // 3. التحديث المحلي للمصفوفات
+            patients = patients.filter(p => p.importDate !== importTimestamp);
+            dispensingQueue = dispensingQueue.filter(p => !targetIds.includes(p.id));
+
+            // 4. تحديث الواجهة والعدادات
+            updateStats();
+            displayPatients();
+            renderDispensingQueue();
+
+            showToast(`Deleted ${targetIds.length} cards successfully! 🗑️`);
+
+        } catch (error) {
+            console.error('Batch delete error:', error);
+            showModal('❌ Error', `Failed to delete batch: ${error.message}`, 'OK');
+        }
+    });
+}
 // ============================================
 // ACTUAL SAVE PATIENT (تم التعديل لإصلاح البحث والتحديث)
 // ============================================
@@ -5851,47 +5889,60 @@ function analyzeImportFailure(skipped) {
 }
 
 function processAndValidateData(rawData, isTextFile) {
-    let validPatients = {}; // لتجميع البيانات الجديدة
-    let updatesToCheck = []; // لتخزين التحديثات
-    let skipped = []; // لتخزين ما تم تخطيه مع السبب
+    let validPatients = {}; 
+    let updatesToCheck = []; 
+    let skipped = []; 
     
-    // 🔥 1. تحديد وقت موحد للملف بالكامل (عشان ميزة تجميع الواردات في بوكس واحد)
     const batchTimestamp = new Date().toISOString(); 
 
     const patterns = {
         id: /^[1-4]\d{9}$/,
-        rx: /^[a-zA-Z]\d{7}$/,
+        rx: /^[a-zA-Z]\d{7}$/i, 
         phoneExtraction: /(?:966|0)?(5\d{8})/
     };
 
     const cleanString = (val) => String(val || '').trim();
 
+    // دالة مساعدة للتأكد من صحة التاريخ قبل استخدامه
+    const isValidDate = (dateStr) => {
+        const d = new Date(dateStr);
+        return d instanceof Date && !isNaN(d) && d.getFullYear() > 1900 && d.getFullYear() < 2100;
+    };
+
     rawData.forEach((row, index) => {
         let raw = {};
         
-        // --- Mapping (ربط الأعمدة) ---
         if (isTextFile || row.nationalId) {
-            raw = { id: cleanString(row.nationalId), rx: cleanString(row.prescription), phone: cleanString(row.phoneNumber), date: cleanString(row.dispensingDate), nextRefill: cleanString(row.nextRefillDate), rxNote: '', genNote: cleanString(row.note) };
+            raw = { 
+                id: cleanString(row.nationalId), 
+                rx: cleanString(row.prescription), 
+                phone: cleanString(row.phoneNumber), 
+                date: cleanString(row.dispensingDate), 
+                nextRefill: cleanString(row.nextRefillDate), 
+                rxNote: '', 
+                genNote: cleanString(row.note) 
+            };
         } else {
             const keys = Object.keys(row);
-            const getKey = (substr) => keys.find(k => k.toLowerCase().includes(substr.toLowerCase()));
-            raw.id = cleanString(row[getKey('ID')] || row['ID'] || row['National ID']);
-            raw.rx = cleanString(row[getKey('Prescription')] || row['Rx']);
-            raw.phone = cleanString(row[getKey('Phone')] || row['Mobile']);
-            raw.date = cleanString(row[getKey('Dispensing')] || row['Date']);
-            raw.nextRefill = cleanString(row[getKey('Next')] || row['Refill']);
-            raw.genNote = cleanString(row[getKey('Note')]);
+            const getKey = (substrs) => keys.find(k => 
+                substrs.some(s => k.toLowerCase().includes(s.toLowerCase()))
+            );
+
+            raw.id = cleanString(row[getKey(['ID', 'National'])] || '');
+            raw.rx = cleanString(row[getKey(['Prescription', 'Rx', 'Order', 'الوصفة'])] || '');
+            raw.phone = cleanString(row[getKey(['Phone', 'Mobile', 'الجوال'])] || '');
+            raw.date = cleanString(row[getKey(['Dispensing', 'Date', 'تاريخ'])] || '');
+            raw.nextRefill = cleanString(row[getKey(['Next', 'Refill', 'القادم'])] || '');
+            raw.genNote = cleanString(row[getKey(['Note', 'ملاحظات'])] || '');
         }
 
         const cleanId = raw.id.replace(/\D/g, '');
         const cleanRx = raw.rx.replace(/\s/g, '').toLowerCase();
         
-        // استخراج الجوال بصيغة سعودية صحيحة
         let extractedPhone = '';
         const phoneMatch = raw.phone.replace(/\D/g, '').match(patterns.phoneExtraction);
         if (phoneMatch) extractedPhone = '0' + phoneMatch[1];
 
-        // --- 1. فحص صحة البيانات (Validation) ---
         if (!patterns.id.test(cleanId)) {
             skipped.push({ 
                 row: index + 1, 
@@ -5901,68 +5952,55 @@ function processAndValidateData(rawData, isTextFile) {
             return;
         }
 
-        // --- 2. البحث في قاعدة البيانات (Match Logic) ---
-        // هل هذا الكارت (هوية + وصفة) موجود مسبقاً؟
         const existingExactMatch = patients.find(p => 
             p.nationalId === cleanId && 
-            p.prescriptions.some(pr => pr.number === cleanRx)
+            p.prescriptions.some(pr => pr.number.toLowerCase() === cleanRx)
         );
 
         if (existingExactMatch) {
-            // === حالة موجود مسبقاً (Check for Updates) ===
             let changes = [];
             
-            // أ) فحص الجوال
             if (extractedPhone && existingExactMatch.phoneNumber !== extractedPhone) {
                 changes.push(`Phone: ${existingExactMatch.phoneNumber || 'None'} ➝ ${extractedPhone}`);
             }
             
-            // ب) فحص تاريخ الريفيل
-            if (raw.nextRefill) {
+            // فحص التاريخ مع حماية من الأخطاء
+            if (raw.nextRefill && isValidDate(raw.nextRefill)) {
                 const newDate = new Date(raw.nextRefill).toISOString().split('T')[0];
                 if (existingExactMatch.nextRefillDate !== newDate) {
                     changes.push(`Date: ${existingExactMatch.nextRefillDate} ➝ ${newDate}`);
                 }
             }
 
-            // ج) فحص الملاحظات
             if (raw.genNote && (!existingExactMatch.generalNote || !existingExactMatch.generalNote.includes(raw.genNote))) {
                 changes.push(`Note Added: ${raw.genNote}`);
             }
 
             if (changes.length > 0) {
-                // نمنع التكرار داخل القائمة لنفس المريض
                 const alreadyQueued = updatesToCheck.find(u => u.dbId === existingExactMatch.id);
                 if (!alreadyQueued) {
                     updatesToCheck.push({
                         dbId: existingExactMatch.id,
                         nationalId: cleanId,
-                        changes: changes, // قائمة التغييرات للعرض في البريفيو
+                        changes: changes,
                         newPhone: extractedPhone || existingExactMatch.phoneNumber,
-                        newDate: raw.nextRefill ? new Date(raw.nextRefill).toISOString().split('T')[0] : existingExactMatch.nextRefillDate,
-                        newNote: raw.genNote ? (existingExactMatch.generalNote + ", " + raw.genNote) : existingExactMatch.generalNote
+                        newDate: (raw.nextRefill && isValidDate(raw.nextRefill)) ? new Date(raw.nextRefill).toISOString().split('T')[0] : existingExactMatch.nextRefillDate,
+                        newNote: raw.genNote ? (existingExactMatch.generalNote ? existingExactMatch.generalNote + ", " + raw.genNote : raw.genNote) : existingExactMatch.generalNote
                     });
                 }
             } else {
-                // لا يوجد أي تغيير
                 skipped.push({ 
                     row: index + 1, 
                     id: cleanId, 
-                    reason: "⚠️ Exact Duplicate - No Changes (مكرر بدون أي تغيير)" 
+                    reason: "⚠️ Exact Duplicate - No Changes" 
                 });
             }
             return; 
         }
 
-        // === حالة جديد (New Card) ===
-        
-        // تحديد النوع: هل الهوية موجودة مسبقاً (مع وصفة أخرى) أم جديدة كلياً؟
-        const isIdentityExists = patients.some(p => p.nationalId === cleanId);
-        const typeLabel = isIdentityExists ? "وصفة جديدة (هوية موجودة)" : "هوية جديدة بالكامل";
-        
-        // حساب التواريخ
-        let importDispensingDate = (raw.date && !isNaN(new Date(raw.date))) ? new Date(raw.date).toISOString().split('T')[0] : new Date().toISOString().split('T')[0];
-        let importNextRefillDate = (raw.nextRefill && !isNaN(new Date(raw.nextRefill))) ? new Date(raw.nextRefill).toISOString().split('T')[0] : "";
+        // حساب التواريخ للحالات الجديدة مع حماية
+        let importDispensingDate = isValidDate(raw.date) ? new Date(raw.date).toISOString().split('T')[0] : new Date().toISOString().split('T')[0];
+        let importNextRefillDate = isValidDate(raw.nextRefill) ? new Date(raw.nextRefill).toISOString().split('T')[0] : "";
         
         if (!importNextRefillDate) {
             let d = new Date(importDispensingDate);
@@ -5982,9 +6020,7 @@ function processAndValidateData(rawData, isTextFile) {
                 prescriptions: [],
                 generalNote: raw.genNote,
                 imported: true,
-                
-                // 🔥 معلومات إضافية مهمة للفلترة والعرض
-                importType: typeLabel, 
+                importType: patients.some(p => p.nationalId === cleanId) ? "وصفة جديدة (هوية موجودة)" : "هوية جديدة بالكامل", 
                 importDate: batchTimestamp 
             };
         }
@@ -5992,7 +6028,7 @@ function processAndValidateData(rawData, isTextFile) {
         if (cleanRx && !validPatients[uniqueKey].prescriptions.find(p => p.number === cleanRx)) {
             validPatients[uniqueKey].prescriptions.push({
                 number: cleanRx,
-                note: raw.rxNote
+                note: raw.rxNote || ''
             });
         }
     });
@@ -7650,4 +7686,5 @@ function showDuplicatesModal(duplicates, newID, newPrescriptions) {
     </script>
 </body>
 </html>
+
 
