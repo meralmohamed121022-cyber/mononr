@@ -2378,13 +2378,13 @@
         width: 100% !important;
         max-width: 100% !important;
         padding: 0 10px !important;
-        overflow-x: hidden; /* منع الصفحة كاملة من الانزلاق يميناً ويساراً */
+        overflow-x: hidden; 
     }
 
     /* 2. تحسين عرض التابات */
     .nav-tabs {
         flex-wrap: nowrap;
-        overflow-x: auto; /* السماح بالتمرير إذا كثرت التابات */
+        overflow-x: auto; 
         padding-bottom: 5px;
     }
     
@@ -2394,12 +2394,17 @@
         min-width: 70px;
     }
 
-    /* 3. إصلاح جدول الـ Dispensed على الموبايل */
+    /* 3. تعديل خاص لتابة Dispensed فقط لإزاحتها عن الصورة */
+    #dispensed-tab {
+        padding-right: 80px !important; /* هذه القيمة تزيح المحتوى لليسار لتبعده عن الصورة */
+    }
+
+    /* 4. إصلاح جدول الـ Dispensed على الموبايل */
     .dispensing-table-container {
         border-radius: 12px;
         border: 1px solid #eee;
-        overflow-x: auto; /* يجعل الجدول هو فقط من يتحرك يميناً ويساراً */
-        -webkit-overflow-scrolling: touch; /* حركة ناعمة على الآيفون */
+        overflow-x: auto; 
+        -webkit-overflow-scrolling: touch; 
         margin-top: 15px;
         width: 100%;
         display: block;
@@ -2407,17 +2412,17 @@
 
     .dispensing-table {
         width: 100%;
-        min-width: 600px; /* تحديد حد أدنى للعرض لضمان عدم تداخل النصوص */
+        min-width: 600px; 
     }
 
     /* تحسين المسافات داخل الجدول للموبايل */
     .dispensing-table th, 
     .dispensing-table td {
-        padding: 10px 8px; /* تقليل الحواف */
+        padding: 10px 8px; 
         font-size: 12px;
     }
 
-    /* 4. ضبط شريط البحث والفلتر في صفحة Dispensed */
+    /* 5. ضبط شريط البحث والفلتر في صفحة Dispensed */
     .dispense-search-container {
         width: 100%;
         padding: 0;
@@ -2431,10 +2436,10 @@
     }
 
     .dispensing-table-container > div:first-child > div:last-child {
-        width: 100% !important; /* شريط البحث الداخلي يأخذ العرض كامل */
+        width: 100% !important; 
     }
 
-    /* 5. تصغير الأزرار والأيقونات قليلاً */
+    /* 6. تصغير الأزرار والأيقونات قليلاً */
     .btn-remove-queue {
         width: 24px;
         height: 24px;
@@ -2448,6 +2453,13 @@
     .rx-chip-mini {
         padding: 2px 5px;
         font-size: 10px;
+    }
+}
+
+/* إضافة إزاحة بسيطة أيضاً للشاشات الكبيرة لضمان عدم التداخل */
+@media (min-width: 769px) {
+    #dispensed-tab {
+        padding-right: 100px !important;
     }
 }
 /* ============================================ */
@@ -6553,10 +6565,11 @@ async function loadPatientsFromSupabase() {
         
         totalRealCount = count;
         
-        // 2. تحويل البيانات (Mapping) مع ضمان تحويل الهوية لنص
+        // 2. تحويل البيانات (Mapping) مع ضمان تحويل الهوية لنص وإضافة الاسم
         patients = patientsData.map(p => ({
             id: p.id,
             nationalId: String(p.national_id || ''), // 🔥 تحويل لنص لضمان البحث
+            patientName: p.patient_name || '',        // 🔥 إضافة قراءة الاسم من السيرفر
             phoneNumber: String(p.phone_number || ''),
             dispensingDate: p.dispensing_date,
             refillPeriod: p.refill_period,
@@ -6584,11 +6597,12 @@ async function loadPatientsFromSupabase() {
         // 4. تحديث الإحصائيات
         updateStats(); 
 
-        // 5. 🔥 إعداد محرك البحث (Fuse.js) بإعدادات مرنة 🔥
+        // 5. 🔥 إعداد محرك البحث (Fuse.js) ليشمل البحث بالاسم 🔥
         if (window.Fuse) {
             fuse = new Fuse(patients, {
                 keys: [
                     'nationalId', 
+                    'patientName', // 🔥 أضفنا البحث بالاسم هنا
                     'phoneNumber', 
                     'generalNote',
                     'prescriptions.number', 
@@ -6600,7 +6614,7 @@ async function loadPatientsFromSupabase() {
                 ignoreLocation: true,
                 useExtendedSearch: true
             });
-            console.log('🔍 Fuse Engine Configured (Flexible Mode)');
+            console.log('🔍 Fuse Engine Configured with Name Search Support');
         }
 
     } catch (error) {
@@ -6614,7 +6628,7 @@ async function loadPatientsFromSupabase() {
 
 let dispensingQueue = []; 
 
-// 1. البحث (لم يتغير)
+// 1. البحث (تم التعديل لإضافة خانة الاسم عند العرض)
 function searchForDispensing() {
     const input = document.getElementById('dispenseSearchInput');
     const dropdown = document.getElementById('dispenseSearchResults');
@@ -6641,14 +6655,19 @@ function searchForDispensing() {
     }
 
     dropdown.innerHTML = results.map(p => `
-        <div class="dispense-result-item" onclick="addToQueue('${String(p.id)}')">
-            <div>
-                <div style="font-weight:800; color:var(--primary); font-family: 'Courier New', monospace;">${p.nationalId}</div>
-                <div style="font-size:11px; color:#666;">${p.phoneNumber || 'No Phone'}</div>
+        <div class="dispense-result-item" style="display: flex; flex-direction: column; gap: 8px; padding: 12px; border-bottom: 1px solid #eee;">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+                <div>
+                    <div style="font-weight:800; color:var(--primary); font-family: 'Courier New', monospace;">${p.nationalId}</div>
+                    <div style="font-size:11px; color:#666;">${p.phoneNumber || 'No Phone'}</div>
+                </div>
+                <button onclick="addToQueue('${String(p.id)}')" 
+                        style="background:var(--secondary); color:white; border:none; padding:5px 15px; border-radius:20px; cursor:pointer; font-weight:bold;">
+                    Add +
+                </button>
             </div>
-            <div style="background:var(--light); padding:5px 10px; border-radius:20px; font-size:12px; font-weight:bold; color:var(--primary);">
-                Add +
-            </div>
+            <input type="text" id="name-input-${p.id}" placeholder="Enter Name (Optional)" 
+                   style="width: 100%; padding: 6px; border: 1px solid #ddd; border-radius: 6px; font-size: 12px;">
         </div>
     `).join('');
 
@@ -6656,45 +6675,50 @@ function searchForDispensing() {
 }
 async function addToQueue(patientId) {
     const pId = String(patientId);
+    const nameInput = document.getElementById(`name-input-${pId}`);
+    const patientName = nameInput ? nameInput.value.trim() : '';
+    
     const patient = patients.find(p => String(p.id) === pId);
     if (!patient) return;
     
-    if (dispensingQueue.find(p => String(p.id) === pId)) {
-        document.getElementById('dispenseSearchInput').value = '';
-        document.getElementById('dispenseSearchResults').style.display = 'none';
-        return;
-    }
-    
-    const maxNumber = dispensingQueue.reduce((max, p) => 
-        p.queueNumber > max ? p.queueNumber : max, 0
-    );
-    
-    patient.queueNumber = maxNumber + 1;
+    // تحديث محلي فوراً
     patient.inQueue = true;
-    patient.cardColor = 'none'; // ✅ إضافة اللون الافتراضي
+    patient.patientName = patientName;
     
-    dispensingQueue.push(patient);
+    if (!dispensingQueue.find(p => String(p.id) === pId)) {
+        dispensingQueue.push(patient);
+    }
     filterQueue();
+
+    try {
+        // الحفظ في سوبابيز - تأكد من مراجعة أسماء الأعمدة هنا
+        const { error } = await supabaseClient
+            .from('patients')
+            .update({ 
+                in_queue: true, // تأكد إنها بـ underscore لو سوبابيز كدة
+                patient_name: patientName 
+            })
+            .eq('id', pId);
+
+        if (error) throw error;
+        
+        showToast('Added & Saved to Cloud ☁️');
+    } catch(err) {
+        console.error('Database Sync Error:', err);
+        showToast('Saved locally, but failed to sync with Cloud');
+    }
     
     document.getElementById('dispenseSearchInput').value = '';
     document.getElementById('dispenseSearchResults').style.display = 'none';
-    
-    try {
-        await supabaseClient
-            .from('patients')
-            .update({ inqueue: true })
-            .eq('id', pId);
-    } catch(err) {
-        console.error('Failed to add to queue (DB):', err);
-    }
 }
-
 // 3. فلترة الجدول
 function filterQueue() {
     const input = document.getElementById('queueFilterInput');
     const filterText = input ? input.value.toLowerCase().trim() : '';
     renderDispensingQueue(filterText);
 }
+
+// 4. رسم الجدول (تم التعديل لعرض الاسم وجعله قابلاً للتعديل)
 function renderDispensingQueue(filterText) {
     const tbody = document.getElementById('dispensingQueueBody');
     const emptyMsg = document.getElementById('emptyDispenseMsg');
@@ -6704,6 +6728,7 @@ function renderDispensingQueue(filterText) {
         if (!filterText) return true;
         return (
             p.nationalId.includes(filterText) ||
+            (p.patientName && p.patientName.toLowerCase().includes(filterText)) ||
             (p.phoneNumber && p.phoneNumber.includes(filterText)) ||
             p.prescriptions.some(rx => rx.number.toLowerCase().includes(filterText))
         );
@@ -6748,6 +6773,11 @@ function renderDispensingQueue(filterText) {
                 <div style="font-weight:800; font-family:'Courier New', monospace; color:var(--dark); font-size:16px;">
                     ${p.nationalId}
                 </div>
+                <input type="text" value="${p.patientName || ''}" 
+                       onblur="updatePatientNameInline('${p.id}', this.value)"
+                       placeholder="Click to add name"
+                       style="width: 100%; border: none; background: transparent; font-size: 11px; color: var(--primary); font-weight: bold; padding: 2px 0; border-bottom: 1px dashed transparent; outline: none;"
+                       onfocus="this.style.borderBottom='1px dashed var(--primary)'">
             </td>
             <td>
                 <div class="rx-chips-mini">
@@ -6759,13 +6789,10 @@ function renderDispensingQueue(filterText) {
             </td>
             <td style="text-align: center; position: relative;">
                 <div style="display: flex; align-items: center; justify-content: center; gap: 10px;">
-                    <!-- Toggle Color Button -->
                     <div class="color-indicator ${p.cardColor === 'blue' ? 'active' : ''}" 
                          onclick="toggleCardColor('${p.id}')"
                          title="${p.cardColor === 'blue' ? 'Remove Highlight' : 'Highlight Card'}">
                     </div>
-                    
-                    <!-- Checkbox للـ Dispense -->
                     <input type="checkbox" 
                            class="dispense-checkbox" 
                            title="Mark as Dispensed" 
@@ -6775,7 +6802,41 @@ function renderDispensingQueue(filterText) {
         </tr>
     `).join('');
 }
+async function updatePatientNameInline(patientId, newName) {
+    const pId = String(patientId);
+    
+    // تحديث المصفوفة المحلية
+    const patient = patients.find(p => String(p.id) === pId);
+    if (patient) patient.patientName = newName;
 
+    try {
+        const { error } = await supabaseClient
+            .from('patients')
+            .update({ patient_name: newName })
+            .eq('id', pId);
+        
+        if (error) throw error;
+        showToast('Name saved to Cloud');
+    } catch(err) {
+        console.error('Failed to sync name:', err);
+    }
+}
+async function updatePatientNameInDB(patientId, newName) {
+    try {
+        await supabaseClient
+            .from('patients')
+            .update({ patient_name: newName })
+            .eq('id', patientId);
+        
+        // تحديث البيانات محلياً
+        const patient = patients.find(p => String(p.id) === String(patientId));
+        if (patient) patient.patientName = newName;
+        
+        showToast('Name updated');
+    } catch (err) {
+        console.error('Failed to update name:', err);
+    }
+}
 // 5. تأكيد الحذف
 function confirmRemoveFromQueue(patientId) {
     showModal(
