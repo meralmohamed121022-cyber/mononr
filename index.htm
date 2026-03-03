@@ -6558,19 +6558,21 @@ async function loadPatientsFromSupabase() {
                 prescriptions (*)
             `, { count: 'exact' }) 
             .eq('pharmacy_id', currentUser.id)
-            .order('created_at', { ascending: false }) // الأحدث يظهر أولاً
+            .order('created_at', { ascending: false }) 
             .range(0, 9999); 
         
         if (error) throw error;
         
         totalRealCount = count;
         
-        // 2. تحويل البيانات (Mapping) مع ضمان تحويل الهوية لنص وإضافة الاسم
+        // 2. تحويل البيانات (Mapping)
         patients = patientsData.map(p => ({
             id: p.id,
-            nationalId: String(p.national_id || ''), // 🔥 تحويل لنص لضمان البحث
-            patientName: p.patient_name || '',        // 🔥 إضافة قراءة الاسم من السيرفر
+            nationalId: String(p.national_id || ''), 
+            patientName: p.patient_name || '',        
             phoneNumber: String(p.phone_number || ''),
+            // 🔥 التأكد من تحويل الرقم لنوع "Number" لضمان ترتيب حسابي صحيح 🔥
+            queueNumber: p.queue_number !== null ? parseInt(p.queue_number) : null, 
             dispensingDate: p.dispensing_date,
             refillPeriod: p.refill_period,
             nextRefillDate: p.next_refill_date,
@@ -6587,34 +6589,39 @@ async function loadPatientsFromSupabase() {
             }))
         }));
         
-        // 3. ملء طابور الصرف
+        // 3. ملء طابور الصرف (Queue) وتثبيت الترتيب
         dispensingQueue = patients.filter(p => p.inQueue === true);
-        dispensingQueue.sort((a, b) => new Date(a.updatedAt) - new Date(b.updatedAt));
-        dispensingQueue.forEach((p, index) => p.queueNumber = index + 1);
         
-        console.log(`✅ Loaded ${patients.length} rows.`);
+        // 🔥 الترتيب الذهبي: يرتب حسب الرقم اليدوي أولاً، ولو مفيش يرتب بالأقدم (createdAt) 🔥
+        dispensingQueue.sort((a, b) => {
+            const numA = a.queueNumber !== null ? a.queueNumber : 99999;
+            const numB = b.queueNumber !== null ? b.queueNumber : 99999;
+            
+            if (numA !== numB) {
+                return numA - numB; // ترتيب تصاعدي (1, 2, 3...)
+            }
+            // لو تساوت الأرقام أو كانت مفقودة، رتب بالأقدم إضافة للطابور
+            return new Date(a.createdAt) - new Date(b.createdAt);
+        });
         
-        // 4. تحديث الإحصائيات
+        console.log(`✅ Loaded ${patients.length} rows and synced sequence.`);
+        
+        // 4. تحديث الإحصائيات ورسم الجدول فوراً
         updateStats(); 
+        if (typeof renderDispensingQueue === 'function') {
+            renderDispensingQueue(); 
+        }
 
-        // 5. 🔥 إعداد محرك البحث (Fuse.js) ليشمل البحث بالاسم 🔥
+        // 5. إعداد محرك البحث (Fuse.js)
         if (window.Fuse) {
             fuse = new Fuse(patients, {
-                keys: [
-                    'nationalId', 
-                    'patientName', // 🔥 أضفنا البحث بالاسم هنا
-                    'phoneNumber', 
-                    'generalNote',
-                    'prescriptions.number', 
-                    'prescriptions.note'
-                ],
-                threshold: 0.3, // ⚠️ خليناها 0.3 عشان يقبل بحث جزئي
+                keys: ['nationalId', 'patientName', 'phoneNumber', 'generalNote', 'prescriptions.number'],
+                threshold: 0.3,
                 distance: 100,
-                minMatchCharLength: 2, // يبدأ بحث من حرفين
+                minMatchCharLength: 2,
                 ignoreLocation: true,
                 useExtendedSearch: true
             });
-            console.log('🔍 Fuse Engine Configured with Name Search Support');
         }
 
     } catch (error) {
@@ -6681,28 +6688,38 @@ async function addToQueue(patientId) {
     const patient = patients.find(p => String(p.id) === pId);
     if (!patient) return;
     
-    // تحديث محلي فوراً
+    // 1. حساب رقم الدور التلقائي (ياخد أكبر رقم موجود ويضيف 1)
+    const nextNumber = dispensingQueue.length > 0 
+        ? Math.max(...dispensingQueue.map(p => parseInt(p.queueNumber) || 0)) + 1 
+        : 1;
+
+    // 2. تحديث البيانات محلياً فوراً
     patient.inQueue = true;
     patient.patientName = patientName;
+    patient.queueNumber = nextNumber; // إضافة الرقم هنا
     
     if (!dispensingQueue.find(p => String(p.id) === pId)) {
         dispensingQueue.push(patient);
     }
+    
+    // ترتيب القائمة بناءً على رقم الدور قبل العرض
+    dispensingQueue.sort((a, b) => (a.queueNumber || 0) - (b.queueNumber || 0));
     filterQueue();
 
     try {
-        // الحفظ في سوبابيز - تأكد من مراجعة أسماء الأعمدة هنا
+        // 3. الحفظ في سوبابيز (تحديث حالة الطابور، الاسم، ورقم الدور)
         const { error } = await supabaseClient
             .from('patients')
             .update({ 
-                in_queue: true, // تأكد إنها بـ underscore لو سوبابيز كدة
-                patient_name: patientName 
+                in_queue: true,
+                patient_name: patientName,
+                queue_number: nextNumber // تأكد إن اسم العمود في سوبابيز هو queue_number
             })
             .eq('id', pId);
 
         if (error) throw error;
         
-        showToast('Added & Saved to Cloud ☁️');
+        showToast('Added with Number #' + nextNumber + ' ☁️');
     } catch(err) {
         console.error('Database Sync Error:', err);
         showToast('Saved locally, but failed to sync with Cloud');
@@ -6717,20 +6734,28 @@ function filterQueue() {
     const filterText = input ? input.value.toLowerCase().trim() : '';
     renderDispensingQueue(filterText);
 }
-
-// 4. رسم الجدول (تم التعديل لعرض الاسم وجعله قابلاً للتعديل)
+// 4. رسم الجدول (تعديل جذري لثبات الترقيم اليدوي)
 function renderDispensingQueue(filterText) {
     const tbody = document.getElementById('dispensingQueueBody');
     const emptyMsg = document.getElementById('emptyDispenseMsg');
     const countBadge = document.getElementById('queueCount');
     
+    // أولاً: الترتيب الصارم بناءً على القيمة المخزنة في queueNumber
+    // نستخدم 99999 لضمان أن أي سجل جديد أو بدون رقم يظهر في نهاية القائمة
+    dispensingQueue.sort((a, b) => {
+        const valA = (a.queueNumber !== undefined && a.queueNumber !== null && a.queueNumber !== "") ? parseInt(a.queueNumber) : 99999;
+        const valB = (b.queueNumber !== undefined && b.queueNumber !== null && b.queueNumber !== "") ? parseInt(b.queueNumber) : 99999;
+        return valA - valB;
+    });
+    
     const displayList = dispensingQueue.filter(p => {
         if (!filterText) return true;
+        const searchStr = filterText.toLowerCase();
         return (
-            p.nationalId.includes(filterText) ||
-            (p.patientName && p.patientName.toLowerCase().includes(filterText)) ||
-            (p.phoneNumber && p.phoneNumber.includes(filterText)) ||
-            p.prescriptions.some(rx => rx.number.toLowerCase().includes(filterText))
+            p.nationalId.includes(searchStr) ||
+            (p.patientName && p.patientName.toLowerCase().includes(searchStr)) ||
+            (p.phoneNumber && p.phoneNumber.includes(searchStr)) ||
+            p.prescriptions.some(rx => rx.number.toLowerCase().includes(searchStr))
         );
     });
     
@@ -6751,7 +6776,12 @@ function renderDispensingQueue(filterText) {
     
     emptyMsg.style.display = 'none';
     
-    tbody.innerHTML = displayList.map((p, index) => `
+    tbody.innerHTML = displayList.map((p, index) => {
+        // الحماية القصوى: لو السيرفر باعت رقم، نستخدمه. لو لأ، نستخدم الترتيب الحالي كحل أخير.
+        const isManual = (p.queueNumber !== undefined && p.queueNumber !== null && p.queueNumber !== "");
+        const finalNum = isManual ? p.queueNumber : (index + 1);
+        
+        return `
         <tr id="queue-row-${p.id}" 
             class="${p.cardColor === 'blue' ? 'color-blue' : ''}" 
             style="transition: background 0.3s; position: relative;">
@@ -6767,7 +6797,11 @@ function renderDispensingQueue(filterText) {
                 </button>
             </td>
             <td>
-                <span style="font-weight:bold; color:#aaa;">${p.queueNumber || (index + 1)}</span>
+                <input type="number" 
+                       value="${finalNum}" 
+                       onblur="updateQueueNumber('${p.id}', this.value)"
+                       style="width: 55px; border: 1px solid #ddd; background: #f0f2f5; text-align: center; font-weight: 800; border-radius: 6px; padding: 5px; outline: none; color: #0d47a1;"
+                       title="Edit sequence number">
             </td>
             <td>
                 <div style="font-weight:800; font-family:'Courier New', monospace; color:var(--dark); font-size:16px;">
@@ -6800,7 +6834,7 @@ function renderDispensingQueue(filterText) {
                 </div>
             </td>
         </tr>
-    `).join('');
+    `}).join('');
 }
 async function updatePatientNameInline(patientId, newName) {
     const pId = String(patientId);
@@ -7749,6 +7783,34 @@ function showDuplicatesModal(duplicates, newID, newPrescriptions) {
             }
         });
     }, 100);
+}
+async function updateQueueNumber(patientId, newNum) {
+    const num = parseInt(newNum);
+    if (isNaN(num)) return;
+
+    // 1. تحديث المصفوفة المحلية فوراً
+    const patient = dispensingQueue.find(p => String(p.id) === String(patientId));
+    if (patient) {
+        patient.queueNumber = num;
+    }
+
+    // 2. إعادة ترتيب الجدول بناءً على الرقم الجديد عشان يظهر في مكانه الصح
+    dispensingQueue.sort((a, b) => (a.queueNumber || 999) - (b.queueNumber || 999));
+    renderDispensingQueue(document.getElementById('queueFilterInput').value);
+
+    try {
+        // 3. الحفظ في سوبابيز (تأكد أن العمود اسمه queue_number في جدول patients)
+        const { error } = await supabaseClient
+            .from('patients')
+            .update({ queue_number: num })
+            .eq('id', patientId);
+        
+        if (error) throw error;
+        showToast('Sequence updated! #️⃣');
+    } catch (err) {
+        console.error('Update failed:', err);
+        showToast('Failed to save to Cloud');
+    }
 }
     </script>
 </body>
