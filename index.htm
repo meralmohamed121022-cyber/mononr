@@ -3926,13 +3926,12 @@ id="profileImage" />
         function closeModal() {
             document.getElementById('modalOverlay').classList.remove('active');
         }
-        
-    function confirmAction(message, callback) {
+   function confirmAction(message, callback, cancelCallback) {
     showModal(
         '<span style="color: var(--warning);">⚠️ CONFIRM</span>',
         `<p style="text-align: center; padding: 30px 20px; font-size: 16px; color: var(--dark);">${message}</p>`,
         `
-        <button class="btn-secondary" onclick="closeModal()">
+        <button class="btn-secondary" onclick="closeModal(); if(window.confirmCancelCb) window.confirmCancelCb();">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
                 <line x1="18" y1="6" x2="6" y2="18"></line>
                 <line x1="6" y1="6" x2="18" y2="18"></line>
@@ -3948,9 +3947,10 @@ id="profileImage" />
         `
     );
     
+    // حفظ الدوال في window عشان نقدر نناديهم من الـ onclick اللي جوه المودال
     window.confirmCallback = callback;
+    window.confirmCancelCb = cancelCallback; 
 }
-
         // ============================================
         // DUPLICATE DETECTION
         // ============================================
@@ -6759,14 +6759,13 @@ function filterQueue() {
     const filterText = input ? input.value.toLowerCase().trim() : '';
     renderDispensingQueue(filterText);
 }
-// 4. رسم الجدول (تعديل جذري لثبات الترقيم اليدوي)
+// 4. رسم الجدول (تعديل جذري لثبات الترقيم ومنع التغيير إلا بعد التأكيد)
 function renderDispensingQueue(filterText) {
     const tbody = document.getElementById('dispensingQueueBody');
     const emptyMsg = document.getElementById('emptyDispenseMsg');
     const countBadge = document.getElementById('queueCount');
     
     // أولاً: الترتيب الصارم بناءً على القيمة المخزنة في queueNumber
-    // نستخدم 99999 لضمان أن أي سجل جديد أو بدون رقم يظهر في نهاية القائمة
     dispensingQueue.sort((a, b) => {
         const valA = (a.queueNumber !== undefined && a.queueNumber !== null && a.queueNumber !== "") ? parseInt(a.queueNumber) : 99999;
         const valB = (b.queueNumber !== undefined && b.queueNumber !== null && b.queueNumber !== "") ? parseInt(b.queueNumber) : 99999;
@@ -6802,7 +6801,7 @@ function renderDispensingQueue(filterText) {
     emptyMsg.style.display = 'none';
     
     tbody.innerHTML = displayList.map((p, index) => {
-        // الحماية القصوى: لو السيرفر باعت رقم، نستخدمه. لو لأ، نستخدم الترتيب الحالي كحل أخير.
+        // الحماية القصوى للرقم الظاهر
         const isManual = (p.queueNumber !== undefined && p.queueNumber !== null && p.queueNumber !== "");
         const finalNum = isManual ? p.queueNumber : (index + 1);
         
@@ -6824,7 +6823,8 @@ function renderDispensingQueue(filterText) {
             <td>
                 <input type="number" 
                        value="${finalNum}" 
-                       onblur="updateQueueNumber('${p.id}', this.value)"
+                       onfocus="this.oldValue = this.value"
+                       onchange="updateQueueNumber('${p.id}', this)"
                        style="width: 55px; border: 1px solid #ddd; background: #f0f2f5; text-align: center; font-weight: 800; border-radius: 6px; padding: 5px; outline: none; color: #0d47a1;"
                        title="Edit sequence number">
             </td>
@@ -7809,33 +7809,43 @@ function showDuplicatesModal(duplicates, newID, newPrescriptions) {
         });
     }, 100);
 }
-async function updateQueueNumber(patientId, newNum) {
-    const num = parseInt(newNum);
-    if (isNaN(num)) return;
+async function updateQueueNumber(patientId, inputElement) {
+    const newNum = parseInt(inputElement.value);
+    const oldNum = inputElement.oldValue; // الرقم اللي حفظناه في onfocus
 
-    // 1. تحديث المصفوفة المحلية فوراً
-    const patient = dispensingQueue.find(p => String(p.id) === String(patientId));
-    if (patient) {
-        patient.queueNumber = num;
-    }
+    // لو الرقم هو هو مفيش داعي نطلع رسالة
+    if (newNum == oldNum) return;
 
-    // 2. إعادة ترتيب الجدول بناءً على الرقم الجديد عشان يظهر في مكانه الصح
-    dispensingQueue.sort((a, b) => (a.queueNumber || 999) - (b.queueNumber || 999));
-    renderDispensingQueue(document.getElementById('queueFilterInput').value);
+    confirmAction(
+        `⚠️ هل أنت متأكد من تغيير رقم التسلسل من (${oldNum}) إلى (${newNum})؟`, 
+        async () => {
+            // --- في حالة الموافقة (Confirm) ---
+            const patient = dispensingQueue.find(p => String(p.id) === String(patientId));
+            if (patient) patient.queueNumber = newNum;
 
-    try {
-        // 3. الحفظ في سوبابيز (تأكد أن العمود اسمه queue_number في جدول patients)
-        const { error } = await supabaseClient
-            .from('patients')
-            .update({ queue_number: num })
-            .eq('id', patientId);
-        
-        if (error) throw error;
-        showToast('Sequence updated! #️⃣');
-    } catch (err) {
-        console.error('Update failed:', err);
-        showToast('Failed to save to Cloud');
-    }
+            // إعادة فرز القائمة ورسمها بالترتيب الجديد
+            renderDispensingQueue(document.getElementById('queueFilterInput').value);
+
+            try {
+                const { error } = await supabaseClient
+                    .from('patients')
+                    .update({ queue_number: newNum })
+                    .eq('id', patientId);
+                
+                if (error) throw error;
+                showToast('Sequence updated! #️⃣');
+            } catch (err) {
+                console.error(err);
+                showToast('Failed to save to cloud');
+            }
+        },
+        () => {
+            // --- في حالة الإلغاء (Cancel) - الحل الجذري هنا ---
+            // نرجع الرقم القديم جوه حقل الإدخال فوراً
+            inputElement.value = oldNum; 
+            showToast('Returned to #' + oldNum);
+        }
+    );
 }
     </script>
 </body>
