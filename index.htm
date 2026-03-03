@@ -6687,42 +6687,67 @@ async function addToQueue(patientId) {
     
     const patient = patients.find(p => String(p.id) === pId);
     if (!patient) return;
-    
-    // 1. حساب رقم الدور التلقائي (ياخد أكبر رقم موجود ويضيف 1)
+
+    // 1. فحص التكرار داخل طابور الصرف (Queue) فقط
+    // بنشوف لو الهوية موجودة أو "أي" وصفة من وصفات المريض ده موجودة في الطابور حالياً
+    const alreadyInQueue = dispensingQueue.find(p => 
+        p.nationalId === patient.nationalId || 
+        p.prescriptions.some(rx => 
+            patient.prescriptions.map(newRx => newRx.number).includes(rx.number)
+        )
+    );
+
+    // 2. إذا وجدنا تكرار، نطلب تأكيد المستخدم
+    if (alreadyInQueue) {
+        confirmAction(
+            `⚠️ تنبيه: المريض أو الوصفة موجودين فعلاً في الطابور الحلي!<br><br>` +
+            `<small style="color:#636E72;">الهوية: ${patient.nationalId}</small><br>` +
+            `هل تريد إضافة نسخة مكررة للطابور؟`, 
+            () => proceedToAddToQueue(pId, patient, patientName)
+        );
+        return; // توقف هنا ولا تكمل إلا لو داس موافق
+    }
+
+    // 3. لو مفيش تكرار، ضيف فوراً
+    proceedToAddToQueue(pId, patient, patientName);
+}
+
+// دالة التنفيذ النهائية (تم فصلها عشان نقدر نستدعيها من الـ confirm)
+async function proceedToAddToQueue(pId, patient, patientName) {
+    // حساب رقم الدور التلقائي
     const nextNumber = dispensingQueue.length > 0 
         ? Math.max(...dispensingQueue.map(p => parseInt(p.queueNumber) || 0)) + 1 
         : 1;
 
-    // 2. تحديث البيانات محلياً فوراً
+    // تحديث البيانات محلياً
     patient.inQueue = true;
     patient.patientName = patientName;
-    patient.queueNumber = nextNumber; // إضافة الرقم هنا
+    patient.queueNumber = nextNumber;
     
     if (!dispensingQueue.find(p => String(p.id) === pId)) {
         dispensingQueue.push(patient);
     }
     
-    // ترتيب القائمة بناءً على رقم الدور قبل العرض
+    // ترتيب القائمة بناءً على رقم الدور
     dispensingQueue.sort((a, b) => (a.queueNumber || 0) - (b.queueNumber || 0));
     filterQueue();
 
     try {
-        // 3. الحفظ في سوبابيز (تحديث حالة الطابور، الاسم، ورقم الدور)
+        // الحفظ في سوبابيز
         const { error } = await supabaseClient
             .from('patients')
             .update({ 
                 in_queue: true,
                 patient_name: patientName,
-                queue_number: nextNumber // تأكد إن اسم العمود في سوبابيز هو queue_number
+                queue_number: nextNumber 
             })
             .eq('id', pId);
 
         if (error) throw error;
-        
         showToast('Added with Number #' + nextNumber + ' ☁️');
     } catch(err) {
         console.error('Database Sync Error:', err);
-        showToast('Saved locally, but failed to sync with Cloud');
+        showToast('Error syncing with Cloud');
     }
     
     document.getElementById('dispenseSearchInput').value = '';
