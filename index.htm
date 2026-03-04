@@ -6727,47 +6727,67 @@ async function addToQueue(patientId) {
     // 3. لو مفيش تكرار، ضيف فوراً
     proceedToAddToQueue(pId, patient, patientName);
 }
+async function addDueTodayToQueue() {
+    // 1. تحديد المرضى اللي مواعيدهم النهارده (Due Today)
+    const todayStr = new Date().toISOString().split('T')[0];
+    const dueTodayPatients = patients.filter(p => p.nextRefillDate === todayStr);
 
-// دالة التنفيذ النهائية (تم فصلها عشان نقدر نستدعيها من الـ confirm)
-async function proceedToAddToQueue(pId, patient, patientName) {
-    // حساب رقم الدور التلقائي
-    const nextNumber = dispensingQueue.length > 0 
-        ? Math.max(...dispensingQueue.map(p => parseInt(p.queueNumber) || 0)) + 1 
-        : 1;
-
-    // تحديث البيانات محلياً
-    patient.inQueue = true;
-    patient.patientName = patientName;
-    patient.queueNumber = nextNumber;
-    
-    if (!dispensingQueue.find(p => String(p.id) === pId)) {
-        dispensingQueue.push(patient);
+    if (dueTodayPatients.length === 0) {
+        showToast('No patients due today! 📅');
+        return;
     }
-    
-    // ترتيب القائمة بناءً على رقم الدور
-    dispensingQueue.sort((a, b) => (a.queueNumber || 0) - (b.queueNumber || 0));
-    filterQueue();
 
-    try {
-        // الحفظ في سوبابيز
-        const { error } = await supabaseClient
-            .from('patients')
-            .update({ 
-                in_queue: true,
-                patient_name: patientName,
-                queue_number: nextNumber 
-            })
-            .eq('id', pId);
+    // 2. تصفية المرضى اللي مش موجودين فعلياً في الطابور حالياً
+    const patientsToAdd = dueTodayPatients.filter(p => 
+        !dispensingQueue.find(q => String(q.id) === String(p.id))
+    );
 
-        if (error) throw error;
-        showToast('Added with Number #' + nextNumber + ' ☁️');
-    } catch(err) {
-        console.error('Database Sync Error:', err);
-        showToast('Error syncing with Cloud');
+    if (patientsToAdd.length === 0) {
+        showToast('All due today patients are already in queue! ✅');
+        return;
     }
-    
-    document.getElementById('dispenseSearchInput').value = '';
-    document.getElementById('dispenseSearchResults').style.display = 'none';
+
+    // 3. طلب تأكيد قبل الإضافة الجماعية
+    confirmAction(
+        `⚠️ هل تريد إضافة (${patientsToAdd.length}) مريض من مواعيد اليوم للطابور؟`,
+        async () => {
+            // البدء في الإضافة برقم تسلسل جديد تماماً
+            // بنجيب آخر رقم في الطابور عشان نكمل عليه
+            let currentLastNumber = dispensingQueue.length > 0 
+                ? Math.max(...dispensingQueue.map(q => parseInt(q.queueNumber) || 0)) 
+                : 0;
+
+            for (const patient of patientsToAdd) {
+                currentLastNumber++; // زيادة الرقم لكل مريض جديد
+                
+                // 🔥 تحديث البيانات بنسخة فريش ورقم جديد
+                patient.inQueue = true;
+                patient.queueNumber = currentLastNumber;
+                
+                // إضافة للقائمة المحلية
+                dispensingQueue.push(patient);
+
+                // تحديث سوبابيز بالرقم الجديد فوراً
+                try {
+                    await supabaseClient
+                        .from('patients')
+                        .update({ 
+                            in_queue: true, 
+                            queue_number: currentLastNumber 
+                        })
+                        .eq('id', patient.id);
+                } catch (err) {
+                    console.error(`Failed to sync patient ${patient.id}:`, err);
+                }
+            }
+
+            // 4. إعادة ترتيب ورسم الجدول بالترتيب الجديد
+            dispensingQueue.sort((a, b) => (a.queueNumber || 0) - (b.queueNumber || 0));
+            filterQueue(); // دي بتنادي renderDispensingQueue جوه الكود بتاعك
+            
+            showToast(`Success! Added ${patientsToAdd.length} patients with new numbers 🚀`);
+        }
+    );
 }
 // 3. فلترة الجدول
 function filterQueue() {
@@ -7922,6 +7942,56 @@ async function addDueTodayToQueue() {
             showToast(`Success! Added ${patientsToAdd.length} patients 🚀`);
         }
     );
+}
+// دالة التنفيذ النهائية (المعدلة لتقبل التكرار الفعلي في الطابور)
+async function proceedToAddToQueue(pId, patient, patientName) {
+    // 1. حساب رقم الدور الجديد
+    const nextNumber = dispensingQueue.length > 0 
+        ? Math.max(...dispensingQueue.map(p => parseInt(p.queueNumber) || 0)) + 1 
+        : 1;
+
+    // 2. 🔥 السر هنا: ننشئ نسخة "مستقلة" تماماً للمريض ده في الطابور
+    // بنضيف لها timestamp في الـ ID عشان البرنامج يعتبرها مدخل جديد مش تحديث للقديم
+    const queueEntryId = `${pId}_${Date.now()}`; 
+    
+    const patientEntry = { 
+        ...patient, 
+        id: queueEntryId, // ID مؤقت للطابور لمنع التداخل
+        realDbId: pId,    // نحفظ الـ ID الأصلي عشان لو احتجنا نحدث الداتابيز
+        inQueue: true, 
+        patientName: patientName, 
+        queueNumber: nextNumber 
+    };
+
+    // 3. إضافة للـ Array المحلي (بدون حذف القديم)
+    dispensingQueue.push(patientEntry);
+    
+    // 4. ترتيب ورسم الجدول
+    dispensingQueue.sort((a, b) => (a.queueNumber || 0) - (b.queueNumber || 0));
+    renderDispensingQueue(document.getElementById('queueFilterInput') ? document.getElementById('queueFilterInput').value : '');
+
+    try {
+        // 5. تحديث السيرفر (بنحدث السجل الأصلي بالرقم الجديد)
+        // ملاحظة: السيرفر هيفضل فيه سجل واحد، بس الطابور عندك هيعرضه مرتين بأرقام مختلفة
+        await supabaseClient
+            .from('patients')
+            .update({ 
+                in_queue: true,
+                patient_name: patientName,
+                queue_number: nextNumber 
+            })
+            .eq('id', pId);
+
+        showToast('Added Duplicate with Number #' + nextNumber + ' 🚀');
+    } catch(err) {
+        console.error('Cloud Sync Error:', err);
+    }
+    
+    // 6. تنظيف البحث
+    const searchInput = document.getElementById('dispenseSearchInput');
+    const resultsDiv = document.getElementById('dispenseSearchResults');
+    if (searchInput) searchInput.value = '';
+    if (resultsDiv) resultsDiv.style.display = 'none';
 }
     </script>
 </body>
