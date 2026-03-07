@@ -3107,8 +3107,7 @@
 </head>
 <body>
     <div id="modalOverlay" class="modal-overlay">
-        <div class="modal-box" id="modalContent">
-            </div>
+        <div class="modal-box" id="modalContent"></div>
     </div>
     
     <div id="authPage" class="auth-container">
@@ -3202,14 +3201,13 @@
             </form>
         </div>
     </div>
+
     <div id="mainApp" style="display:none;">
         <div class="header">
             <img src="https://raw.githubusercontent.com/meralmohamed121022-cyber/Drug-Monograph/refs/heads/main/M%20(512%20x%20512%20px)_20251114_182650_0000.gif" 
                  alt="MONO Logo" 
                  style="width: 80px; height: auto; border-radius: 50%; margin-bottom: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.2);">
-            
             <p id="pharmacyInfo">Mono Wasfaty SYSTEM</p>
-            
             <button class="logout-btn" onclick="handleLogout()">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                     <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
@@ -3219,524 +3217,134 @@
                 Logout
             </button>
         </div>
-      <div class="container">
-    <div class="nav-tabs">
-        <button class="nav-tab active" onclick="switchTab('add')">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                <line x1="12" y1="5" x2="12" y2="19"></line>
-                <line x1="5" y1="12" x2="19" y2="12"></line>
-            </svg>
-            Add
-        </button>
-        <button class="nav-tab" onclick="switchTab('patients')">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
-                <circle cx="12" cy="7" r="4"></circle>
-            </svg>
-            Patients
-        </button>
-        <button class="nav-tab" onclick="switchTab('data')">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                <ellipse cx="12" cy="5" rx="9" ry="3"></ellipse>
-                <path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"></path>
-                <path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"></path>
-            </svg>
-            Data Hub
-        </button>
-        <button class="nav-tab" onclick="switchTab('dispensed')">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
-                <polyline points="22 4 12 14.01 9 11.01"></polyline>
-            </svg>
-            Dispensed
-        </button>
-    </div>
 
-    <div id="add-tab" class="tab-content active">
-        <div class="form-group">
-            <label class="form-label">
-                <span style="font-size: 18px; margin-right: 8px;">🆔</span>
-                ID Number (10 digits)
-            </label>
-            <input type="text" class="form-input" id="nationalId" placeholder="1234567890" maxlength="10" pattern="[1-4][0-9]{9}">
-        </div>
-
-        <div class="form-group">
-            <label class="form-label">
-                <span style="font-size: 18px; margin-right: 8px;">📱</span>
-                Phone Number (Optional)
-            </label>
-            <input type="text" class="form-input" id="phoneNumber" placeholder="05xxxxxxxx" maxlength="10">
-        </div>
-
-        <div class="section-title">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--primary)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                <circle cx="12" cy="12" r="10"></circle>
-                <line x1="12" y1="8" x2="12" y2="12"></line>
-                <line x1="12" y1="16" x2="12.01" y2="16"></line>
-            </svg>
-            Prescriptions
-        </div>
-
-        <div id="prescriptionsContainer"></div>
-
-        <button class="add-prescription-btn" onclick="addPrescription()">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                <line x1="12" y1="5" x2="12" y2="19"></line>
-                <line x1="5" y1="12" x2="19" y2="12"></line>
-            </svg>
-            Add Another Prescription
-        </button>
-
-        <div class="form-group" style="margin-top: 25px;">
-            <label class="form-label">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--primary)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
-                    <line x1="16" y1="2" x2="16" y2="6"></line>
-                    <line x1="8" y1="2" x2="8" y2="6"></line>
-                    <line x1="3" y1="10" x2="21" y2="10"></line>
-                </svg>
-                SELECT REFILL DURATION
-            </label>
-            <p style="font-size: 12px; color: #636E72; margin-bottom: 10px;">Next refill date will auto-calculate</p>
-            <div class="refill-selector">
-                <div class="refill-box active" data-days="24" onclick="selectRefill(24)">
-                    <div class="duration">1</div>
-                    <div class="label">Month</div>
-                </div>
-                <div class="refill-box" data-days="48" onclick="selectRefill(48)">
-                    <div class="duration">2</div>
-                    <div class="label">Months</div>
-                </div>
-                <div class="refill-box" data-days="72" onclick="selectRefill(72)">
-                    <div class="duration">3</div>
-                    <div class="label">Months</div>
-                </div>
-            </div>
-        </div>
-
-        <div class="form-group">
-            <label class="form-label">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--primary)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
-                    <line x1="16" y1="2" x2="16" y2="6"></line>
-                    <line x1="8" y1="2" x2="8" y2="6"></line>
-                    <line x1="3" y1="10" x2="21" y2="10"></line>
-                </svg>
-                Dispensing Date
-            </label>
-            <input type="date" class="form-input" id="dispensingDate">
-        </div>
-
-        <div class="form-group">
-            <label class="form-label">
-                <span style="font-size: 18px; margin-right: 8px;">🔄</span>
-                Next Refill Date
-            </label>
-            <input type="date" class="form-input" id="nextRefillDate" onclick="this.showPicker()">
-        </div>
-
-        <div class="section-title">
-            <span style="font-size: 18px;">📝</span>
-            Additional Notes
-        </div>
-
-        <div class="quick-notes-grid">
-            <button class="quick-note-btn" onclick="addQuickNote('⭐ VIP')">⭐ VIP</button>
-            <button class="quick-note-btn" onclick="addQuickNote('NEED NEW RX NO')">⚠️ NEED NEW RX NO</button>
-            <button class="quick-note-btn" onclick="addQuickNote('SENSOR')">📡 SENSOR</button>
-            <button class="quick-note-btn" onclick="addQuickNote('INSULIN')">💉 INSULIN</button>
-            <button class="quick-note-btn" onclick="addQuickNote('NO ANSWER')">📞 NO ANSWER</button>
-            <button class="quick-note-btn" onclick="addQuickNote('REJECTED')">❌ REJECTED</button>
-            <button class="quick-note-btn" onclick="addQuickNote('DISPENSED')">✅ DISPENSED</button>
-        </div>
-        <div class="form-group">
-            <textarea class="form-input" id="generalNote" rows="4" placeholder="Add general notes here..." style="resize: vertical;"></textarea>
-        </div>
-
-        <button class="btn-primary" onclick="savePatient()" id="saveBtn">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path>
-                <polyline points="17 21 17 13 7 13 7 21"></polyline>
-                <polyline points="7 3 7 8 15 8"></polyline>
-            </svg>
-            <span id="saveButtonText">ADD PATIENT</span>
-        </button>
-
-        <button class="btn-import" onclick="document.getElementById('importFile').click()">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-                <polyline points="17 8 12 3 7 8"></polyline>
-                <line x1="12" y1="3" x2="12" y2="15"></line>
-            </svg>
-            IMPORT DATA
-        </button>
-        <input type="file" id="importFile" accept=".json,.xlsx,.xls,.txt" style="display:none;">
-    </div>
-
-    <div id="patients-tab" class="tab-content">
-        <div class="stats-grid" id="statsGrid"></div>
-
-        <div class="search-box">
-            <div class="search-icon-wrapper">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#B2BEC3" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <circle cx="11" cy="11" r="8"></circle>
-                    <path d="m21 21-4.35-4.35"></path>
-                </svg>
-            </div>
-            <input type="text" class="search-input" id="searchInput" placeholder="Search by ID, prescription..." oninput="searchPatients()">
-        </div>
-       <div class="date-filter" style="grid-template-columns: 1fr 1fr auto; gap: 10px;">
-    <input type="date" 
-           id="filterDateFrom" 
-           lang="en-GB"
-           onchange="applyDateFilter()">
-    
-    <input type="date" 
-           id="filterDateTo" 
-           lang="en-GB"
-           onchange="applyDateFilter()">
-    
-    <button class="btn-reset-filter" onclick="resetFilters()" title="Reset Filters">
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"></path>
-            <path d="M21 3v5h-5"></path>
-            <path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"></path>
-            <path d="M3 21v-5h5"></path>
-        </svg>
-    </button>
-</div>
-
-<div class="filter-chips" style="display: flex; flex-wrap: wrap; align-items: center; gap: 8px;">
-    <div class="chip active" onclick="filterPatients('all')">All</div>
-    <div class="chip" onclick="filterPatients('today')">Due Today</div>
-    <div class="chip" onclick="filterPatients('upcoming')">Upcoming Week</div>
-    <div class="chip" onclick="filterPatients('overdue')">Overdue</div>
-    <div class="chip" onclick="filterPatients('imported')">Imported</div>
-
-    <div class="chip" 
-         onclick="checkExactDuplicatesReport()" 
-         style="background: linear-gradient(135deg, #ff9f43, #ee5253); color: white; border: none; display: flex; align-items: center; gap: 5px; padding-left: 10px; padding-right: 10px;">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
-            <line x1="16" y1="13" x2="8" y2="13"></line>
-            <line x1="16" y1="17" x2="8" y2="17"></line>
-            <polyline points="10 9 9 9 8 9"></polyline>
-        </svg>
-        Clean Duplicates
-    </div>
-</div>
-        <div id="patientsContainer"></div>
-    </div>
-
-    <div id="data-tab" class="tab-content">
-        <div class="export-section">
-            <div class="export-title">
-                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--dark)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-                    <polyline points="7 10 12 15 17 10"></polyline>
-                    <line x1="12" y1="15" x2="12" y2="3"></line>
-                </svg>
-                EXPORT DATA
-            </div>
-            <p style="font-size: 12px; color: #636E72; margin-bottom: 15px;">Export database in different formats</p>
-            <div class="export-buttons">
-                <button class="btn-export btn-json" onclick="exportData('json')" data-tooltip="Export JSON">
-                    <svg width="50" height="50" viewBox="0 0 24 24" fill="none">
-                        <rect x="3" y="3" width="18" height="18" rx="3" fill="white" opacity="0.15"/>
-                        <rect x="5" y="5" width="14" height="14" rx="2" stroke="white" stroke-width="1.6"/>
-                        <path d="M10 8.5c-.8 0-1.2.4-1.2 1.2v1.1c0 .6-.3.9-.9.9h-.4M7.9 12.7h.4c.6 0 .9.3.9.9v1.1c0 .8.4 1.2 1.2 1.2" stroke="white" stroke-width="1.4" stroke-linecap="round"/>
-                        <path d="M14 8.5c.8 0 1.2.4 1.2 1.2v1.1c0 .6.3.9.9.9h.4M16.1 12.7h-.4c-.6 0-.9.3-.9.9v1.1c0 .8-.4 1.2-1.2 1.2" stroke="white" stroke-width="1.4" stroke-linecap="round"/>
-                    </svg>
-                </button>
-
-                <button class="btn-export btn-excel" onclick="exportData('excel')" data-tooltip="Export Excel">
-                    <svg width="50" height="50" viewBox="0 0 24 24" fill="none">
-                        <path d="M7 3h7l4 4v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2z" fill="#185C37"/>
-                        <path d="M14 3v4h4" fill="#21A366"/>
-                        <rect x="4" y="7" width="9.5" height="10" fill="white" opacity="0.95"/>
-                        <path d="M6.2 9l2.1 3.1L6.1 15h1.4l1.1-1.8L9.7 15h1.4l-2.1-2.9L11 9H9.6L8.5 10.7 7.4 9H6.2z" fill="#185C37"/>
-                    </svg>
-                </button>
-
-                <button class="btn-export btn-text" onclick="exportData('text')" data-tooltip="Export Text">
-                    <svg width="50" height="50" viewBox="0 0 24 24" fill="none">
-                        <path d="M7 3h7l4 4v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2z" fill="#FF9500"/>
-                        <path d="M14 3v4h4" fill="#FFC766"/>
-                        <line x1="8" y1="11" x2="16" y2="11" stroke="white" stroke-width="1.6" stroke-linecap="round"/>
-                        <line x1="8" y1="14" x2="16" y2="14" stroke="white" stroke-width="1.6" stroke-linecap="round"/>
-                        <line x1="8" y1="17" x2="13" y2="17" stroke="white" stroke-width="1.6" stroke-linecap="round"/>
-                    </svg>
-                </button>
-            </div>
-        </div>
-
-        <div class="export-section">
-            <div class="export-title">
-                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--dark)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-                    <polyline points="17 8 12 3 7 8"></polyline>
-                    <line x1="12" y1="3" x2="12" y2="15"></line>
-                </svg>
-                IMPORT DATA
-            </div>
-            <div class="import-area" onclick="document.getElementById('importFileData').click()">
-                <svg width="60" height="60" viewBox="0 0 24 24" fill="none" stroke="var(--warning)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin: 0 auto 15px; display: block;">
-                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-                    <polyline points="17 8 12 3 7 8"></polyline>
-                    <line x1="12" y1="3" x2="12" y2="15"></line>
-                </svg>
-                <div class="import-text">CLICK TO IMPORT</div>
-                <p style="font-size: 11px; color: #999; margin-top: 10px;">Supports JSON, Excel, Text</p>
-            </div>
-            <input type="file" id="importFileData" accept=".json,.xlsx,.xls,.txt" style="display:none;">
-        </div>
-
-        <div id="importPreview"></div>
-
-        <div class="export-section">
-            <div class="export-title">
-                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--dark)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                    <ellipse cx="12" cy="5" rx="9" ry="3"></ellipse>
-                    <path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"></path>
-                    <path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"></path>
-                </svg>
-                BACKUP SYSTEM
-            </div>
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
-                <button class="btn-export btn-json" onclick="createBackup()">
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                        <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path>
-                        <polyline points="17 21 17 13 7 13 7 21"></polyline>
-                        <polyline points="7 3 7 8 15 8"></polyline>
-                    </svg>
-                    Backup
-                </button>
-                <button class="btn-export btn-excel" onclick="restoreBackup()">
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-                        <polyline points="17 8 12 3 7 8"></polyline>
-                        <line x1="12" y1="3" x2="12" y2="15"></line>
-                    </svg>
-                    Restore
-                </button>
-            </div>
-            <button class="btn-export" style="background: linear-gradient(135deg, #FF6B6B, #EE5A6F); color: white; width: 100%; margin-top: 10px;" onclick="deleteAll()">
-                <svg width="16" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                    <polyline points="3 6 5 6 21 6"></polyline>
-                    <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
-                    <line x1="10" y1="11" x2="10" y2="17"></line>
-                    <line x1="14" y1="11" x2="14" y2="17"></line>
-                </svg>
-                Delete All
-            </button>
-        </div>
-    </div>
-    <div id="dispensed-tab" class="tab-content">
-    <div class="section-title">
-        <span style="font-size: 20px;">💊</span>
-        Daily Dispensing Queue
-    </div>
-
-    <div class="dispense-search-container">
-        <div class="search-box" style="margin-bottom: 0;">
-            <div class="search-icon-wrapper">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#B2BEC3" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <circle cx="11" cy="11" r="8"></circle>
-                    <path d="m21 21-4.35-4.35"></path>
-                </svg>
-            </div>
-            <input type="text" class="search-input" id="dispenseSearchInput" 
-                   placeholder="Search database to ADD to queue..." 
-                   oninput="searchForDispensing()" autocomplete="off">
-        </div>
-        <div id="dispenseSearchResults" class="dispense-results-dropdown"></div>
-    </div>
-
-   
-</div>
-    <div class="dispensing-table-container" style="margin-top: 20px;">
-        
-        <div style="display: flex; justify-content: space-between; align-items: center; padding: 15px 20px; border-bottom: 1px solid #eee; background: #fcfcfc;">
-            <div style="font-size: 14px; font-weight: 700; color: var(--primary); display: flex; align-items: center; gap: 8px;">
-                📋 Queue List 
-                <span id="queueCount" style="background: var(--secondary); color: white; padding: 2px 8px; border-radius: 12px; font-size: 11px;">0</span>
-            </div>
-            
-            <div style="position: relative; width: 250px;">
-                <input type="text" id="queueFilterInput" 
-                       placeholder="Filter within list..." 
-                       onkeyup="filterQueue()"
-                       style="width: 100%; padding: 8px 30px 8px 10px; border: 1px solid #ddd; border-radius: 20px; font-size: 12px; outline: none; transition: border 0.3s;">
-                <div style="position: absolute; right: 10px; top: 50%; transform: translateY(-50%); font-size: 12px; opacity: 0.5;">🔍</div>
-            </div>
-        </div>
-
-        <table class="dispensing-table">
-            <thead>
-                <tr>
-                    <th width="40" style="text-align: center; color: #D32F2F;">✖</th>
-                    
-                    <th width="40">#</th>
-                    
-                    <th>Patient Details</th>
-                    <th>Prescriptions</th>
-                    <th>Mobile</th>
-                    
-                    <th width="80" style="text-align: center;">Done</th>
-                </tr>
-            </thead>
-            <tbody id="dispensingQueueBody">
-                </tbody>
-        </table>
-        
-        <div id="emptyDispenseMsg" class="no-data" style="padding: 50px 20px;">
-            <div class="icon icon-pill" style="width: 40px; height: 16px; background: #E0E0E0; margin: 0 auto 15px;"></div>
-            <p style="font-size: 14px; color: #B2BEC3;">Queue is empty. Search above to add patients.</p>
-        </div>
-    </div>
-</div>
-            
-            <!-- Add Patient Tab -->
-            <div id="add-tab" class="tab-content active">
-                <div class="form-group">
-                    <label class="form-label">
-                        <span style="font-size: 18px; margin-right: 8px;">🆔</span>
-                        ID Number (10 digits)
-                    </label>
-                    <input type="text" class="form-input" id="nationalId" placeholder="1234567890" maxlength="10" pattern="[1-4][0-9]{9}">
-                </div>
-                
-                <div class="form-group">
-                    <label class="form-label">
-                        <span style="font-size: 18px; margin-right: 8px;">📱</span>
-                        Phone Number (Optional)
-                    </label>
-                    <input type="text" class="form-input" id="phoneNumber" placeholder="05xxxxxxxx" maxlength="10">
-                </div>
-                
-                <div class="section-title">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--primary)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                        <circle cx="12" cy="12" r="10"></circle>
-                        <line x1="12" y1="8" x2="12" y2="12"></line>
-                        <line x1="12" y1="16" x2="12.01" y2="16"></line>
-                    </svg>
-                    Prescriptions
-                </div>
-                
-                <div id="prescriptionsContainer"></div>
-                
-                <button class="add-prescription-btn" onclick="addPrescription()">
+        <div class="container">
+            <div class="nav-tabs">
+                <button class="nav-tab active" onclick="switchTab('add')">
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
                         <line x1="12" y1="5" x2="12" y2="19"></line>
                         <line x1="5" y1="12" x2="19" y2="12"></line>
                     </svg>
+                    Add
+                </button>
+                <button class="nav-tab" onclick="switchTab('patients')">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                        <circle cx="12" cy="7" r="4"></circle>
+                    </svg>
+                    Patients
+                </button>
+                <button class="nav-tab" onclick="switchTab('data')">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                        <ellipse cx="12" cy="5" rx="9" ry="3"></ellipse>
+                        <path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"></path>
+                        <path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"></path>
+                    </svg>
+                    Data Hub
+                </button>
+                <button class="nav-tab" onclick="switchTab('dispensed')">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+                        <polyline points="22 4 12 14.01 9 11.01"></polyline>
+                    </svg>
+                    Dispensed
+                </button>
+            </div>
+
+            <div id="add-tab" class="tab-content active">
+                <div class="form-group">
+                    <label class="form-label"><span style="font-size: 18px; margin-right: 8px;">🆔</span> ID Number (10 digits)</label>
+                    <input type="text" class="form-input" id="nationalId" placeholder="1234567890" maxlength="10" pattern="[1-4][0-9]{9}">
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label"><span style="font-size: 18px; margin-right: 8px;">📱</span> Phone Number (Optional)</label>
+                    <input type="text" class="form-input" id="phoneNumber" placeholder="05xxxxxxxx" maxlength="10">
+                </div>
+
+                <div class="section-title">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--primary)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                        <circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line>
+                    </svg>
+                    Prescriptions
+                </div>
+
+                <div id="prescriptionsContainer"></div>
+
+                <button class="add-prescription-btn" onclick="addPrescription()">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                        <line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line>
+                    </svg>
                     Add Another Prescription
                 </button>
-                
+
                 <div class="form-group" style="margin-top: 25px;">
-                    <label class="form-label">
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--primary)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                            <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
-                            <line x1="16" y1="2" x2="16" y2="6"></line>
-                            <line x1="8" y1="2" x2="8" y2="6"></line>
-                            <line x1="3" y1="10" x2="21" y2="10"></line>
-                        </svg>
-                        SELECT REFILL DURATION
-                    </label>
-                    <p style="font-size: 12px; color: #636E72; margin-bottom: 10px;">Next refill date will auto-calculate</p>
+                    <label class="form-label">SELECT REFILL DURATION</label>
                     <div class="refill-selector">
                         <div class="refill-box active" data-days="24" onclick="selectRefill(24)">
-                            <div class="duration">1</div>
-                            <div class="label">Month</div>
+                            <div class="duration">1</div><div class="label">Month</div>
                         </div>
                         <div class="refill-box" data-days="48" onclick="selectRefill(48)">
-                            <div class="duration">2</div>
-                            <div class="label">Months</div>
+                            <div class="duration">2</div><div class="label">Months</div>
                         </div>
                         <div class="refill-box" data-days="72" onclick="selectRefill(72)">
-                            <div class="duration">3</div>
-                            <div class="label">Months</div>
+                            <div class="duration">3</div><div class="label">Months</div>
                         </div>
                     </div>
                 </div>
-                
+
                 <div class="form-group">
-                    <label class="form-label">
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--primary)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                            <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
-                            <line x1="16" y1="2" x2="16" y2="6"></line>
-                            <line x1="8" y1="2" x2="8" y2="6"></line>
-                            <line x1="3" y1="10" x2="21" y2="10"></line>
-                        </svg>
-                        Dispensing Date
-                    </label>
+                    <label class="form-label">Dispensing Date</label>
                     <input type="date" class="form-input" id="dispensingDate">
                 </div>
-                
-                <div class="form-group">
-                    <label class="form-label">
-                        <span style="font-size: 18px; margin-right: 8px;">🔄</span>
-                        Next Refill Date
-                    </label>
-                 <input type="date" class="form-input" id="nextRefillDate" onclick="this.showPicker()">
-                </div>
-             <div class="section-title">
-    <span style="font-size: 18px;">📝</span>
-    Additional Notes
-</div>
 
-<div class="quick-notes-grid">
+                <div class="form-group">
+                    <label class="form-label"><span style="font-size: 18px; margin-right: 8px;">🔄</span> Next Refill Date</label>
+                    <input type="date" class="form-input" id="nextRefillDate" onclick="this.showPicker()">
+                </div>
+
+                <div class="section-title"><span style="font-size: 18px;">📝</span> Additional Notes</div>
+               <div class="quick-notes-grid">
+    <button class="quick-note-btn" onclick="addQuickNote('👑 VVIP')">👑 VVIP</button>
     <button class="quick-note-btn" onclick="addQuickNote('⭐ VIP')">⭐ VIP</button>
-    <button class="quick-note-btn" onclick="addQuickNote('NEED NEW RX NO')">⚠️ NEED NEW RX NO</button>
-    <button class="quick-note-btn" onclick="addQuickNote('SENSOR')">📡 SENSOR</button>
-    <button class="quick-note-btn" onclick="addQuickNote('INSULIN')">💉 INSULIN</button>
-    <button class="quick-note-btn" onclick="addQuickNote('NO ANSWER')">📞 NO ANSWER</button>
-    <button class="quick-note-btn" onclick="addQuickNote('REJECTED')">❌ REJECTED</button>
-    <button class="quick-note-btn" onclick="addQuickNote('DISPENSED')">✅ DISPENSED</button>
-</div>
-<div class="form-group">
-    <textarea class="form-input" id="generalNote" rows="4" placeholder="Add general notes here..." style="resize: vertical;"></textarea>
-</div>
+    <button class="quick-note-btn" onclick="addQuickNote('⚠️ NEED NEW RX NO')">⚠️ NEED NEW RX NO</button>
+    <button class="quick-note-btn" onclick="addQuickNote('📡 SENSOR')">📡 SENSOR</button>
+    <button class="quick-note-btn" onclick="addQuickNote('💉 INSULIN')">💉 INSULIN</button>
+    
+    <button class="quick-note-btn" onclick="addQuickNote('🧠 KEPPRA')">🧠 KEPPRA</button>
+    <button class="quick-note-btn" onclick="addQuickNote('💊 HEROX')">💊 HEROX</button>
+    <button class="quick-note-btn" onclick="addQuickNote('🫀 BRILINTA')">🫀 BRILINTA</button>
+    <button class="quick-note-btn" onclick="addQuickNote('🩸 ELIQUIS')">🩸 ELIQUIS</button>
+    
+    <button class="quick-note-btn" onclick="addQuickNote('📞 NO ANSWER')">📞 NO ANSWER</button>
+    <button class="quick-note-btn" onclick="addQuickNote('❌ REJECTED')">❌ REJECTED</button>
+    </div>
+                <div class="form-group">
+                    <textarea class="form-input" id="generalNote" rows="4" placeholder="Add general notes here..." style="resize: vertical;"></textarea>
+                </div>
+
                 <button class="btn-primary" onclick="savePatient()" id="saveBtn">
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                        <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path>
-                        <polyline points="17 21 17 13 7 13 7 21"></polyline>
-                        <polyline points="7 3 7 8 15 8"></polyline>
+                        <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path><polyline points="17 21 17 13 7 13 7 21"></polyline><polyline points="7 3 7 8 15 8"></polyline>
                     </svg>
                     <span id="saveButtonText">ADD PATIENT</span>
                 </button>
-                
-                <button class="btn-import" onclick="document.getElementById('importFile').click()">
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-                        <polyline points="17 8 12 3 7 8"></polyline>
-                        <line x1="12" y1="3" x2="12" y2="15"></line>
-                    </svg>
-                    IMPORT DATA
-                </button>
-                <input type="file" id="importFile" accept=".json,.xlsx,.xls,.txt" style="display:none;">
+
+              
             </div>
-            
-            <!-- Patients List Tab -->
+
             <div id="patients-tab" class="tab-content">
                 <div class="stats-grid" id="statsGrid"></div>
-                
                 <div class="search-box">
                     <div class="search-icon-wrapper">
-                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#B2BEC3" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                            <circle cx="11" cy="11" r="8"></circle>
-                            <path d="m21 21-4.35-4.35"></path>
-                        </svg>
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#B2BEC3" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><path d="m21 21-4.35-4.35"></path></svg>
                     </div>
                     <input type="text" class="search-input" id="searchInput" placeholder="Search by ID, prescription..." oninput="searchPatients()">
                 </div>
-                
                 <div class="date-filter">
-                    <input type="date" id="filterDateFrom" placeholder="From Date" onchange="applyDateFilter()">
-                    <input type="date" id="filterDateTo" placeholder="To Date" onchange="applyDateFilter()">
+                    <input type="date" id="filterDateFrom" onchange="applyDateFilter()">
+                    <input type="date" id="filterDateTo" onchange="applyDateFilter()">
                 </div>
-                
                 <div class="filter-chips">
                     <div class="chip active" onclick="filterPatients('all')">All</div>
                     <div class="chip" onclick="filterPatients('today')">Due Today</div>
@@ -3744,150 +3352,78 @@
                     <div class="chip" onclick="filterPatients('overdue')">Overdue</div>
                     <div class="chip" onclick="filterPatients('imported')">Imported</div>
                 </div>
-                
                 <div id="patientsContainer"></div>
             </div>
-            
-            <!-- Data Management Tab -->
+
             <div id="data-tab" class="tab-content">
                 <div class="export-section">
                     <div class="export-title">
-                        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--dark)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-                            <polyline points="7 10 12 15 17 10"></polyline>
-                            <line x1="12" y1="15" x2="12" y2="3"></line>
-                        </svg>
-                        EXPORT DATA
-                    </div>
-                    <p style="font-size: 12px; color: #636E72; margin-bottom: 15px;">Export database in different formats</p>
-             <div class="export-buttons">
-    <!-- JSON -->
-    <button class="btn-export btn-json" onclick="exportData('json')" data-tooltip="Export JSON">
-        <svg width="50" height="50" viewBox="0 0 24 24" fill="none">
-            <rect x="3" y="3" width="18" height="18" rx="3" fill="white" opacity="0.15"/>
-            <rect x="5" y="5" width="14" height="14" rx="2" stroke="white" stroke-width="1.6"/>
-            <!-- { -->
-            <path d="M10 8.5c-.8 0-1.2.4-1.2 1.2v1.1c0 .6-.3.9-.9.9h-.4
-                     M7.9 12.7h.4c.6 0 .9.3.9.9v1.1c0 .8.4 1.2 1.2 1.2"
-                  stroke="white" stroke-width="1.4" stroke-linecap="round"/>
-            <!-- } -->
-            <path d="M14 8.5c.8 0 1.2.4 1.2 1.2v1.1c0 .6.3.9.9.9h.4
-                     M16.1 12.7h-.4c-.6 0-.9.3-.9.9v1.1c0 .8-.4 1.2-1.2 1.2"
-                  stroke="white" stroke-width="1.4" stroke-linecap="round"/>
-        </svg>
-    </button>
-
-    <!-- Excel -->
-    <button class="btn-export btn-excel" onclick="exportData('excel')" data-tooltip="Export Excel">
-        <svg width="50" height="50" viewBox="0 0 24 24" fill="none">
-            <!-- ملف أخضر زي شعار Excel -->
-            <path d="M7 3h7l4 4v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2z"
-                  fill="#185C37"/>
-            <path d="M14 3v4h4" fill="#21A366"/>
-            <!-- مربع أبيض جوه -->
-            <rect x="4" y="7" width="9.5" height="10" fill="white" opacity="0.95"/>
-            <!-- حرف X -->
-            <path d="M6.2 9l2.1 3.1L6.1 15h1.4l1.1-1.8L9.7 15h1.4l-2.1-2.9L11 9H9.6L8.5 10.7 7.4 9H6.2z"
-                  fill="#185C37"/>
-        </svg>
-    </button>
-
-    <!-- TEXT -->
-    <button class="btn-export btn-text" onclick="exportData('text')" data-tooltip="Export Text">
-        <svg width="50" height="50" viewBox="0 0 24 24" fill="none">
-            <!-- ملف برتقالي -->
-            <path d="M7 3h7l4 4v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2z"
-                  fill="#FF9500"/>
-            <path d="M14 3v4h4" fill="#FFC766"/>
-            <!-- خطوط النص -->
-            <line x1="8" y1="11" x2="16" y2="11" stroke="white" stroke-width="1.6" stroke-linecap="round"/>
-            <line x1="8" y1="14" x2="16" y2="14" stroke="white" stroke-width="1.6" stroke-linecap="round"/>
-            <line x1="8" y1="17" x2="13" y2="17" stroke="white" stroke-width="1.6" stroke-linecap="round"/>
-        </svg>
-    </button>
-</div>
-
-
-</div>
-                
-                <div class="export-section">
-                    <div class="export-title">
-                        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--dark)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-                            <polyline points="17 8 12 3 7 8"></polyline>
-                            <line x1="12" y1="3" x2="12" y2="15"></line>
-                        </svg>
+                        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--dark)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
                         IMPORT DATA
                     </div>
                     <div class="import-area" onclick="document.getElementById('importFileData').click()">
-                        <svg width="60" height="60" viewBox="0 0 24 24" fill="none" stroke="var(--warning)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin: 0 auto 15px; display: block;">
-                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-                            <polyline points="17 8 12 3 7 8"></polyline>
-                            <line x1="12" y1="3" x2="12" y2="15"></line>
-                        </svg>
+                        <svg width="60" height="60" viewBox="0 0 24 24" fill="none" stroke="var(--warning)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin: 0 auto 15px; display: block;"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
                         <div class="import-text">CLICK TO IMPORT</div>
-                        <p style="font-size: 11px; color: #999; margin-top: 10px;">Supports JSON, Excel, Text</p>
                     </div>
                     <input type="file" id="importFileData" accept=".json,.xlsx,.xls,.txt" style="display:none;">
                 </div>
-                
+
                 <div id="importPreview"></div>
-                
+
                 <div class="export-section">
                     <div class="export-title">
-                        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--dark)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                            <ellipse cx="12" cy="5" rx="9" ry="3"></ellipse>
-                            <path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"></path>
-                            <path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"></path>
-                        </svg>
-                        BACKUP SYSTEM
+                        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--dark)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+                        EXPORT DATA
                     </div>
-                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
-                        <button class="btn-export btn-json" onclick="createBackup()">
-                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                                <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path>
-                                <polyline points="17 21 17 13 7 13 7 21"></polyline>
-                                <polyline points="7 3 7 8 15 8"></polyline>
-                            </svg>
-                            Backup
-                        </button>
-                        <button class="btn-export btn-excel" onclick="restoreBackup()">
-                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-                                <polyline points="17 8 12 3 7 8"></polyline>
-                                <line x1="12" y1="3" x2="12" y2="15"></line>
-                            </svg>
-                            Restore
-                        </button>
+                    <div class="export-buttons">
+                        <button class="btn-export btn-json" onclick="exportData('json')" data-tooltip="Export JSON">JSON</button>
+                        <button class="btn-export btn-excel" onclick="exportData('excel')" data-tooltip="Export Excel">Excel</button>
+                        <button class="btn-export btn-text" onclick="exportData('text')" data-tooltip="Export Text">Text</button>
                     </div>
-                    <button class="btn-export" style="background: linear-gradient(135deg, #FF6B6B, #EE5A6F); color: white; width: 100%; margin-top: 10px;" onclick="deleteAll()">
-                        <svg width="16" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                            <polyline points="3 6 5 6 21 6"></polyline>
-                            <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
-                            <line x1="10" y1="11" x2="10" y2="17"></line>
-                            <line x1="14" y1="11" x2="14" y2="17"></line>
-                        </svg>
-                        Delete All
-                    </button>
+                </div>
+
+                <div class="export-section">
+                    <button class="btn-export" style="background: linear-gradient(135deg, #FF6B6B, #EE5A6F); color: white; width: 100%;" onclick="deleteAll()">Delete All Records</button>
                 </div>
             </div>
-        </div>
-    </div>
-    <div class="floating-docs-btn" onclick="openDocsManager()">
-    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
-        <polyline points="14 2 14 8 20 8"></polyline>
-        <line x1="12" y1="18" x2="12" y2="12"></line>
-        <line x1="9" y1="15" x2="15" y2="15"></line>
-    </svg>
-    <span class="icon-doc">DOCS</span>
-</div>
 
-<input type="file" id="docsUploader" multiple accept=".txt,.xlsx,.xls,.pdf,.jpg,.jpeg,.png" style="display: none;" onchange="handleDocsUpload(this)">
-    <div id="whatsappExportContainer" class="whatsapp-export-container"></div>
-<div id="toastNotification" class="toast-notification">
-    <span>✅</span> <span id="toastText">Copied to clipboard!</span>
-</div>
+            <div id="dispensed-tab" class="tab-content">
+                <div class="section-title">💊 Daily Dispensing Queue</div>
+                <div class="dispense-search-container">
+                    <div class="search-box">
+                        <div class="search-icon-wrapper">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#B2BEC3" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><path d="m21 21-4.35-4.35"></path></svg>
+                        </div>
+                        <input type="text" class="search-input" id="dispenseSearchInput" placeholder="Search to ADD to queue..." oninput="searchForDispensing()" autocomplete="off">
+                    </div>
+                    <div id="dispenseSearchResults" class="dispense-results-dropdown"></div>
+                </div>
+
+                <div class="dispensing-table-container" style="margin-top: 20px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; padding: 15px 20px; border-bottom: 1px solid #eee; background: #fcfcfc;">
+                        <div style="font-size: 14px; font-weight: 700; color: var(--primary);">📋 Queue List <span id="queueCount" class="patient-badge">0</span></div>
+                        <div style="position: relative; width: 250px;">
+                            <input type="text" id="queueFilterInput" placeholder="Filter list..." onkeyup="filterQueue()" style="width: 100%; padding: 8px 10px; border: 1px solid #ddd; border-radius: 20px; font-size: 12px; outline: none;">
+                        </div>
+                    </div>
+                    <table class="dispensing-table">
+                        <thead>
+                            <tr>
+                                <th width="40">✖</th><th width="40">#</th><th>Patient Details</th><th>Prescriptions</th><th>Mobile</th><th width="80">Done</th>
+                            </tr>
+                        </thead>
+                        <tbody id="dispensingQueueBody"></tbody>
+                    </table>
+                    <div id="emptyDispenseMsg" class="no-data"><p>Queue is empty.</p></div>
+                </div>
+            </div> </div> </div> <div class="floating-docs-btn" onclick="openDocsManager()">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="12" y1="18" x2="12" y2="12"></line><line x1="9" y1="15" x2="15" y2="15"></line></svg>
+        <span class="icon-doc">DOCS</span>
+    </div>
+
+    <input type="file" id="docsUploader" multiple style="display: none;" onchange="handleDocsUpload(this)">
+    <div id="toastNotification" class="toast-notification"><span id="toastText"></span></div>
+</body>
 <img src="https://raw.githubusercontent.com/meralmohamed121022-cyber/Drug-Monograph/refs/heads/main/6_20251129_184528_0005.png" alt="Ph Mohamed Kholeif"
 style="position: fixed; bottom: 10px; right: 10px; width: 100px; height: 100px; border-radius: 50%; border: 3px solid white; box-shadow: 0 3px 10px rgba(0,0,0,0.4); background: white; padding: 2px; animation: float 4s ease-in-out infinite; z-index: 1000; cursor: pointer;"
 id="profileImage" />
@@ -6651,7 +6187,7 @@ function searchForDispensing() {
         ).slice(0, 5);
     }
 
-    // إذا مفيش نتائج.. هنظهر خيار الإضافة السريعة بالهوية اللي بتبحث عنها
+    // الحالة 1: الهوية مش موجودة -> أظهر زرار الإضافة السريعة (يفتح مودال)
     if (results.length === 0) {
         dropdown.innerHTML = `
             <div style="padding: 15px; text-align: center; background: #f0f7ff; border: 1px solid var(--primary); border-radius: 0 0 12px 12px;">
@@ -6666,25 +6202,28 @@ function searchForDispensing() {
         return;
     }
 
-    // عرض النتائج العادية مع إضافة الاسم في العرض لو موجود
+    // الحالة 2: الهوية موجودة -> أظهرها بشكل الإدخال المباشر (زي الصورة اللي طلبتها)
     dropdown.innerHTML = results.map(p => `
         <div class="dispense-result-item" style="display: flex; flex-direction: column; gap: 8px; padding: 12px; border-bottom: 1px solid #eee;">
             <div style="display: flex; justify-content: space-between; align-items: center;">
                 <div>
                     <div style="font-weight:800; color:var(--primary); font-family: 'Courier New', monospace;">${p.nationalId}</div>
-                    <div style="font-size:11px; color:#2d3436; font-weight:bold;">${p.patientName || 'No Name Saved'}</div>
-                    <div style="font-size:10px; color:#666;">📱 ${p.phoneNumber || 'No Phone'}</div>
+                    <div style="font-size:11px; color:#666;">${p.phoneNumber || 'No Phone'}</div>
                 </div>
                 <button onclick="addToQueue('${String(p.id)}')" 
                         style="background:var(--secondary); color:white; border:none; padding:5px 15px; border-radius:20px; cursor:pointer; font-weight:bold;">
                     Add +
                 </button>
             </div>
+            <input type="text" id="name-input-${p.id}" value="${p.patientName || ''}" placeholder="Enter Name (Optional)" 
+                   style="width: 100%; padding: 6px; border: 1px solid #ddd; border-radius: 6px; font-size: 12px; outline: none;"
+                   onfocus="this.style.borderColor='var(--primary)'">
         </div>
     `).join('');
 
     dropdown.style.display = 'block';
 }
+
 async function addToQueue(patientId) {
     const pId = String(patientId);
     const nameInput = document.getElementById(`name-input-${pId}`);
