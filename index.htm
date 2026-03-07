@@ -3552,22 +3552,8 @@
         </div>
         <div id="dispenseSearchResults" class="dispense-results-dropdown"></div>
     </div>
-<div style="display: flex; justify-content: center; margin: 20px 0; padding: 20px; background: linear-gradient(135deg, #e3f2fd 0%, #f1f8ff 100%); border-radius: 16px; border: 2px dashed #1976d2; box-shadow: 0 4px 15px rgba(25, 118, 210, 0.1);">
-    
-    <button onclick="addDueTodayToQueue()" 
-            style="background: linear-gradient(135deg, #1976d2, #1565c0); color: white; border: none; padding: 12px 25px; border-radius: 12px; cursor: pointer; font-weight: 800; font-size: 15px; display: flex; align-items: center; gap: 10px; transition: all 0.3s ease; box-shadow: 0 8px 20px rgba(25, 118, 210, 0.3);"
-            onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 10px 25px rgba(25, 118, 210, 0.4)';"
-            onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 8px 20px rgba(25, 118, 210, 0.3)';"
-            onmousedown="this.style.transform='scale(0.98)';">
-        
-        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
-            <circle cx="8.5" cy="7" r="4"></circle>
-            <line x1="20" y1="8" x2="20" y2="14"></line>
-            <line x1="23" y1="11" x2="17" y2="11"></line>
-        </svg>
-        ADD ALL DUE TODAY TO QUEUE 🚀
-    </button>
+
+   
 </div>
     <div class="dispensing-table-container" style="margin-top: 20px;">
         
@@ -6645,13 +6631,6 @@ async function loadPatientsFromSupabase() {
         showModal('Error', `Failed to load data: ${error.message}`, '<button class="btn-primary" onclick="closeModal()">OK</button>');
     }
 }
-// ============================================
-// DISPENSED TAB LOGIC (PERSISTENT QUEUE)
-// ============================================
-
-let dispensingQueue = []; 
-
-// 1. البحث (تم التعديل لإضافة خانة الاسم عند العرض)
 function searchForDispensing() {
     const input = document.getElementById('dispenseSearchInput');
     const dropdown = document.getElementById('dispenseSearchResults');
@@ -6672,25 +6651,35 @@ function searchForDispensing() {
         ).slice(0, 5);
     }
 
+    // إذا مفيش نتائج.. هنظهر خيار الإضافة السريعة بالهوية اللي بتبحث عنها
     if (results.length === 0) {
-        dropdown.style.display = 'none';
+        dropdown.innerHTML = `
+            <div style="padding: 15px; text-align: center; background: #f0f7ff; border: 1px solid var(--primary); border-radius: 0 0 12px 12px;">
+                <p style="font-size: 13px; color: var(--primary); margin-bottom: 10px; font-weight: bold;">🆔 ID: ${term} Not Found</p>
+                <button onclick="quickAddAndQueue('${term}')" 
+                        style="background:var(--primary); color:white; border:none; padding:10px 15px; border-radius:8px; cursor:pointer; width:100%; font-weight:bold; box-shadow: 0 4px 10px rgba(13,71,161,0.2);">
+                    + Quick Add to Queue
+                </button>
+            </div>
+        `;
+        dropdown.style.display = 'block';
         return;
     }
 
+    // عرض النتائج العادية مع إضافة الاسم في العرض لو موجود
     dropdown.innerHTML = results.map(p => `
         <div class="dispense-result-item" style="display: flex; flex-direction: column; gap: 8px; padding: 12px; border-bottom: 1px solid #eee;">
             <div style="display: flex; justify-content: space-between; align-items: center;">
                 <div>
                     <div style="font-weight:800; color:var(--primary); font-family: 'Courier New', monospace;">${p.nationalId}</div>
-                    <div style="font-size:11px; color:#666;">${p.phoneNumber || 'No Phone'}</div>
+                    <div style="font-size:11px; color:#2d3436; font-weight:bold;">${p.patientName || 'No Name Saved'}</div>
+                    <div style="font-size:10px; color:#666;">📱 ${p.phoneNumber || 'No Phone'}</div>
                 </div>
                 <button onclick="addToQueue('${String(p.id)}')" 
                         style="background:var(--secondary); color:white; border:none; padding:5px 15px; border-radius:20px; cursor:pointer; font-weight:bold;">
                     Add +
                 </button>
             </div>
-            <input type="text" id="name-input-${p.id}" placeholder="Enter Name (Optional)" 
-                   style="width: 100%; padding: 6px; border: 1px solid #ddd; border-radius: 6px; font-size: 12px;">
         </div>
     `).join('');
 
@@ -6795,7 +6784,7 @@ function filterQueue() {
     const filterText = input ? input.value.toLowerCase().trim() : '';
     renderDispensingQueue(filterText);
 }
-// 4. رسم الجدول (تعديل جذري لثبات الترقيم ومنع التغيير إلا بعد التأكيد)
+// 4. رسم الجدول (تعديل لدعم البحث برقم الانتظار + ثبات الترقيم)
 function renderDispensingQueue(filterText) {
     const tbody = document.getElementById('dispensingQueueBody');
     const emptyMsg = document.getElementById('emptyDispenseMsg');
@@ -6811,11 +6800,16 @@ function renderDispensingQueue(filterText) {
     const displayList = dispensingQueue.filter(p => {
         if (!filterText) return true;
         const searchStr = filterText.toLowerCase();
+        
+        // تحويل رقم الانتظار لنص للبحث فيه
+        const qNum = p.queueNumber ? String(p.queueNumber) : "";
+
         return (
             p.nationalId.includes(searchStr) ||
             (p.patientName && p.patientName.toLowerCase().includes(searchStr)) ||
             (p.phoneNumber && p.phoneNumber.includes(searchStr)) ||
-            p.prescriptions.some(rx => rx.number.toLowerCase().includes(searchStr))
+            p.prescriptions.some(rx => rx.number.toLowerCase().includes(searchStr)) ||
+            qNum === searchStr || qNum.includes(searchStr) // البحث برقم الانتظار هنا
         );
     });
     
@@ -6837,9 +6831,8 @@ function renderDispensingQueue(filterText) {
     emptyMsg.style.display = 'none';
     
     tbody.innerHTML = displayList.map((p, index) => {
-        // الحماية القصوى للرقم الظاهر
-        const isManual = (p.queueNumber !== undefined && p.queueNumber !== null && p.queueNumber !== "");
-        const finalNum = isManual ? p.queueNumber : (index + 1);
+        // الحماية القصوى للرقم الظاهر (دائماً يظهر الرقم الحقيقي المسجل وليس الترتيب العددي)
+        const finalNum = (p.queueNumber !== undefined && p.queueNumber !== null && p.queueNumber !== "") ? p.queueNumber : (index + 1);
         
         return `
         <tr id="queue-row-${p.id}" 
@@ -7993,6 +7986,127 @@ async function proceedToAddToQueue(pId, patient, patientName) {
     if (searchInput) searchInput.value = '';
     if (resultsDiv) resultsDiv.style.display = 'none';
 }
+async function quickAddAndQueue(newId) {
+    // إخفاء نتائج البحث أولاً
+    const dropdown = document.getElementById('dispenseSearchResults');
+    if (dropdown) dropdown.style.display = 'none';
+
+    showModal(
+        '<span style="color: var(--primary);">⚡ Quick Add to Queue</span>',
+        `
+        <div style="padding: 5px;">
+            <div style="background: #e3f2fd; padding: 10px; border-radius: 8px; margin-bottom: 15px; text-align: center;">
+                <span style="font-size: 13px; color: #1565c0; font-weight: bold;">ID: ${newId}</span>
+            </div>
+            
+            <div class="form-group">
+                <label class="form-label">Patient Name (Required)</label>
+                <input type="text" id="quickName" class="form-input" placeholder="Enter Full Name" style="border: 2px solid var(--primary);">
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">Phone Number (Optional)</label>
+                <input type="text" id="quickPhone" class="form-input" placeholder="05xxxxxxxx" maxlength="10">
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">Prescription Number (Optional)</label>
+                <input type="text" id="quickRx" class="form-input" placeholder="a1234567" maxlength="8" style="text-transform: lowercase;">
+            </div>
+            
+            <div style="background: #fff9e6; padding: 10px; border-radius: 8px; font-size: 11px; color: #666; border-left: 4px solid #ffc107;">
+                * Name is mandatory. Phone and Rx can be added later.
+            </div>
+        </div>
+        `,
+        `
+        <button class="btn-secondary" onclick="closeModal()">CANCEL</button>
+        <button class="btn-primary" onclick="window.executeQuickAdd('${newId}')">CONFIRM & ADD TO QUEUE</button>
+        `
+    );
+}
+window.executeQuickAdd = async function(id) {
+    const name = document.getElementById('quickName').value.trim();
+    const phone = document.getElementById('quickPhone').value.trim();
+    const rx = document.getElementById('quickRx').value.trim().toLowerCase();
+
+    // 1. التحقق من الاسم
+    if (!name) {
+        alert("⚠️ Please enter patient name");
+        return;
+    }
+
+    // 2. التحقق من الوصفة لو اتكتبت
+    if (rx && !/^[a-z][0-9]{7}$/.test(rx)) {
+        alert("Invalid Rx format! (e.g., a1234567)");
+        return;
+    }
+
+    try {
+        const today = new Date().toISOString().split('T')[0];
+        const nextRefill = new Date();
+        nextRefill.setDate(nextRefill.getDate() + 24);
+
+        // حساب رقم الانتظار التالي (أكبر رقم في الطابور حالياً + 1)
+        const nextQueueNum = dispensingQueue.length > 0 
+            ? Math.max(...dispensingQueue.map(p => parseInt(p.queueNumber) || 0)) + 1 
+            : 1;
+
+        const newPatient = {
+            nationalId: id,
+            patientName: name,
+            phoneNumber: phone || '',
+            dispensingDate: today,
+            refillPeriod: 24,
+            nextRefillDate: nextRefill.toISOString().split('T')[0],
+            prescriptions: rx ? [{ number: rx, note: '' }] : [],
+            generalNote: rx ? 'Quick Add' : '⚠️ WAITING FOR RX',
+            imported: false,
+            inQueue: true,
+            queueNumber: nextQueueNum // حفظ الرقم الجديد
+        };
+
+        // إظهار لودينج بسيط على الزرار
+        const btn = document.querySelector('.modal-actions .btn-primary');
+        if(btn) btn.innerHTML = '<span class="loading"></span> SAVING...';
+
+        // 3. الحفظ في سوبابيز مع رقم الانتظار الجديد
+        const newDbId = await savePatientToSupabase(newPatient);
+        newPatient.id = newDbId;
+
+        // 4. تحديث البيانات في سوبابيز (للتأكد من حفظ رقم الانتظار)
+        await supabaseClient
+            .from('patients')
+            .update({ 
+                in_queue: true, 
+                queue_number: nextQueueNum,
+                patient_name: name 
+            })
+            .eq('id', newDbId);
+        
+        // 5. تحديث القائمة المحلية فوراً
+        patients.unshift(newPatient);
+        dispensingQueue.push(newPatient);
+        
+        // ترتيب الطابور
+        dispensingQueue.sort((a, b) => (a.queueNumber || 0) - (b.queueNumber || 0));
+
+        // 6. قفل المودال فوراً
+        closeModal();
+        
+        // 7. إظهار التنبيه الأسود الصغير (Toast) بالمعلومات الصحيحة
+        showToast(`✅ Added ${id}: Queue Number #${nextQueueNum} 🚀`);
+
+        // 8. تحديث الواجهة
+        updateStats();
+        displayPatients();
+        renderDispensingQueue();
+
+    } catch (err) {
+        console.error('Quick Add Error:', err);
+        alert("Failed to add: " + err.message);
+    }
+};
     </script>
 </body>
 </html>
