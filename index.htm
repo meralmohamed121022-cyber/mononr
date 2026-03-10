@@ -25193,12 +25193,11 @@ let tempSelectedDrugs = []; // لتخزين الأدوية المختار مؤق
                 showLogin();
             });
         }
-    async function savePatientToSupabase(patient) {
+      async function savePatientToSupabase(patient) {
     try {
         const patientData = {
             pharmacy_id: currentUser.id,
             national_id: patient.nationalId,
-            // 🔥 نستخدم الاسم اللي ممرر بوضوح عشان ينزل السجل الجديد بالاسم المعدل
             patient_name: patient.patientName || patient.patient_name || '', 
             phone_number: patient.phoneNumber,
             dispensing_date: patient.dispensingDate,
@@ -25206,24 +25205,27 @@ let tempSelectedDrugs = []; // لتخزين الأدوية المختار مؤق
             next_refill_date: patient.nextRefillDate,
             general_note: patient.generalNote,
             imported: patient.imported,
-            in_queue: true, 
-            queue_number: patient.queueNumber,
+            // 🔥 التعديل الجذري: نأخذ القيمة من كائن المريض نفسه
+            // إذا لم تكن موجودة، نفترض false (عشان ميضفش في الديسبنس تلقائياً)
+            in_queue: patient.inQueue || false, 
+            queue_number: patient.queueNumber || null,
             drugs_list: patient.drugs_list || [],
             updated_at: new Date().toISOString()
         };
 
         let query;
 
-        // 🔥 السر هنا: لو المستخدم داس على "Continue Adding" (يعني window.isContinuingAdding مفعل)
-        // بنلغي الـ editingPatientId وبنعمل Insert لسطر جديد تماماً بـ ID جديد
+        // وضع إضافة نسخة جديدة (Duplicate Name)
         if (window.isContinuingAdding === true) {
-            console.log('🚀 Forcing INSERT for duplicate ID with new name...');
+            console.log('🚀 Forcing INSERT for new record...');
             query = supabaseClient.from('patients').insert([patientData]);
         } 
+        // وضع التعديل
         else if (editingPatientId) {
             console.log(`📝 Standard Update for: ${editingPatientId}`);
             query = supabaseClient.from('patients').update(patientData).eq('id', editingPatientId);
         } 
+        // وضع الإضافة العادية
         else {
             query = supabaseClient.from('patients').insert([patientData]);
         }
@@ -25231,7 +25233,7 @@ let tempSelectedDrugs = []; // لتخزين الأدوية المختار مؤق
         const { data, error } = await query.select().single();
         if (error) throw error;
         
-        window.isContinuingAdding = false; // تصفير العلامة
+        window.isContinuingAdding = false; 
         return data.id;
 
     } catch (error) {
@@ -25358,96 +25360,44 @@ async function deleteImportBatch(importTimestamp) {
         }
     });
 }
-// ============================================
-// ACTUAL SAVE PATIENT (النسخة النهائية المستقرة)
-// ============================================
 async function actualSavePatient(patient) {
-    const saveBtn = document.getElementById('saveBtn');
-    const saveButtonText = document.getElementById('saveButtonText');
-    
-    // تحديد النص الأصلي بناءً على الحالة الحالية
     const isEditing = editingPatientId || window.isEditingFromPatients;
-    const originalText = isEditing ? "UPDATE PATIENT" : "ADD PATIENT";
-    
-    if (saveBtn) {
-        saveBtn.disabled = true;
-        const loadingText = isEditing ? 'UPDATING...' : 'SAVING...';
-        // حماية لتجنب خطأ textContent
-        if (saveButtonText) saveButtonText.textContent = loadingText;
-        else saveBtn.textContent = loadingText;
-    }
     
     try {
-        let patientData;
+        let patientData = {
+            ...patient,
+            inQueue: patient.inQueue || false 
+        };
 
-        if (isEditing) {
-            // 🛑 حالة التعديل: نحافظ على حالة المريض كما هي
-            console.log(`📝 Syncing updates for ID: ${editingPatientId}`);
-            
-            // البحث عن المريض الحالي في الذاكرة
-            const existing = patients.find(p => String(p.id) === String(editingPatientId));
-            
-            patientData = {
-                ...patient,
-                id: editingPatientId,
-                // الحفاظ على مكانه (لو كان في الطابور يفضل، ولو بره يفضل بره)
-                inQueue: existing ? existing.inQueue : false, 
-                queueNumber: existing ? existing.queueNumber : null,
-                drugs_list: patient.drugs_list || (existing ? existing.drugs_list : [])
-            };
-        } else {
-            // ✅ حالة إضافة جديد: يدخل الطابور فوراً
-            console.log('➕ Adding brand new patient to queue...');
-            const nextQueueNum = dispensingQueue.length > 0 
-                ? Math.max(...dispensingQueue.map(p => parseInt(p.queueNumber) || 0)) + 1 
-                : 1;
-
-            patientData = {
-                ...patient,
-                inQueue: true,
-                queueNumber: nextQueueNum,
-                drugs_list: []
-            };
-        }
-
-        // 1. الحفظ والمزامنة مع سوبابيز
-        await savePatientToSupabase(patientData);
+        const savedId = await savePatientToSupabase(patientData);
+        
+        // جلب البيانات بعد الحفظ عشان نضمن وجود رقم الانتظار
         await loadPatientsFromSupabase();
         
-        // 2. تحديث الواجهة والعدادات
+        // البحث عن المريض بعد تحديث البيانات لجلب الـ queueNumber
+        const freshlySavedPatient = dispensingQueue.find(p => String(p.id) === String(savedId));
+        const qNum = freshlySavedPatient ? freshlySavedPatient.queueNumber : null;
+
         updateStats();
         displayPatients();
         renderDispensingQueue();
 
-        // 3. التوجيه الذكي والرسائل
-        if (isEditing) {
-            showToast('✅ Updates Saved Successfully');
-            switchTab('patients'); // ارجع لتاب المرضى بعد التعديل
+        if (patientData.inQueue) {
+            // ✅ هنا التعديل: إظهار الرقم لو موجود
+            showToast(qNum ? `✅ Added to Queue: #${qNum}` : '✅ Added to Queue');
+            switchTab('dispense'); 
         } else {
-            showToast(`✅ Added to Queue as #${patientData.queueNumber}`);
-            switchTab('dispensed'); // روح للطابور بعد الإضافة الجديدة
+            showToast(isEditing ? '✅ Changes Saved' : '✅ Added to Main List');
+            switchTab('patients'); 
         }
         
-        // 4. تصفير الحالة والنموذج
         resetForm();
         editingPatientId = null;
         window.isEditingFromPatients = false;
         closeModal();
 
     } catch (error) {
-        console.error('❌ Operation failed:', error);
-        if (document.getElementById('modalOverlay')) {
-            showModal('<span style="color: var(--danger)">❌ Error</span>', `<p>${error.message}</p>`, 'OK');
-        }
-    } finally {
-        // حماية نهائية لتجنب خطأ Null في حالة إغلاق المودال سرياً
-        const btnCheck = document.getElementById('saveBtn');
-        if (btnCheck) {
-            btnCheck.disabled = false;
-            const textCheck = document.getElementById('saveButtonText');
-            if (textCheck) textCheck.textContent = originalText;
-            else btnCheck.textContent = originalText;
-        }
+        console.error('❌ Save error:', error);
     }
 }
 // ============================================
@@ -27711,24 +27661,24 @@ async function addToQueue(patientId) {
     const patient = patients.find(p => String(p.id) === pId);
     if (!patient) return;
 
-    // 🔥 السر هنا: لو الاسم المكتوب في البحث مختلف عن الاسم الأصلي
-    // بنخلي البرنامج يعتبرها إضافة مريض جديد تماماً (Insert)
+    // 🔥 الحل هنا: لازم نمرر inQueue: true في الحالتين عشان الداتا بيز تفهم
     if (newName !== '' && newName !== patient.patientName) {
         window.isContinuingAdding = true; // تفعيل وضع الإضافة القسرية
         
-        // إنشاء كائن مريض جديد بدون ID قديم
         const newPatientData = {
             ...patient,
             patientName: newName,
-            id: null, // مسح الـ ID لضمان عمل Insert في سوبابيز
-            realDbId: null
+            id: null, 
+            realDbId: null,
+            inQueue: true // لإضافته للطابور في السجل الجديد
         };
 
         const assignedNumber = await proceedToAddToQueue(null, newPatientData, newName);
-        showToast(`✅ New Record Added as #${assignedNumber}`);
+        showToast(`✅ New Record Added to Queue as #${assignedNumber}`);
     } else {
-        // لو الاسم هو هو، ضيفه عادي للطابور (المنطق القديم)
-        const assignedNumber = await proceedToAddToQueue(pId, patient, patient.patientName || '');
+        // للمريض الموجود أصلاً، بنمرر inQueue: true عشان يتحدث في الداتا بيز
+        const updatedPatient = { ...patient, inQueue: true };
+        const assignedNumber = await proceedToAddToQueue(pId, updatedPatient, patient.patientName || '');
         showToast(`✅ Added to queue as #${assignedNumber}`);
     }
     
@@ -28967,44 +28917,50 @@ async function proceedToAddToQueue(pId, patient, patientName) {
         ? Math.max(...dispensingQueue.map(p => parseInt(p.queueNumber) || 0)) + 1 
         : 1;
 
-    const queueEntryId = `${pId}_${Date.now()}`; 
-    
-    const patientEntry = { 
-        ...patient, 
-        id: queueEntryId,
-        realDbId: pId,    
-        inQueue: true, 
-        patientName: patientName, 
-        queueNumber: nextNumber,
-        drugs_list: [] // البدء بقائمة فاضية لكل إضافة جديدة
-    };
-
-    // 2. إضافة للـ Array المحلي
-    dispensingQueue.push(patientEntry);
-    
-    // 3. ترتيب ورسم الجدول
-    dispensingQueue.sort((a, b) => (a.queueNumber || 0) - (b.queueNumber || 0));
-    renderDispensingQueue(document.getElementById('queueFilterInput')?.value || '');
-
     try {
-        // 4. تحديث السيرفر
-        await supabaseClient
-            .from('patients')
-            .update({ 
-                in_queue: true,
-                patient_name: patientName,
-                queue_number: nextNumber 
-            })
-            .eq('id', pId);
-            
+        // 2. تجهيز البيانات الأساسية
+        const dataToSave = {
+            ...patient,
+            inQueue: true,
+            queueNumber: nextNumber, // الرقم اللي هيتسيف
+            patientName: patientName,
+            drugs_list: patient.drugs_list || []
+        };
+
+        // 3. الحفظ في السيرفر
+        const savedId = await savePatientToSupabase(dataToSave);
+        
+        // 4. تجهيز الكائن النهائي للواجهة
+        const finalPatientEntry = {
+            ...dataToSave,
+            id: savedId,
+            realDbId: savedId
+        };
+
+        // 5. تحديث المصفوفات المحلية
+        dispensingQueue.push(finalPatientEntry);
+        
+        if (!patients.find(p => String(p.id) === String(savedId))) {
+            patients.unshift(finalPatientEntry);
+        }
+
+        // 6. ترتيب ورسم الجدول
+        dispensingQueue.sort((a, b) => (parseInt(a.queueNumber) || 0) - (parseInt(b.queueNumber) || 0));
+        renderDispensingQueue(document.getElementById('queueFilterInput')?.value || '');
+        updateStats();
+
+        // ✅ التعديل المطلوب: إظهار رقم الانتظار في التنبيه
+        showToast(`✅ Added to Queue: Number #${nextNumber} 🚀`);
+        
+        console.log(`✅ Added to queue with ID: ${savedId} as #${nextNumber}`);
+        return nextNumber;
+
     } catch(err) {
         console.error('Cloud Sync Error:', err);
+        showToast('❌ Failed to add to queue');
+        throw err;
     }
-
-    // 🔥 أهم جزء: إرجاع الرقم للدالة السابقة عشان تظهره في الـ Toast
-    return nextNumber;
 }
-
 async function quickAddAndQueue(newId) {
     // إخفاء نتائج البحث أولاً
     const dropdown = document.getElementById('dispenseSearchResults');
@@ -29425,22 +29381,16 @@ async function addNewVersionToQueue(originalId) {
     const newNameInput = document.getElementById(`new-name-input-${pId}`);
     const newName = newNameInput ? newNameInput.value.trim() : '';
     
-    if (!newName) {
-        showToast('⚠️ Please enter a new name');
-        return;
-    }
+    if (!newName) { showToast('⚠️ Enter name'); return; }
 
     const originalPatient = patients.find(p => String(p.id) === pId);
     if (!originalPatient) return;
 
     try {
-        // 1. حساب رقم انتظار جديد
         const nextNumber = dispensingQueue.length > 0 
             ? Math.max(...dispensingQueue.map(p => parseInt(p.queueNumber) || 0)) + 1 
             : 1;
 
-        // 2. تجهيز كائن مريض "خام" جديد تماماً
-        // بنبعت id ممسوح وعلامة الـ isContinuingAdding عشان نجبر سوبابيز على INSERT
         window.isContinuingAdding = true; 
         editingPatientId = null; 
 
@@ -29451,27 +29401,21 @@ async function addNewVersionToQueue(originalId) {
             dispensingDate: new Date().toISOString().split('T')[0],
             refillPeriod: originalPatient.refillPeriod || 24,
             nextRefillDate: originalPatient.nextRefillDate,
-            prescriptions: originalPatient.prescriptions || [], // نسخ الوصفات للنسخة الجديدة
-            generalNote: `New version of ${originalPatient.nationalId}`,
-            inQueue: true,
+            prescriptions: originalPatient.prescriptions || [],
+            inQueue: true, // 🔥 مهم جداً عشان يفضل في تاب الديسبنس
             queueNumber: nextNumber,
-            drugs_list: [], // بتبدأ فاضية للنسخة الجديدة
+            drugs_list: [],
             imported: false
         };
 
-        // 3. الحفظ الفعلي في سوبابيز (دي اللي بتضمن الثبات بعد الريفريش)
-        // بننادي actualSavePatient لأنها هي اللي بتعمل التزامن الكامل مع السيرفر
+        // الحفظ الفعلي
         await actualSavePatient(newPatientData);
-
-        // 4. تنظيف الواجهة
+        
         document.getElementById('dispenseSearchResults').style.display = 'none';
         document.getElementById('dispenseSearchInput').value = '';
-        
-        showToast(`✅ Created as NEW RECORD #${nextNumber}`);
 
     } catch (err) {
-        console.error('Failed to create new version:', err);
-        showToast('❌ Error saving new version');
+        console.error(err);
     }
 }
     </script>
