@@ -25780,13 +25780,13 @@ document.addEventListener('DOMContentLoaded', function() {
     
     let searchTerm = document.getElementById('searchInput').value.trim();
     let container = document.getElementById('patientsContainer');
-    container.innerHTML = ''; // تنظيف الحاوية
+    container.innerHTML = '';
 
-    // 1. أولاً: نحدد القائمة بناءً على التاب المختار
     let filteredPatients = filterPatientsByStatus(currentFilter);
-filteredPatients = filteredPatients.filter(p => !p.inQueue);
+    
+    // ✅ التعديل هنا فقط
+    filteredPatients = filteredPatients.filter(p => p.inQueue !== true);
 
-    // 2. ثانياً: نطبق فلتر التاريخ إذا كان مفعلاً
     if (dateFilterActive && dateFilterFrom && dateFilterTo) {
         filteredPatients = filteredPatients.filter(p => {
             let refillDate = new Date(p.nextRefillDate);
@@ -25795,14 +25795,11 @@ filteredPatients = filteredPatients.filter(p => !p.inQueue);
         });
     }
 
-    // 3. ثالثاً: نطبق البحث
     if (fuse && searchTerm) {
         let fuseResults = fuse.search(searchTerm);
         let searchIds = fuseResults.map(r => r.item.id);
         filteredPatients = filteredPatients.filter(p => searchIds.includes(p.id));
     }
-
-    // --- (مرحلة الرسم) Rendering ---
 
     if (filteredPatients.length === 0) {
         container.innerHTML = `
@@ -25818,11 +25815,8 @@ filteredPatients = filteredPatients.filter(p => !p.inQueue);
         return;
     }
 
-    // منطق العرض الخاص بقسم Imported (على شكل مجموعات/Boxes)
     if (currentFilter === 'imported' && !searchTerm && !dateFilterActive) {
-        
         const batches = {};
-        
         filteredPatients.forEach(p => {
             const key = p.importDate || 'Manual / Old Entry';
             if (!batches[key]) batches[key] = [];
@@ -25844,7 +25838,6 @@ filteredPatients = filteredPatients.filter(p => !p.inQueue);
                 if (!isNaN(d)) {
                     const dateStr = d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
                     const timeStr = d.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
-                    
                     displayHeader = `
                         <div style="display:flex; gap:15px; align-items:center;">
                             <span>📅 ${dateStr}</span>
@@ -25860,13 +25853,9 @@ filteredPatients = filteredPatients.filter(p => !p.inQueue);
 
             const batchBox = document.createElement('div');
             batchBox.className = 'import-batch-container';
-            
-            // 🔥 التعديل هنا: إضافة زر الحذف في الهيدر الخاص بكل Batch
             batchBox.innerHTML = `
                 <div class="import-batch-header" style="display:flex; justify-content:space-between; align-items:center;">
-                    <div style="font-size:14px; font-weight:bold;">
-                        ${displayHeader}
-                    </div>
+                    <div style="font-size:14px; font-weight:bold;">${displayHeader}</div>
                     <div style="display:flex; gap:10px; align-items:center;">
                         <div style="background:#00B894; color:white; padding:3px 10px; border-radius:12px; font-size:11px; font-weight:bold; box-shadow:0 2px 5px rgba(0,0,0,0.1);">
                             ${batchList.length} Cards
@@ -25887,18 +25876,17 @@ filteredPatients = filteredPatients.filter(p => !p.inQueue);
             batchList.forEach(patient => {
                 grid.appendChild(createPatientCard(patient, searchTerm));
             });
-
             container.appendChild(batchBox);
         });
 
     } else {
-        // 🔥 العرض العادي
         filteredPatients.forEach(patient => {
             let card = createPatientCard(patient, searchTerm);
             container.appendChild(card);
         });
     }
 }
+
         // دالة مساعدة لعمل Highlight للنص
 function highlightMatch(text, searchTerm) {
     if (!text) return '';
@@ -27539,32 +27527,31 @@ async function loadPatientsFromSupabase() {
         showToast('Sync partially failed');
     }
 }
+
+// دالة توحيد البيانات (لضمان الدقة)
 function mapPatientData(p) {
     return {
         id: p.id,
-        nationalId: String(p.national_id || p.nationalid || ''),
-        patientName: p.patient_name || p.patientname || '',
-        phoneNumber: String(p.phone_number || p.phonenumber || ''),
-        queueNumber: (p.queue_number ?? p.queuenumber) != null
-            ? parseInt(p.queue_number ?? p.queuenumber)
-            : null,
-        dispensingDate: p.dispensing_date || p.dispensingdate,
-        refillPeriod: p.refill_period || p.refillperiod,
-        nextRefillDate: p.next_refill_date || p.nextrefilldate,
-        generalNote: p.general_note || p.generalnote,
-        drugslist: p.drugs_list || p.drugslist || [],
+        nationalId: String(p.national_id || ''),
+        patientName: p.patient_name || '',
+        phoneNumber: String(p.phone_number || ''),
+        queueNumber: p.queue_number !== null ? parseInt(p.queue_number) : null,
+        dispensingDate: p.dispensing_date,
+        refillPeriod: p.refill_period,
+        nextRefillDate: p.next_refill_date,
+        generalNote: p.general_note,
+        drugs_list: p.drugs_list || [],
         imported: p.imported,
-        importDate: p.import_date || p.importdate,
-        inQueue: p.in_queue ?? p.inqueue ?? false,  // ✅ يقرا الاتنين
+        importDate: p.import_date,
+        inQueue: p.in_queue,
         cardColor: p.cardcolor || 'none',
-        createdAt: p.created_at || p.createdat,
-        prescriptions: (p.prescriptions || []).map(pr => ({  // ✅ fallback لو null
-            number: String(pr.prescription_number || pr.prescriptionnumber || ''),
-            note: pr.note || ''
+        createdAt: p.created_at,
+        prescriptions: p.prescriptions.map(pr => ({
+            number: String(pr.prescription_number || ''),
+            note: pr.note
         }))
     };
 }
-
 let drugsFuse = null;
 
 // دالة لتهيئة بحث الأدوية (ناديها مرة واحدة عند تشغيل التطبيق)
