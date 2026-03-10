@@ -25359,81 +25359,91 @@ async function deleteImportBatch(importTimestamp) {
     });
 }
 // ============================================
-// ACTUAL SAVE PATIENT (نسخة ذكية للتفرقة بين التعديل والإضافة)
+// ACTUAL SAVE PATIENT (النسخة النهائية المستقرة)
 // ============================================
 async function actualSavePatient(patient) {
     const saveBtn = document.getElementById('saveBtn');
     const saveButtonText = document.getElementById('saveButtonText');
     
+    // تحديد النص الأصلي بناءً على الحالة الحالية
+    const isEditing = editingPatientId || window.isEditingFromPatients;
+    const originalText = isEditing ? "UPDATE PATIENT" : "ADD PATIENT";
+    
     if (saveBtn) {
         saveBtn.disabled = true;
-        const loadingText = editingPatientId ? 'UPDATING...' : 'SAVING...';
+        const loadingText = isEditing ? 'UPDATING...' : 'SAVING...';
+        // حماية لتجنب خطأ textContent
         if (saveButtonText) saveButtonText.textContent = loadingText;
         else saveBtn.textContent = loadingText;
     }
     
     try {
-        let finalData;
-        
-        if (editingPatientId) {
-            // الحالة أ: تعديل بيانات مريض موجود (Edit Mode)
-            console.log(`📝 Syncing updates for Patient ID: ${editingPatientId}`);
-            finalData = {
+        let patientData;
+
+        if (isEditing) {
+            // 🛑 حالة التعديل: نحافظ على حالة المريض كما هي
+            console.log(`📝 Syncing updates for ID: ${editingPatientId}`);
+            
+            // البحث عن المريض الحالي في الذاكرة
+            const existing = patients.find(p => String(p.id) === String(editingPatientId));
+            
+            patientData = {
                 ...patient,
                 id: editingPatientId,
-                // نحافظ على حالته في الطابور كما هي دون إجبار
-                inQueue: patient.inQueue || false 
+                // الحفاظ على مكانه (لو كان في الطابور يفضل، ولو بره يفضل بره)
+                inQueue: existing ? existing.inQueue : false, 
+                queueNumber: existing ? existing.queueNumber : null,
+                drugs_list: patient.drugs_list || (existing ? existing.drugs_list : [])
             };
         } else {
-            // الحالة ب: إضافة مريض جديد تماماً (New Entry)
-            console.log('➕ Adding brand new patient...');
-            const nextQueueNum = dispensingQueue.length > 0  
-                ? Math.max(...dispensingQueue.map(p => parseInt(p.queueNumber) || 0)) + 1  
+            // ✅ حالة إضافة جديد: يدخل الطابور فوراً
+            console.log('➕ Adding brand new patient to queue...');
+            const nextQueueNum = dispensingQueue.length > 0 
+                ? Math.max(...dispensingQueue.map(p => parseInt(p.queueNumber) || 0)) + 1 
                 : 1;
 
-            finalData = {
+            patientData = {
                 ...patient,
-                inQueue: true, // الجديد ينزل في الطابور فوراً
-                queueNumber: nextQueueNum
+                inQueue: true,
+                queueNumber: nextQueueNum,
+                drugs_list: []
             };
         }
 
-        // 1. الحفظ في سوبابيز
-        await savePatientToSupabase(finalData);
-        
-        // 2. تحديث البيانات محلياً
+        // 1. الحفظ والمزامنة مع سوبابيز
+        await savePatientToSupabase(patientData);
         await loadPatientsFromSupabase();
         
-        // 3. تحديث الواجهة
+        // 2. تحديث الواجهة والعدادات
         updateStats();
         displayPatients();
         renderDispensingQueue();
 
-        // 4. التوجيه الذكي بعد الحفظ
-        if (editingPatientId) {
-            showToast('✅ Changes Saved Successfully');
+        // 3. التوجيه الذكي والرسائل
+        if (isEditing) {
+            showToast('✅ Updates Saved Successfully');
             switchTab('patients'); // ارجع لتاب المرضى بعد التعديل
         } else {
-            showToast(`✅ New Card Added to Queue`);
-            switchTab('dispensed'); // اذهب للطابور بعد الإضافة الجديدة
+            showToast(`✅ Added to Queue as #${patientData.queueNumber}`);
+            switchTab('dispensed'); // روح للطابور بعد الإضافة الجديدة
         }
         
-        // 5. تنظيف النموذج
+        // 4. تصفير الحالة والنموذج
         resetForm();
         editingPatientId = null;
+        window.isEditingFromPatients = false;
         closeModal();
 
     } catch (error) {
-        console.error('❌ Operation Failed:', error);
+        console.error('❌ Operation failed:', error);
         if (document.getElementById('modalOverlay')) {
             showModal('<span style="color: var(--danger)">❌ Error</span>', `<p>${error.message}</p>`, 'OK');
         }
     } finally {
-        // حماية أزرار الواجهة من الـ Null
+        // حماية نهائية لتجنب خطأ Null في حالة إغلاق المودال سرياً
         const btnCheck = document.getElementById('saveBtn');
         if (btnCheck) {
             btnCheck.disabled = false;
-            const originalText = editingPatientId ? "UPDATE PATIENT" : "ADD PATIENT";
             const textCheck = document.getElementById('saveButtonText');
             if (textCheck) textCheck.textContent = originalText;
             else btnCheck.textContent = originalText;
@@ -26412,41 +26422,56 @@ function applyDateFilter() {
             });
         }
         
-        function editPatient(patientId) {
-            let patient = patients.find(p => p.id === patientId);
-            if (!patient) return;
-            
-            editingPatientId = patientId;
-            
-            document.getElementById('nationalId').value = patient.nationalId;
-            document.getElementById('phoneNumber').value = patient.phoneNumber;
-            document.getElementById('dispensingDate').value = patient.dispensingDate;
-            document.getElementById('nextRefillDate').value = patient.nextRefillDate;
-            document.getElementById('generalNote').value = patient.generalNote;
-            
-            selectedRefillDays = patient.refillPeriod;
-            document.querySelectorAll('.refill-box').forEach(box => {
-                box.classList.remove('active');
-                if (parseInt(box.getAttribute('data-days')) === patient.refillPeriod) {
-                    box.classList.add('active');
-                }
-            });
-            
-            document.getElementById('prescriptionsContainer').innerHTML = '';
-            patient.prescriptions.forEach((presc, idx) => {
-                addPrescription();
-                let items = document.querySelectorAll('.prescription-item');
-                let item = items[items.length - 1];
-                item.querySelector('.prescription-number').value = presc.number;
-                item.querySelector('.prescription-note').value = presc.note;
-            });
-            
-            document.getElementById('saveButtonText').textContent = 'UPDATE PATIENT';
-            
-            switchTab('add');
-            window.scrollTo({ top: 0, behavior: 'smooth' });
-        }
+     function editPatient(patientId) {
+    let patient = patients.find(p => p.id === patientId);
+    if (!patient) return;
+
+    // 1. تفعيل وضع التعديل وتخزين المعرف
+    editingPatientId = patientId;
     
+    // 2. 🔥 العلامة السحرية: لمنع الإضافة التلقائية لتاب الديسبنس عند الحفظ
+    window.isEditingFromPatients = true; 
+
+    // 3. ملء البيانات الأساسية في النموذج
+    document.getElementById('nationalId').value = patient.nationalId;
+    document.getElementById('phoneNumber').value = patient.phoneNumber;
+    document.getElementById('dispensingDate').value = patient.dispensingDate;
+    document.getElementById('nextRefillDate').value = patient.nextRefillDate;
+    document.getElementById('generalNote').value = patient.generalNote;
+
+    // 4. تحديث شكل صناديق الـ Refill
+    selectedRefillDays = patient.refillPeriod;
+    document.querySelectorAll('.refill-box').forEach(box => {
+        box.classList.remove('active');
+        if (parseInt(box.getAttribute('data-days')) === patient.refillPeriod) {
+            box.classList.add('active');
+        }
+    });
+
+    // 5. إعادة بناء حاوية الوصفات (Prescriptions)
+    document.getElementById('prescriptionsContainer').innerHTML = '';
+    if (patient.prescriptions && patient.prescriptions.length > 0) {
+        patient.prescriptions.forEach((presc) => {
+            addPrescription(); // دالة إضافة حقل جديد
+            let items = document.querySelectorAll('.prescription-item');
+            let lastItem = items[items.length - 1];
+            if (lastItem) {
+                lastItem.querySelector('.prescription-number').value = presc.number;
+                lastItem.querySelector('.prescription-note').value = presc.note;
+            }
+        });
+    } else {
+        addPrescription(); // حقل فارغ كاحتياط
+    }
+
+    // 6. تحديث نص زرار الحفظ
+    const saveBtnText = document.getElementById('saveButtonText');
+    if (saveBtnText) saveBtnText.textContent = 'UPDATE PATIENT';
+
+    // 7. الانتقال لتاب الإضافة والطلوع لأعلى الصفحة
+    switchTab('add');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+}
     async function shareWhatsApp(patientId) {
     let patient = patients.find(p => p.id === patientId);
     if (!patient) return;
