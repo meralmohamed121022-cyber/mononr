@@ -25784,6 +25784,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // 1. أولاً: نحدد القائمة بناءً على التاب المختار
     let filteredPatients = filterPatientsByStatus(currentFilter);
+filteredPatients = filteredPatients.filter(p => !p.inQueue);
 
     // 2. ثانياً: نطبق فلتر التاريخ إذا كان مفعلاً
     if (dateFilterActive && dateFilterFrom && dateFilterTo) {
@@ -29379,44 +29380,45 @@ async function addNewVersionToQueue(originalId) {
     const pId = String(originalId);
     const newNameInput = document.getElementById(`new-name-input-${pId}`);
     const newName = newNameInput ? newNameInput.value.trim() : '';
-    
-    if (!newName) { showToast('⚠️ Enter name'); return; }
+    if (!newName) { showToast('⚠️ Enter name first'); return; }
 
     const originalPatient = patients.find(p => String(p.id) === pId);
     if (!originalPatient) return;
 
     try {
-        const nextNumber = dispensingQueue.length > 0 
-            ? Math.max(...dispensingQueue.map(p => parseInt(p.queueNumber) || 0)) + 1 
+        const nextNumber = dispensingQueue.length > 0
+            ? Math.max(...dispensingQueue.map(p => parseInt(p.queueNumber) || 0)) + 1
             : 1;
 
-        window.isContinuingAdding = true; 
-        editingPatientId = null; 
+        window.isContinuingAdding = true;
+        editingPatientId = null;
 
         const newPatientData = {
             nationalId: originalPatient.nationalId,
             patientName: newName,
-            phoneNumber: originalPatient.phoneNumber || '',
+            phoneNumber: originalPatient.phoneNumber,       // ✅ جوال الأوريجنال
             dispensingDate: new Date().toISOString().split('T')[0],
             refillPeriod: originalPatient.refillPeriod || 24,
             nextRefillDate: originalPatient.nextRefillDate,
-            prescriptions: originalPatient.prescriptions || [],
-            inQueue: true, // 🔥 مهم جداً عشان يفضل في تاب الديسبنس
+            prescriptions: originalPatient.prescriptions,  // ✅ وصفات الأوريجنال
+            generalNote: originalPatient.generalNote || '',
+            inQueue: true,
             queueNumber: nextNumber,
-            drugs_list: [],
-            imported: false
+            drugslist: [],
+            imported: false,
         };
 
-        // الحفظ الفعلي
         await actualSavePatient(newPatientData);
-        
+
         document.getElementById('dispenseSearchResults').style.display = 'none';
         document.getElementById('dispenseSearchInput').value = '';
 
     } catch (err) {
         console.error(err);
+        showToast('❌ Failed: ' + err.message);
     }
 }
+
     </script>
 </body>
 </html>
