@@ -25359,81 +25359,84 @@ async function deleteImportBatch(importTimestamp) {
     });
 }
 // ============================================
-// ACTUAL SAVE PATIENT (تم التعديل لضمان الإضافة المستقلة ومنع التحديث التلقائي)
+// ACTUAL SAVE PATIENT (نسخة ذكية للتفرقة بين التعديل والإضافة)
 // ============================================
 async function actualSavePatient(patient) {
     const saveBtn = document.getElementById('saveBtn');
     const saveButtonText = document.getElementById('saveButtonText');
-    const originalText = saveButtonText ? saveButtonText.textContent : 'ADD PATIENT';
     
     if (saveBtn) {
         saveBtn.disabled = true;
-        saveBtn.innerHTML = '<span class="loading"></span> SAVING...';
+        const loadingText = editingPatientId ? 'UPDATING...' : 'SAVING...';
+        if (saveButtonText) saveButtonText.textContent = loadingText;
+        else saveBtn.textContent = loadingText;
     }
     
     try {
-        // حساب رقم انتظار جديد لضمان الاستقلالية
-        const nextQueueNum = dispensingQueue.length > 0  
-            ? Math.max(...dispensingQueue.map(p => parseInt(p.queueNumber) || 0)) + 1  
-            : 1;
+        let finalData;
+        
+        if (editingPatientId) {
+            // الحالة أ: تعديل بيانات مريض موجود (Edit Mode)
+            console.log(`📝 Syncing updates for Patient ID: ${editingPatientId}`);
+            finalData = {
+                ...patient,
+                id: editingPatientId,
+                // نحافظ على حالته في الطابور كما هي دون إجبار
+                inQueue: patient.inQueue || false 
+            };
+        } else {
+            // الحالة ب: إضافة مريض جديد تماماً (New Entry)
+            console.log('➕ Adding brand new patient...');
+            const nextQueueNum = dispensingQueue.length > 0  
+                ? Math.max(...dispensingQueue.map(p => parseInt(p.queueNumber) || 0)) + 1  
+                : 1;
 
-        // تجهيز بيانات المريض الجديد
-        const patientData = {
-            ...patient,
-            inQueue: true,
-            queueNumber: nextQueueNum,
-            drugs_list: [] 
-        };
-
-        // 🔥 أهم تعديل: لو مش بنعمل Update صريح، نتأكد إننا بنعمل INSERT جديد تماماً
-        // ده بيمنع إن التعديل يمسح القديم
-        if (window.isContinuingAdding) {
-            editingPatientId = null; 
-            window.isContinuingAdding = false; // تصفير الحالة
+            finalData = {
+                ...patient,
+                inQueue: true, // الجديد ينزل في الطابور فوراً
+                queueNumber: nextQueueNum
+            };
         }
 
-        console.log(`💾 ${editingPatientId ? 'Updating' : 'Inserting new'} patient entry...`);
-
-        // 1. الحفظ في Database
-        await savePatientToSupabase(patientData);
+        // 1. الحفظ في سوبابيز
+        await savePatientToSupabase(finalData);
         
-        // 2. إعادة تحميل البيانات فوراً لضمان ظهور السطر الجديد والقديم معاً
+        // 2. تحديث البيانات محلياً
         await loadPatientsFromSupabase();
         
-        // 3. تحديث محرك البحث والواجهة
-        if (window.Fuse) {
-            fuse = new Fuse(patients, {
-                keys: ['nationalId', 'phoneNumber', 'generalNote', 'prescriptions.number'],
-                threshold: 0.3,
-                ignoreLocation: true,
-                useExtendedSearch: true
-            });
-        }
-
+        // 3. تحديث الواجهة
         updateStats();
         displayPatients();
         renderDispensingQueue();
 
-        // 4. رسالة نجاح وتوجيه لتاب الطابور
-        showToast(`✅ New Card Added as #${nextQueueNum}`);
-        closeModal();
-        switchTab('dispensed');
-
-        // 5. إعادة تعيين النموذج
+        // 4. التوجيه الذكي بعد الحفظ
+        if (editingPatientId) {
+            showToast('✅ Changes Saved Successfully');
+            switchTab('patients'); // ارجع لتاب المرضى بعد التعديل
+        } else {
+            showToast(`✅ New Card Added to Queue`);
+            switchTab('dispensed'); // اذهب للطابور بعد الإضافة الجديدة
+        }
+        
+        // 5. تنظيف النموذج
         resetForm();
         editingPatientId = null;
-        
+        closeModal();
+
     } catch (error) {
-        console.error('❌ Save error:', error);
-        showModal(
-            '<span style="color: var(--danger)">❌ Error</span>',
-            `<p style="text-align: center; padding: 20px">Failed: ${error.message}</p>`,
-            '<button class="btn-primary" onclick="closeModal()">OK</button>'
-        );
+        console.error('❌ Operation Failed:', error);
+        if (document.getElementById('modalOverlay')) {
+            showModal('<span style="color: var(--danger)">❌ Error</span>', `<p>${error.message}</p>`, 'OK');
+        }
     } finally {
-        if (saveBtn) {
-            saveBtn.disabled = false;
-            saveBtn.textContent = originalText;
+        // حماية أزرار الواجهة من الـ Null
+        const btnCheck = document.getElementById('saveBtn');
+        if (btnCheck) {
+            btnCheck.disabled = false;
+            const originalText = editingPatientId ? "UPDATE PATIENT" : "ADD PATIENT";
+            const textCheck = document.getElementById('saveButtonText');
+            if (textCheck) textCheck.textContent = originalText;
+            else btnCheck.textContent = originalText;
         }
     }
 }
@@ -25451,19 +25454,19 @@ document.addEventListener('DOMContentLoaded', function() {
             pharmacyInfoElement.textContent = currentUser.pharmacy_name || currentUser.pharmacy_code;
         }
 
-        document.getElementById('authPage').style.display = 'none';
-        document.getElementById('mainApp').style.display = 'block';
+        const authPage = document.getElementById('authPage');
+        const mainApp = document.getElementById('mainApp');
+        if (authPage) authPage.style.display = 'none';
+        if (mainApp) mainApp.style.display = 'block';
         
         console.log('🚀 Initializing app...');
         
         loadPatientsFromSupabase().then(() => {
             console.log('📱 Loading UI components...');
             
-            // تهيئة التطبيق بالكامل
             initializeApp();
             displayPatients();
             
-            // التأكد من رسم الطابور بالبيانات المسترجعة
             if (typeof renderDispensingQueue === 'function') {
                 renderDispensingQueue();
             }
