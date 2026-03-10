@@ -27539,31 +27539,32 @@ async function loadPatientsFromSupabase() {
         showToast('Sync partially failed');
     }
 }
-
-// دالة توحيد البيانات (لضمان الدقة)
 function mapPatientData(p) {
     return {
         id: p.id,
-        nationalId: String(p.national_id || ''),
-        patientName: p.patient_name || '',
-        phoneNumber: String(p.phone_number || ''),
-        queueNumber: p.queue_number !== null ? parseInt(p.queue_number) : null,
-        dispensingDate: p.dispensing_date,
-        refillPeriod: p.refill_period,
-        nextRefillDate: p.next_refill_date,
-        generalNote: p.general_note,
-        drugs_list: p.drugs_list || [],
+        nationalId: String(p.national_id || p.nationalid || ''),
+        patientName: p.patient_name || p.patientname || '',
+        phoneNumber: String(p.phone_number || p.phonenumber || ''),
+        queueNumber: (p.queue_number ?? p.queuenumber) != null
+            ? parseInt(p.queue_number ?? p.queuenumber)
+            : null,
+        dispensingDate: p.dispensing_date || p.dispensingdate,
+        refillPeriod: p.refill_period || p.refillperiod,
+        nextRefillDate: p.next_refill_date || p.nextrefilldate,
+        generalNote: p.general_note || p.generalnote,
+        drugslist: p.drugs_list || p.drugslist || [],
         imported: p.imported,
-        importDate: p.import_date,
-        inQueue: p.in_queue,
+        importDate: p.import_date || p.importdate,
+        inQueue: p.in_queue ?? p.inqueue ?? false,  // ✅ يقرا الاتنين
         cardColor: p.cardcolor || 'none',
-        createdAt: p.created_at,
-        prescriptions: p.prescriptions.map(pr => ({
-            number: String(pr.prescription_number || ''),
-            note: pr.note
+        createdAt: p.created_at || p.createdat,
+        prescriptions: (p.prescriptions || []).map(pr => ({  // ✅ fallback لو null
+            number: String(pr.prescription_number || pr.prescriptionnumber || ''),
+            note: pr.note || ''
         }))
     };
 }
+
 let drugsFuse = null;
 
 // دالة لتهيئة بحث الأدوية (ناديها مرة واحدة عند تشغيل التطبيق)
@@ -29390,25 +29391,57 @@ async function addNewVersionToQueue(originalId) {
             ? Math.max(...dispensingQueue.map(p => parseInt(p.queueNumber) || 0)) + 1
             : 1;
 
-        window.isContinuingAdding = true;
-        editingPatientId = null;
+        // ✅ جلب الوصفات من DB بـ snake_case
+        const { data: freshData } = await supabaseClient
+            .from('prescriptions')
+            .select('*')
+            .eq('patient_id', pId);
 
-        const newPatientData = {
-            nationalId: originalPatient.nationalId,
-            patientName: newName,
-            phoneNumber: originalPatient.phoneNumber,       // ✅ جوال الأوريجنال
-            dispensingDate: new Date().toISOString().split('T')[0],
-            refillPeriod: originalPatient.refillPeriod || 24,
-            nextRefillDate: originalPatient.nextRefillDate,
-            prescriptions: originalPatient.prescriptions,  // ✅ وصفات الأوريجنال
-            generalNote: originalPatient.generalNote || '',
-            inQueue: true,
-            queueNumber: nextNumber,
-            drugslist: [],
-            imported: false,
-        };
+        const prescriptionsFromDB = freshData || [];
 
-        await actualSavePatient(newPatientData);
+        // 1. Insert patient بـ snake_case
+        const { data: newPatient, error: patientError } = await supabaseClient
+            .from('patients')
+            .insert({
+                pharmacy_id: currentUser.id,
+                national_id: originalPatient.nationalId,
+                patient_name: newName,
+                phone_number: originalPatient.phoneNumber || '',
+                dispensing_date: new Date().toISOString().split('T')[0],
+                refill_period: originalPatient.refillPeriod || 24,
+                next_refill_date: originalPatient.nextRefillDate,
+                general_note: originalPatient.generalNote || '',
+                imported: false,
+                in_queue: true,
+                queue_number: nextNumber,
+                drugs_list: [],
+                updated_at: new Date().toISOString(),
+            })
+            .select()
+            .single();
+
+        if (patientError) throw patientError;
+
+        // 2. ✅ Insert وصفات بـ snake_case
+        if (prescriptionsFromDB.length > 0) {
+            const prescRows = prescriptionsFromDB.map(presc => ({
+                patient_id: newPatient.id,
+                prescription_number: presc.prescription_number || presc.prescriptionnumber || '',
+                note: presc.note || ''
+            }));
+            const { error: prescError } = await supabaseClient
+                .from('prescriptions')
+                .insert(prescRows);
+            if (prescError) console.warn('Prescriptions warn:', prescError.message);
+        }
+
+        // 3. Reload
+        await loadPatientsFromSupabase();
+        updateStats();
+        renderDispensingQueue();
+
+        showToast(`✅ Added to Queue #${nextNumber}`);
+        switchTab('dispensed');
 
         document.getElementById('dispenseSearchResults').style.display = 'none';
         document.getElementById('dispenseSearchInput').value = '';
