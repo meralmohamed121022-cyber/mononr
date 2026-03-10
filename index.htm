@@ -25361,45 +25361,47 @@ async function deleteImportBatch(importTimestamp) {
     });
 }
 async function actualSavePatient(patient) {
-    const isEditing = editingPatientId || window.isEditingFromPatients;
-    
+    const isEditingFromList = window.isEditingFromPatients;
     try {
-        let patientData = {
-            ...patient,
-            inQueue: patient.inQueue || false 
-        };
+        // 1.
+        let patientData = { ...patient, inqueue: patient.inQueue || false };
 
+        // 2.
         const savedId = await savePatientToSupabase(patientData);
-        
-        // جلب البيانات بعد الحفظ عشان نضمن وجود رقم الانتظار
-        await loadPatientsFromSupabase();
-        
-        // البحث عن المريض بعد تحديث البيانات لجلب الـ queueNumber
-        const freshlySavedPatient = dispensingQueue.find(p => String(p.id) === String(savedId));
-        const qNum = freshlySavedPatient ? freshlySavedPatient.queueNumber : null;
 
+        // 3. Reload
+        await loadPatientsFromSupabase();
         updateStats();
         displayPatients();
         renderDispensingQueue();
 
-        if (patientData.inQueue) {
-            // ✅ هنا التعديل: إظهار الرقم لو موجود
-            showToast(qNum ? `✅ Added to Queue: #${qNum}` : '✅ Added to Queue');
-            switchTab('dispense'); 
+        // 4. Navigate + Toast
+        if (isEditingFromList) {
+            showToast('✅ Changes Saved');
+            switchTab('patients');
+        } else if (patientData.inqueue || patient.inQueue) {
+            const freshlySaved = dispensingQueue.find(p => String(p.id) === String(savedId));
+            const qNum = freshlySaved ? freshlySaved.queueNumber : null;
+            showToast(qNum ? `✅ Added to Queue #${qNum}` : '✅ Added to Queue');
+            switchTab('dispensed'); // ✅ FIX: كان 'dispense' → الصح 'dispensed'
         } else {
-            showToast(isEditing ? '✅ Changes Saved' : '✅ Added to Main List');
-            switchTab('patients'); 
+            showToast('✅ Added to Main List');
+            switchTab('patients');
         }
-        
+
+        // 5. Reset
         resetForm();
         editingPatientId = null;
         window.isEditingFromPatients = false;
         closeModal();
 
     } catch (error) {
-        console.error('❌ Save error:', error);
+        console.error('Save error:', error);
+        try { showToast('❌ Error: ' + error.message); }
+        catch (e) { alert('Saved with notice: ' + error.message); }
     }
 }
+
 // ============================================
 // APP INITIALIZATION
 // ============================================
@@ -27382,26 +27384,23 @@ function addQuickNote(text) {
         noteArea.value = text;
     }
 }
-// ============================================
-// ⚡ FAST COPY UTILITIES (NO LAG)
-// ============================================
-
-// دالة عرض التنبيه السريع (بديل المودال)
 function showToast(message) {
     const toast = document.getElementById('toastNotification');
     const textEl = document.getElementById('toastText');
     
-    if (toast && textEl) {
-        textEl.textContent = message;
-        toast.classList.add('show');
-        
-        // إخفاء تلقائي بعد 2 ثانية
-        setTimeout(() => {
-            toast.classList.remove('show');
-        }, 2000);
+    // ✅ حماية ذهبية: لو العنصر مش موجود اخرج فوراً بدل ما تعمل Error
+    if (!toast || !textEl) {
+        console.warn("Toast element missing! Message was:", message);
+        return; 
     }
-}
 
+    textEl.textContent = message;
+    toast.classList.add('show');
+    
+    setTimeout(() => {
+        if(toast) toast.classList.remove('show');
+    }, 3000);
+}
 // دالة النسخ الهجين (الأكثر سرعة واستقراراً)
 function fastCopyText(text) {
     // محاولة استخدام الطريقة القديمة (Synchronous) لأنها أسرع في الاستجابة اللحظية
