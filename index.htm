@@ -25449,7 +25449,7 @@ document.addEventListener('DOMContentLoaded', function() {
             document.getElementById('searchInput').addEventListener('input', searchPatients);
             document.getElementById('filterDateFrom').addEventListener('change', applyDateFilter);
             document.getElementById('filterDateTo').addEventListener('change', applyDateFilter);
-            document.getElementById('importFile').addEventListener('change', handleImportFile);
+            
             document.getElementById('importFileData').addEventListener('change', handleImportFile);
             
             // التحقق من التكرار عند الخروج من حقل الهوية
@@ -27217,7 +27217,7 @@ function handleImportFile(e) {
                     let workbook = XLSX.read(event.target.result, { type: 'binary' });
                     rawData = XLSX.utils.sheet_to_json(workbook.Sheets[workbook.SheetNames[0]], { defval: "" });
                 } else if (file.name.toLowerCase().endsWith('.txt')) {
-                    rawData = parseSmartTextData(event.target.result);
+                    rawData = parseTextData(event.target.result);
                 }
 
                 // المعالجة الذكية
