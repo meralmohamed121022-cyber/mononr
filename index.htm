@@ -3410,10 +3410,10 @@
                       <thead>
     <tr>
         <th width="40">✖</th>
-        <th width="40">#</th>
+        <th width="80">#</th>
         <th>Patient Details</th>
         <th>Prescriptions</th>
-        <th width="120">DRUGS</th> <th>Mobile</th>
+        <th width="80">DRUGS</th> <th>Mobile</th>
         <th width="80">Done</th>
     </tr>
 </thead>
@@ -25775,7 +25775,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 displayPatients();
             }
         }
-        function displayPatients() {
+      function displayPatients() {
     updateStats();
     
     let searchTerm = document.getElementById('searchInput').value.trim();
@@ -25784,7 +25784,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
     let filteredPatients = filterPatientsByStatus(currentFilter);
     
-    // ✅ التعديل هنا فقط
+    // التصفية لاستبعاد الموجودين في الطابور حالياً
     filteredPatients = filteredPatients.filter(p => p.inQueue !== true);
 
     if (dateFilterActive && dateFilterFrom && dateFilterTo) {
@@ -25837,7 +25837,10 @@ document.addEventListener('DOMContentLoaded', function() {
                 const d = new Date(dateKey);
                 if (!isNaN(d)) {
                     const dateStr = d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
-                    const timeStr = d.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+                    // ✅ التعديل الجوهري: إضافة الثواني (second: '2-digit') لضمان فصل الملفات المرفوعة في نفس الدقيقة
+                    // واستخدام 'en-GB' للحصول على تنسيق 24 ساعة واضح
+                    const timeStr = d.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+                    
                     displayHeader = `
                         <div style="display:flex; gap:15px; align-items:center;">
                             <span>📅 ${dateStr}</span>
@@ -25886,7 +25889,6 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 }
-
         // دالة مساعدة لعمل Highlight للنص
 function highlightMatch(text, searchTerm) {
     if (!text) return '';
@@ -26816,12 +26818,12 @@ function analyzeImportFailure(skipped) {
         );
     }
 }
-
 function processAndValidateData(rawData, isTextFile) {
     let validPatients = {}; 
     let updatesToCheck = []; 
     let skipped = []; 
     
+    // ✅ التعديل 1: التوقيت داخل الدالة عشان كل ملف يترفع ياخد وقت منفصل بالثواني
     const batchTimestamp = new Date().toISOString(); 
 
     const patterns = {
@@ -26832,7 +26834,6 @@ function processAndValidateData(rawData, isTextFile) {
 
     const cleanString = (val) => String(val || '').trim();
 
-    // دالة مساعدة للتأكد من صحة التاريخ قبل استخدامه
     const isValidDate = (dateStr) => {
         const d = new Date(dateStr);
         return d instanceof Date && !isNaN(d) && d.getFullYear() > 1900 && d.getFullYear() < 2100;
@@ -26881,6 +26882,7 @@ function processAndValidateData(rawData, isTextFile) {
             return;
         }
 
+        // فحص التكرار المطابق تماماً في السيستم
         const existingExactMatch = patients.find(p => 
             p.nationalId === cleanId && 
             p.prescriptions.some(pr => pr.number.toLowerCase() === cleanRx)
@@ -26888,19 +26890,15 @@ function processAndValidateData(rawData, isTextFile) {
 
         if (existingExactMatch) {
             let changes = [];
-            
             if (extractedPhone && existingExactMatch.phoneNumber !== extractedPhone) {
                 changes.push(`Phone: ${existingExactMatch.phoneNumber || 'None'} ➝ ${extractedPhone}`);
             }
-            
-            // فحص التاريخ مع حماية من الأخطاء
             if (raw.nextRefill && isValidDate(raw.nextRefill)) {
                 const newDate = new Date(raw.nextRefill).toISOString().split('T')[0];
                 if (existingExactMatch.nextRefillDate !== newDate) {
                     changes.push(`Date: ${existingExactMatch.nextRefillDate} ➝ ${newDate}`);
                 }
             }
-
             if (raw.genNote && (!existingExactMatch.generalNote || !existingExactMatch.generalNote.includes(raw.genNote))) {
                 changes.push(`Note Added: ${raw.genNote}`);
             }
@@ -26918,16 +26916,12 @@ function processAndValidateData(rawData, isTextFile) {
                     });
                 }
             } else {
-                skipped.push({ 
-                    row: index + 1, 
-                    id: cleanId, 
-                    reason: "⚠️ Exact Duplicate - No Changes" 
-                });
+                skipped.push({ row: index + 1, id: cleanId, reason: "⚠️ Exact Duplicate - No Changes" });
             }
             return; 
         }
 
-        // حساب التواريخ للحالات الجديدة مع حماية
+        // حساب التواريخ
         let importDispensingDate = isValidDate(raw.date) ? new Date(raw.date).toISOString().split('T')[0] : new Date().toISOString().split('T')[0];
         let importNextRefillDate = isValidDate(raw.nextRefill) ? new Date(raw.nextRefill).toISOString().split('T')[0] : "";
         
@@ -26946,14 +26940,15 @@ function processAndValidateData(rawData, isTextFile) {
                 dispensingDate: importDispensingDate,
                 refillPeriod: 24,
                 nextRefillDate: importNextRefillDate,
-                prescriptions: [],
+                prescriptions: [], // مصفوفة فارغة سيتم تعبئتها بالأسفل
                 generalNote: raw.genNote,
                 imported: true,
-                importType: patients.some(p => p.nationalId === cleanId) ? "وصفة جديدة (هوية موجودة)" : "هوية جديدة بالكامل", 
+                importType: patients.some(p => p.nationalId === cleanId) ? "New Rx (Existing ID)" : "Full New Patient", 
                 importDate: batchTimestamp 
             };
         }
 
+        // ✅ التعديل 2: التأكد من إضافة الوصفة (Prescription) داخل مصفوفة المريض
         if (cleanRx && !validPatients[uniqueKey].prescriptions.find(p => p.number === cleanRx)) {
             validPatients[uniqueKey].prescriptions.push({
                 number: cleanRx,
@@ -27111,15 +27106,15 @@ function showImportPreviewUI(result) {
     container.innerHTML = html;
 }
 // ============================================
-// 3. EXECUTE IMPORT (Updates + Inserts)
+// 3. EXECUTE IMPORT (Updates + Inserts) - النظام الجديد
 // ============================================
 async function confirmSmartImport() {
     const container = document.getElementById('importPreview');
     container.innerHTML = `
         <div style="text-align:center; padding:40px;">
             <div class="loading" style="width:40px; height:40px; border-width:4px; border-color: var(--primary) transparent var(--primary) transparent;"></div>
-            <h3 style="margin-top:20px; color: var(--primary);">Processing Data...</h3>
-            <p style="color: #666;">Updating Phones & Adding Patients</p>
+            <h3 style="margin-top:20px; color: var(--primary);">جاري معالجة البيانات...</h3>
+            <p style="color: #666;">يتم الآن تحديث الهواتف وحفظ الوصفات في النظام الجديد</p>
         </div>
     `;
 
@@ -27127,7 +27122,7 @@ async function confirmSmartImport() {
     let addCount = 0;
 
     try {
-        // 1. تنفيذ التحديثات (Updates)
+        // 1. تنفيذ التحديثات (Updates) - تحديث رقم الجوال فقط في جدول المرضى
         if (pendingUpdates && pendingUpdates.length > 0) {
             for (const update of pendingUpdates) {
                 const { error } = await supabaseClient
@@ -27139,18 +27134,51 @@ async function confirmSmartImport() {
             }
         }
 
-        // 2. تنفيذ الإضافات الجديدة (New Records)
+        // 2. تنفيذ الإضافات الجديدة (New Records) - الحفظ في جدولين (Patients + Prescriptions)
         if (pendingImportData && pendingImportData.length > 0) {
-            // نستخدم دالة الحفظ الموجودة
-            // للسرعة، يمكن استخدام Promise.all لكن التسلسل أكثر أماناً لتجنب الضغط
             for (const patient of pendingImportData) {
-                await savePatientToSupabase(patient);
+                // أ- حفظ البيانات الأساسية للمريض أولاً
+                const { data: newPatient, error: pError } = await supabaseClient
+                    .from('patients')
+                    .insert([{
+                        pharmacy_id: currentUser.id,
+                        national_id: patient.nationalId,
+                        patient_name: patient.patientName || '',
+                        phone_number: patient.phoneNumber || '',
+                        general_note: patient.generalNote || '',
+                        imported: true,
+                        import_date: patient.importDate // لضمان التجميع في الـ Batches
+                    }])
+                    .select()
+                    .single();
+
+                if (pError) throw pError;
+
+                // ب- حفظ الوصفة والتواريخ في جدول prescriptions المرتبط به (النظام الجديد)
+                if (patient.prescriptions && patient.prescriptions.length > 0) {
+                    const prescriptionsToInsert = patient.prescriptions.map(rx => ({
+                        patient_id: newPatient.id,
+                        prescription_number: rx.number,
+                        dispensing_date: patient.dispensingDate,
+                        refill_period: patient.refillPeriod || 24,
+                        next_refill_date: patient.nextRefillDate,
+                        note: rx.note || ''
+                    }));
+
+                    const { error: rxError } = await supabaseClient
+                        .from('prescriptions')
+                        .insert(prescriptionsToInsert);
+
+                    if (rxError) throw rxError;
+                }
                 addCount++;
             }
         }
 
-        // 3. الانتهاء وإعادة التحميل
+        // 3. الانتهاء وإعادة التحميل لضمان مزامنة الداتا
         await loadPatientsFromSupabase();
+        updateStats();
+        displayPatients();
         
         showModal(
             '<span style="color: var(--secondary);">✅ Operation Complete</span>',
@@ -27159,7 +27187,7 @@ async function confirmSmartImport() {
                 <div style="width: 60px; height: 60px; background: #E8F5E9; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 15px;">
                     <span style="font-size: 30px;">🎉</span>
                 </div>
-                <p style="font-size: 16px; margin-bottom: 20px; font-weight: bold; color: var(--dark);">Data processed successfully!</p>
+                <p style="font-size: 16px; margin-bottom: 20px; font-weight: bold; color: var(--dark);">تم استيراد البيانات بنجاح!</p>
                 
                 <div style="background: #F8F9FE; padding: 15px; border-radius: 12px; text-align: left;">
                     <div style="margin-bottom: 8px; font-size: 14px; display: flex; justify-content: space-between;">
@@ -27167,13 +27195,14 @@ async function confirmSmartImport() {
                         <b>${updateCount}</b>
                     </div>
                     <div style="font-size: 14px; display: flex; justify-content: space-between;">
-                        <span style="color: #2E7D32;">➕ Patients Added:</span>
+                        <span style="color: #2E7D32;">➕ Records Added:</span>
                         <b>${addCount}</b>
                     </div>
                 </div>
+                <p style="font-size: 11px; color: #666; margin-top: 15px;">تم توزيع البيانات على الجداول الجديدة (Patients & Prescriptions)</p>
             </div>
             `,
-            '<button class="btn-primary" style="grid-column: 1/3;" onclick="closeModal(); switchTab(\'patients\'); displayPatients()">View All Patients</button>'
+            '<button class="btn-primary" style="grid-column: 1/3;" onclick="closeModal(); switchTab(\'patients\'); filterPatients(\'imported\')">View Imported List</button>'
         );
 
         // تنظيف المتغيرات والواجهة
@@ -27183,7 +27212,7 @@ async function confirmSmartImport() {
 
     } catch (error) {
         console.error('Import Error:', error);
-        showModal('<span style="color:red">Error</span>', `<p>${error.message}</p>`, '<button class="btn-primary" onclick="closeModal()">OK</button>');
+        showModal('<span style="color:red">❌ Import Error</span>', `<p style="text-align:center; padding:20px;">${error.message}</p>`, '<button class="btn-primary" onclick="closeModal()">OK</button>');
     }
 }
 function handleImportFile(e) {
@@ -27453,9 +27482,9 @@ function checkPrescription(nationalId, prescriptionNumber) {
 }
 async function loadPatientsFromSupabase() {
     try {
-        console.log('🚀 Sequential Loading Started...');
+        console.log('🚀 Sequential Loading Started (New Table Structure)...');
         
-        // 1. جلب العدد الكلي فوراً (عشان العدادات تكون دقيقة من أول ثانية)
+        // 1. جلب العدد الكلي للمرضى
         const { count, error: countError } = await supabaseClient
             .from('patients')
             .select('*', { count: 'exact', head: true })
@@ -27464,10 +27493,19 @@ async function loadPatientsFromSupabase() {
         if (countError) throw countError;
         totalRealCount = count;
 
-        // 2. جلب أهم داتا (الطابور النشط) فوراً لفتح شاشة Dispensed
+        // 2. جلب الطابور النشط (مع بيانات التواريخ من داخل جدول الوصفات)
         const { data: queueData, error: qError } = await supabaseClient
             .from('patients')
-            .select('*, prescriptions (*)')
+            .select(`
+                *,
+                prescriptions (
+                    prescription_number,
+                    note,
+                    dispensing_date,
+                    next_refill_date,
+                    refill_period
+                )
+            `)
             .eq('pharmacy_id', currentUser.id)
             .eq('in_queue', true)
             .order('queue_number', { ascending: true });
@@ -27478,44 +27516,49 @@ async function loadPatientsFromSupabase() {
         patients = queueData.map(p => mapPatientData(p));
         dispensingQueue = [...patients];
         
-        // رسم أولي سريع للشاشة
         updateStats();
         renderDispensingQueue();
 
-        // 3. التحميل المتسلسل لباقي الداتا (على دفعات 500 مريض)
+        // 3. التحميل المتسلسل لباقي الداتا (Batch Loading)
         let from = 0;
         let batchSize = 500;
         let hasMore = true;
 
-        console.log(`📦 Loading ${totalRealCount} records in background batches...`);
+        console.log(`📦 Loading ${totalRealCount} records in background...`);
 
         while (hasMore) {
             const { data: batchData, error: bError } = await supabaseClient
                 .from('patients')
-                .select('*, prescriptions (*)')
+                .select(`
+                    *,
+                    prescriptions (
+                        prescription_number,
+                        note,
+                        dispensing_date,
+                        next_refill_date,
+                        refill_period
+                    )
+                `)
                 .eq('pharmacy_id', currentUser.id)
                 .order('created_at', { ascending: false })
                 .range(from, from + batchSize - 1);
 
             if (bError) break;
 
-            // دمج الدفعة الجديدة مع الحفاظ على سرعة الاستجابة
             const newMapped = batchData.map(p => mapPatientData(p));
             
             newMapped.forEach(newP => {
-                if (!patients.find(p => p.id === newP.id)) {
+                if (!patients.find(p => String(p.id) === String(newP.id))) {
                     patients.push(newP);
                 }
             });
 
-            // تحديث العدادات والشاشة "حياً" أمامك
             updateStats();
             
             if (batchData.length < batchSize) {
                 hasMore = false; 
             } else {
                 from += batchSize;
-                // تأخير بسيط (Micro-task) عشان المتصفح ميهنجش واليوزر شغال
                 await new Promise(resolve => setTimeout(resolve, 50));
             }
         }
@@ -27810,11 +27853,12 @@ function renderDispensingQueue(filterText) {
                 </button>
             </td>
 
-            <td>
-                <input type="number" value="${finalNum}" 
-                       onchange="updateQueueNumber('${p.id}', this)"
-                       style="width: 48px; border: 1px solid #ddd; background: #f0f2f5; text-align: center; font-weight: 800; border-radius: 6px; padding: 4px; outline: none; color: #0d47a1;">
-            </td>
+          
+<td>
+    <input type="number" value="${finalNum}" 
+           onchange="updateQueueNumber('${p.id}', this)"
+           style="width: 70px; border: 2px solid #0d47a1; background: #fff; text-align: center; font-weight: 900; border-radius: 8px; padding: 6px 2px; font-size: 16px; outline: none; color: #0d47a1; box-shadow: inset 0 1px 3px rgba(0,0,0,0.1);">
+</td>
 
             <td>
                 <div style="font-weight:800; font-family:monospace; color:var(--dark); font-size:14px;">${p.nationalId}</div>
