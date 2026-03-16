@@ -2692,11 +2692,10 @@
     transform: scale(1.15);
     box-shadow: 0 2px 8px rgba(0,0,0,0.2);
 }
-
-/* اللون الأزرق عند التفعيل */
+/* اللون الأخضر الوسط عند التفعيل للدائرة */
 .color-indicator.active {
-    background: #0d47a1 !important;
-    border-color: #0d47a1 !important;
+    background: #00B894 !important;
+    border-color: #00B894 !important;
 }
 
 /* إخفاء Color Picker Dropdown تماماً */
@@ -2704,11 +2703,10 @@
     display: none !important;
 }
 
-/* تلوين الصف بأزرق فاتح */
+/* تلوين الصف بأخضر أوضح (زودنا الدرجة سنة) */
 .dispensing-table tbody tr.color-blue {
-    background-color: #E3F2FD !important;
+    background-color: #C8E6C9 !important;
 }
-
 /* تنسيق بوكس تجميع الواردات */
 .import-batch-container {
     background: white;
@@ -3103,6 +3101,76 @@
     border: 1px solid #eee;
     text-align: center;
 }
+/* تنسيق قسم التواريخ عشان يستوعب الزرار */
+.date-filter {
+    display: grid;
+    grid-template-columns: 1fr 1fr 50px;
+    gap: 10px;
+    margin-bottom: 20px;
+    height: 45px;
+}
+
+.date-filter input {
+    height: 100%;
+    padding: 10px;
+    border: 2px solid var(--border);
+    border-radius: 10px;
+    font-size: 13px;
+    font-weight: 600;
+}
+
+/* زرار الريست */
+.btn-reset-filter {
+    background: linear-gradient(135deg, #636E72, #2D3436);
+    color: white;
+    border: none;
+    border-radius: 10px;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 12px rgba(99, 110, 114, 0.3);
+}
+
+.btn-reset-filter:hover {
+    background: linear-gradient(135deg, #2D3436, #000);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(99, 110, 114, 0.5);
+}
+
+.btn-reset-filter:active {
+    transform: scale(0.95);
+}
+
+/* أيقونة الريست مرسومة بالـ CSS Art */
+.icon-reset {
+    display: inline-block;
+    width: 16px;
+    height: 16px;
+    border: 2px solid white;
+    border-top-color: transparent;
+    border-radius: 50%;
+    position: relative;
+    transition: transform 0.4s ease;
+}
+
+.icon-reset::after {
+    content: '';
+    position: absolute;
+    top: -2px;
+    right: -4px;
+    border-width: 5px;
+    border-style: solid;
+    border-color: white transparent transparent transparent;
+    transform: rotate(45deg);
+}
+
+.btn-reset-filter:hover .icon-reset {
+    transform: rotate(180deg);
+}
     </style>
 </head>
 <body>
@@ -3345,18 +3413,20 @@
                     </div>
                     <input type="text" class="search-input" id="searchInput" placeholder="Search by ID, prescription..." oninput="searchPatients()">
                 </div>
-                <div class="date-filter">
-                    <input type="date" id="filterDateFrom" onchange="applyDateFilter()">
-                    <input type="date" id="filterDateTo" onchange="applyDateFilter()">
-                </div>
-                <div class="filter-chips">
-                    <div class="chip active" onclick="filterPatients('all')">All</div>
-                    <div class="chip" onclick="filterPatients('today')">Due Today</div>
-                    <div class="chip" onclick="filterPatients('upcoming')">Upcoming Week</div>
-                    <div class="chip" onclick="filterPatients('overdue')">Overdue</div>
-                    <div class="chip" onclick="filterPatients('imported')">Imported</div>
-                </div>
-                <div id="patientsContainer"></div>
+              <div class="date-filter">
+    <input type="date" id="filterDateFrom" onchange="applyDateFilter()">
+    <input type="date" id="filterDateTo" onchange="applyDateFilter()">
+    <button class="btn-reset-filter" onclick="resetFilters()" title="Reset Filters">
+        <i class="icon-reset"></i>
+    </button>
+</div>
+<div class="filter-chips">
+    <div class="chip active" onclick="filterPatients('all')">All</div>
+    <div class="chip" onclick="filterPatients('today')">Due Today</div>
+    <div class="chip" onclick="filterPatients('upcoming')">Upcoming Week</div>
+    <div class="chip" onclick="filterPatients('overdue')">Overdue</div>
+    <div class="chip" onclick="filterPatients('imported')">Imported</div>
+</div>                <div id="patientsContainer"></div>
             </div>
 
             <div id="data-tab" class="tab-content">
@@ -27655,9 +27725,9 @@ function initDrugsSearch() {
         console.log("💊 Drugs Search Engine Ready!");
     }
 }
-
 // نادي الدالة فوراً بعد تعريف DRUGS_DB
 initDrugsSearch();
+
 function searchForDispensing() {
     const input = document.getElementById('dispenseSearchInput');
     const dropdown = document.getElementById('dispenseSearchResults');
@@ -27693,38 +27763,107 @@ function searchForDispensing() {
         return;
     }
 
-    // الحالة 2: الهوية موجودة (تم إضافة خيار الاسم الجديد)
-    dropdown.innerHTML = results.map(p => `
-        <div class="dispense-result-item" style="display: flex; flex-direction: column; gap: 8px; padding: 12px; border-bottom: 1px solid #eee; background: white;">
-            <div style="display: flex; justify-content: space-between; align-items: center;">
+    // الحالة 2: الهوية موجودة
+    dropdown.innerHTML = results.map(p => {
+        const hasName = p.patientName && p.patientName.trim() !== '';
+        const rxNumbers = (p.prescriptions && p.prescriptions.length > 0) 
+            ? p.prescriptions.map(rx => rx.number).join(' - ') 
+            : 'No Rx';
+        const hasPhone = p.phoneNumber && p.phoneNumber.trim() !== '';
+
+        return `
+        <div class="dispense-result-item" style="display: flex; flex-direction: column; gap: 8px; padding: 15px; border-bottom: 1px solid #eee; background: white;">
+            
+            <div style="display: flex; justify-content: space-between; align-items: flex-start;">
                 <div>
-                    <div style="font-weight:800; color:var(--primary); font-family: 'Courier New', monospace; font-size: 14px;">${p.nationalId}</div>
-                    <div style="font-size:11px; color:#666;">Saved: ${p.patientName || 'No Name'}</div>
+                    <div style="font-weight:900; color:var(--primary); font-family: 'Courier New', monospace; font-size: 16px;">${p.nationalId}</div>
+                    <div style="margin-top: 6px; display: flex; gap: 6px; flex-wrap: wrap; align-items: center;">
+                        ${hasName 
+                            ? `<span style="font-size:11px; color:#2E7D32; font-weight:bold; background:#E8F5E9; padding:4px 8px; border-radius:6px;">👤 ${p.patientName}</span>`
+                            : `<span style="font-size:11px; color:#e74c3c; font-weight:bold; background:#FFEBEE; padding:4px 8px; border-radius:6px;">⚠️ No Name</span>`
+                        }
+                        <span style="font-size:11px; color:#0984e3; font-weight:bold; background:#E3F2FD; padding:4px 8px; border-radius:6px;">💊 Rx: ${rxNumbers}</span>
+                    </div>
                 </div>
-                <div style="display: flex; gap: 5px;">
-                    <button onclick="addToQueue('${String(p.id)}')" 
-                            style="background:var(--secondary); color:white; border:none; padding:6px 12px; border-radius:6px; cursor:pointer; font-size:11px; font-weight:bold;">
-                        Add Current
+                
+                <div>
+                    ${hasName 
+                        ? `<button onclick="addToQueue('${String(p.id)}')" 
+                                style="background:var(--secondary); color:white; border:none; padding:8px 12px; border-radius:8px; cursor:pointer; font-size:11px; font-weight:bold; box-shadow: 0 4px 10px rgba(0,184,148,0.2);">
+                            Add to Queue
+                           </button>`
+                        : ''
+                    }
+                </div>
+            </div>
+
+            <div style="margin-top: 5px; background: #fafafa; padding: 8px 12px; border-radius: 8px; border: 1px solid #eee;">
+                <div style="display: flex; gap: 8px; align-items: center;">
+                    <span style="font-size: 11px; color: #e67e22; font-weight: bold; white-space: nowrap;">📱 Phone:</span>
+                    <input type="text" id="search-phone-${p.id}" value="${p.phoneNumber || ''}" placeholder="05xxxxxxxx" maxlength="10"
+                           style="flex: 1; padding: 6px 10px; border: 1px solid #ddd; border-radius: 6px; font-size: 11px; outline: none; font-weight: bold;"
+                           onfocus="this.style.borderColor='var(--primary)'" onblur="this.style.borderColor='#ddd'">
+                    <button onclick="savePhoneFromSearch('${String(p.id)}')" 
+                            style="background:#0984e3; color:white; border:none; padding:6px 12px; border-radius:6px; cursor:pointer; font-size:11px; font-weight:bold;">
+                        ${hasPhone ? 'Update' : 'Save'}
                     </button>
                 </div>
             </div>
             
-            <div style="margin-top: 5px; border-top: 1px dashed #eee; padding-top: 8px;">
-                <label style="font-size: 10px; color: #999; display: block; margin-bottom: 4px;">OR ADD AS NEW VERSION (Different Name):</label>
-                <div style="display: flex; gap: 5px;">
-                    <input type="text" id="new-name-input-${p.id}" placeholder="Enter new name..." 
-                           style="flex: 1; padding: 8px; border: 1px solid #ddd; border-radius: 6px; font-size: 12px; outline: none;"
-                           onfocus="this.style.borderColor='var(--primary)'">
+            ${!hasName ? `
+            <div style="margin-top: 5px; border-top: 1px dashed #eee; padding-top: 10px;">
+                <label style="font-size: 11px; color: #636E72; font-weight:bold; display: block; margin-bottom: 6px;">✨ Enter Name to Add to Queue:</label>
+                <div style="display: flex; gap: 6px;">
+                    <input type="text" id="new-name-input-${p.id}" placeholder="Patient Name..." 
+                           style="flex: 1; padding: 8px 12px; border: 2px solid #eee; border-radius: 8px; font-size: 12px; outline: none; color: var(--dark); font-weight: bold;"
+                           onfocus="this.style.borderColor='var(--primary)'" onblur="this.style.borderColor='#eee'">
                     <button onclick="addNewVersionToQueue('${String(p.id)}')" 
-                            style="background:var(--primary); color:white; border:none; padding:8px 12px; border-radius:6px; cursor:pointer; font-size:11px; font-weight:bold;">
-                        + NEW
+                            style="background:var(--primary); color:white; border:none; padding:8px 15px; border-radius:8px; cursor:pointer; font-size:12px; font-weight:bold; box-shadow: 0 4px 10px rgba(13,71,161,0.2);">
+                        Add & Queue
                     </button>
                 </div>
             </div>
+            ` : ''}
         </div>
-    `).join('');
+        `;
+    }).join('');
 
     dropdown.style.display = 'block';
+}
+async function savePhoneFromSearch(patientId) {
+    const inputEl = document.getElementById(`search-phone-${patientId}`);
+    if (!inputEl) return;
+    
+    const newPhone = inputEl.value.trim();
+    if (!newPhone) {
+        showToast('⚠️ Please enter a phone number');
+        return;
+    }
+    
+    // تحديث الداتا محلياً
+    const patient = patients.find(p => String(p.id) === String(patientId));
+    if (patient) {
+        patient.phoneNumber = newPhone;
+    }
+
+    try {
+        // تحديث الداتا في السيرفر
+        const { error } = await supabaseClient
+            .from('patients')
+            .update({ phone_number: newPhone })
+            .eq('id', patientId);
+
+        if (error) throw error;
+        
+        showToast('✅ Phone saved to database!');
+        
+        // إعادة تشغيل دالة البحث عشان الواجهة تتحدث وتظهر الرقم بدال الانبوت
+        searchForDispensing(); 
+        
+    } catch (err) {
+        console.error('Failed to save phone:', err);
+        showToast('❌ Failed to save phone');
+    }
 }
 async function addToQueue(patientId) {
     const pId = String(patientId);
