@@ -3562,6 +3562,9 @@
         <i class="icon-reset"></i>
     </button>
 </div>
+<input type="file" id="directImportInput" accept=".json, .xlsx, .xls" style="display: none;" onchange="directImportFile(event)">
+<button class="btn-primary" onclick="document.getElementById('directImportInput').click()">إضافة داتا مباشرة 📥</button>
+
 <div class="filter-chips">
     <div class="chip active" onclick="filterPatients('all')">All</div>
     <div class="chip" onclick="filterPatients('today')">Due Today</div>
@@ -29970,6 +29973,142 @@ async function deleteOldBatch() {
         }
     });
 }
+async function directImportFile(e) {
+  let file = e.target.files[0];
+  if (!file) return;
+
+  let reader = new FileReader();
+  reader.onload = async function(event) {
+    try {
+      let rawData;
+      
+      if (file.name.toLowerCase().endsWith('.json')) {
+        let jsonContent = JSON.parse(event.target.result);
+        rawData = Array.isArray(jsonContent) ? jsonContent : jsonContent.data;
+      } else if (file.name.match(/\.(xls|xlsx)$/)) {
+        let workbook = XLSX.read(event.target.result, { type: 'binary' });
+        rawData = XLSX.utils.sheet_to_json(workbook.Sheets[workbook.SheetNames[0]], { defval: "" });
+      }
+
+      if (!rawData || rawData.length === 0) return alert("الملف فاضي!");
+
+      showToast("جاري تجهيز الداتا، برجاء الانتظار... ⏳");
+
+      // دالة مساعدة عشان لو التاريخ فاضي نرجعه null
+      const safeDate = (dateStr) => {
+        if (!dateStr || String(dateStr).trim() === "") return null;
+        return String(dateStr).trim();
+      };
+
+      // دالة مساعدة للأرقام عشان ما تبعتش String فاضي
+      const safeNumber = (numVal) => {
+         if (!numVal || String(numVal).trim() === "") return null;
+         return parseInt(numVal, 10) || null;
+      }
+
+      let patientsMap = {};
+      
+      rawData.forEach(row => {
+        let id = String(row['ID'] || row['nationalId'] || "").trim();
+        if (!id) return;
+        
+        if (!patientsMap[id]) {
+          patientsMap[id] = {
+            pharmacy_id: currentUser.id,
+            national_id: id,
+            patient_name: row['Name'] || row['patientName'] || "",
+            phone_number: String(row['Phone'] || row['phoneNumber'] || ""),
+            general_note: row['General Note'] || row['generalNote'] || "",
+            dispensing_date: safeDate(row['Dispensing Date'] || row['dispensingDate']) || new Date().toISOString().split('T')[0],
+            next_refill_date: safeDate(row['NextRefill Date'] || row['nextRefillDate']),
+            refill_period: safeNumber(row['Refill Period'] || row['refillPeriod']) || 24,
+            // هنا خليناها false عشان الكارت ينزل أبيض عادي
+            imported: false,
+            import_date: new Date().toISOString(),
+            prescriptions: [] 
+          };
+        }
+        
+        let rxNumber = row['Prescription Number'] || row['prescriptionNumber'] || "";
+        if (rxNumber && String(rxNumber).trim() !== "") {
+          patientsMap[id].prescriptions.push({
+            prescription_number: String(rxNumber),
+            note: row['Prescription Note'] || row['prescriptionNote'] || "",
+            dispensing_date: safeDate(row['Dispensing Date'] || row['dispensingDate']) || new Date().toISOString().split('T')[0],
+            next_refill_date: safeDate(row['NextRefill Date'] || row['nextRefillDate']),
+            refill_period: safeNumber(row['Refill Period'] || row['refillPeriod']) || 24
+          });
+        }
+      });
+
+      let uniquePatients = Object.values(patientsMap);
+      let patientsToInsert = uniquePatients.map(({ prescriptions, ...rest }) => rest);
+
+      showToast(`جاري إضافة ${patientsToInsert.length} مريض للسيستم... 🚀`);
+
+      const BATCH_SIZE = 50; 
+      let allSavedPatients = [];
+
+      for (let i = 0; i < patientsToInsert.length; i += BATCH_SIZE) {
+        let chunk = patientsToInsert.slice(i, i + BATCH_SIZE);
+        
+        const { data: savedChunk, error: patientsError } = await supabaseClient
+          .from('patients')
+          .insert(chunk)
+          .select();
+
+        if (patientsError) throw patientsError;
+        if (savedChunk) allSavedPatients.push(...savedChunk);
+      }
+
+      let prescriptionsToInsert = [];
+      allSavedPatients.forEach(dbPatient => {
+        let originalPatient = patientsMap[dbPatient.national_id];
+        if (originalPatient && originalPatient.prescriptions.length > 0) {
+          originalPatient.prescriptions.forEach(rx => {
+            prescriptionsToInsert.push({
+              patient_id: dbPatient.id,
+              ...rx
+            });
+          });
+        }
+      });
+
+      if (prescriptionsToInsert.length > 0) {
+        showToast(`تمت إضافة المرضى، جاري إضافة ${prescriptionsToInsert.length} روشتة... 💊`);
+        
+        for (let i = 0; i < prescriptionsToInsert.length; i += BATCH_SIZE) {
+          let rxChunk = prescriptionsToInsert.slice(i, i + BATCH_SIZE);
+          
+          const { error: rxError } = await supabaseClient
+            .from('prescriptions')
+            .insert(rxChunk);
+            
+          if (rxError) console.error("مشكلة في جزء من الروشتات: ", rxError);
+        }
+      }
+
+      await loadPatientsFromSupabase();
+      updateStats();
+      displayPatients();
+      showToast("تمت الإضافة بنجاح وبدون أي أخطاء! ✅");
+
+    } catch (error) {
+      console.error(error);
+      alert("مشكلة في الإضافة: " + error.message);
+    } finally {
+      e.target.value = "";
+    }
+  };
+
+  if (file.name.match(/\.(xls|xlsx)$/)) {
+    reader.readAsBinaryString(file);
+  } else {
+    reader.readAsText(file);
+  }
+}
+
+
     </script>
 </body>
 </html>
