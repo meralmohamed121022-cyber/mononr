@@ -29992,38 +29992,42 @@ async function directImportFile(e) {
 
       if (!rawData || rawData.length === 0) return alert("الملف فاضي!");
 
-      showToast("جاري تجهيز الداتا، برجاء الانتظار... ⏳");
+      showToast("جاري فحص ومقارنة البيانات... ⏳");
 
-      // دالة مساعدة عشان لو التاريخ فاضي نرجعه null
       const safeDate = (dateStr) => {
         if (!dateStr || String(dateStr).trim() === "") return null;
         return String(dateStr).trim();
       };
 
-      // دالة مساعدة للأرقام عشان ما تبعتش String فاضي
       const safeNumber = (numVal) => {
          if (!numVal || String(numVal).trim() === "") return null;
          return parseInt(numVal, 10) || null;
       }
 
-      let patientsMap = {};
+      // هنجمع الداتا من الإكسيل بناءً على (رقم الهوية + تاريخ الصرف القادم) 
+      // عشان لو نفس المريض عنده روشتتين بتواريخ صرف مختلفة، يعتبرهم كارتين مختلفين في التجميع
+      let incomingMap = {};
       
       rawData.forEach(row => {
         let id = String(row['ID'] || row['nationalId'] || "").trim();
+        let nextRefill = safeDate(row['NextRefill Date'] || row['nextRefillDate']);
+        
         if (!id) return;
         
-        if (!patientsMap[id]) {
-          patientsMap[id] = {
+        // المفتاح المميز: الهوية + تاريخ الريفيل (عشان لو التاريخ مختلف يعمل كارت جديد)
+        let uniqueKey = `${id}_${nextRefill}`;
+        
+        if (!incomingMap[uniqueKey]) {
+          incomingMap[uniqueKey] = {
             pharmacy_id: currentUser.id,
             national_id: id,
             patient_name: row['Name'] || row['patientName'] || "",
             phone_number: String(row['Phone'] || row['phoneNumber'] || ""),
             general_note: row['General Note'] || row['generalNote'] || "",
             dispensing_date: safeDate(row['Dispensing Date'] || row['dispensingDate']) || new Date().toISOString().split('T')[0],
-            next_refill_date: safeDate(row['NextRefill Date'] || row['nextRefillDate']),
+            next_refill_date: nextRefill,
             refill_period: safeNumber(row['Refill Period'] || row['refillPeriod']) || 24,
-            // هنا خليناها false عشان الكارت ينزل أبيض عادي
-            imported: false,
+            imported: false, // كارت أبيض
             import_date: new Date().toISOString(),
             prescriptions: [] 
           };
@@ -30031,51 +30035,119 @@ async function directImportFile(e) {
         
         let rxNumber = row['Prescription Number'] || row['prescriptionNumber'] || "";
         if (rxNumber && String(rxNumber).trim() !== "") {
-          patientsMap[id].prescriptions.push({
+          incomingMap[uniqueKey].prescriptions.push({
             prescription_number: String(rxNumber),
             note: row['Prescription Note'] || row['prescriptionNote'] || "",
             dispensing_date: safeDate(row['Dispensing Date'] || row['dispensingDate']) || new Date().toISOString().split('T')[0],
-            next_refill_date: safeDate(row['NextRefill Date'] || row['nextRefillDate']),
+            next_refill_date: nextRefill,
             refill_period: safeNumber(row['Refill Period'] || row['refillPeriod']) || 24
           });
         }
       });
 
-      let uniquePatients = Object.values(patientsMap);
-      let patientsToInsert = uniquePatients.map(({ prescriptions, ...rest }) => rest);
+      let patientsToInsert = [];
+      let prescriptionsToInsert = []; 
+      let updatesPromises = [];
 
-      showToast(`جاري إضافة ${patientsToInsert.length} مريض للسيستم... 🚀`);
-
-      const BATCH_SIZE = 50; 
-      let allSavedPatients = [];
-
-      for (let i = 0; i < patientsToInsert.length; i += BATCH_SIZE) {
-        let chunk = patientsToInsert.slice(i, i + BATCH_SIZE);
+      for (let key in incomingMap) {
+        let incoming = incomingMap[key];
         
-        const { data: savedChunk, error: patientsError } = await supabaseClient
-          .from('patients')
-          .insert(chunk)
-          .select();
+        // بنبحث عن المريض بنفس الـ ID وبنفس الـ next_refill_date
+        let existingCard = patients.find(p => 
+            String(p.nationalId) === incoming.national_id && 
+            String(p.nextRefillDate) === String(incoming.next_refill_date)
+        );
 
-        if (patientsError) throw patientsError;
-        if (savedChunk) allSavedPatients.push(...savedChunk);
+        // لو فيه كارت قديم بنفس الهوية وتاريخ الـ Refill
+        if (existingCard) {
+          let updatePayload = {};
+          let needsUpdate = false;
+
+          let existingPhone = String(existingCard.phoneNumber || "").trim();
+          let incomingPhone = String(incoming.phone_number || "").trim();
+          if (existingPhone === "" && incomingPhone !== "") {
+            updatePayload.phone_number = incomingPhone;
+            needsUpdate = true;
+          }
+
+          let existingNote = String(existingCard.generalNote || "").trim();
+          let incomingNote = String(incoming.general_note || "").trim();
+          if (incomingNote !== "" && !existingNote.includes(incomingNote)) {
+            updatePayload.general_note = existingNote ? existingNote + " - " + incomingNote : incomingNote;
+            needsUpdate = true;
+          }
+
+          if (needsUpdate) {
+            updatesPromises.push(
+              supabaseClient.from('patients').update(updatePayload).eq('id', existingCard.id)
+            );
+          }
+
+          // الروشتة هتتضاف للكارت ده لو مش موجوده جواه
+          incoming.prescriptions.forEach(incRx => {
+            let rxExists = existingCard.prescriptions && existingCard.prescriptions.some(exRx => 
+                String(exRx.number).toLowerCase() === String(incRx.prescription_number).toLowerCase()
+            );
+            
+            if (!rxExists) {
+              prescriptionsToInsert.push({
+                patient_id: existingCard.id,
+                ...incRx
+              });
+            }
+          });
+
+        } else {
+          // المريض جديد، أو المريض موجود بس ده تاريخ ريفيل (Next Refill) مختلف -> كارت جديد
+          let { prescriptions, ...patientData } = incoming;
+          patientsToInsert.push({ patientData, prescriptions });
+        }
       }
 
-      let prescriptionsToInsert = [];
-      allSavedPatients.forEach(dbPatient => {
-        let originalPatient = patientsMap[dbPatient.national_id];
-        if (originalPatient && originalPatient.prescriptions.length > 0) {
-          originalPatient.prescriptions.forEach(rx => {
-            prescriptionsToInsert.push({
-              patient_id: dbPatient.id,
-              ...rx
+      if (updatesPromises.length > 0) {
+        showToast(`جاري تحديث بيانات ${updatesPromises.length} كارت مسجل مسبقاً... 🔄`);
+        await Promise.all(updatesPromises);
+      }
+
+      if (patientsToInsert.length > 0) {
+        showToast(`جاري إضافة ${patientsToInsert.length} كارت جديد... 🚀`);
+        const BATCH_SIZE = 50; 
+        let rawPatientsToInsert = patientsToInsert.map(p => p.patientData);
+
+        for (let i = 0; i < rawPatientsToInsert.length; i += BATCH_SIZE) {
+          let chunk = rawPatientsToInsert.slice(i, i + BATCH_SIZE);
+          
+          const { data: savedChunk, error: patientsError } = await supabaseClient
+            .from('patients')
+            .insert(chunk)
+            .select();
+
+          if (patientsError) throw patientsError;
+          
+          if (savedChunk) {
+            savedChunk.forEach(dbPatient => {
+              // بنربط الروشتات بناءً على الهوية + تاريخ الريفيل (عشان لو نفس المريض ضفناله كارتين بـ 2 تواريخ)
+              let matchingIncoming = patientsToInsert.find(p => 
+                  p.patientData.national_id === dbPatient.national_id &&
+                  p.patientData.next_refill_date === dbPatient.next_refill_date
+              );
+              
+              if (matchingIncoming && matchingIncoming.prescriptions.length > 0) {
+                matchingIncoming.prescriptions.forEach(rx => {
+                  prescriptionsToInsert.push({
+                    patient_id: dbPatient.id,
+                    ...rx
+                  });
+                });
+              }
             });
-          });
+          }
         }
-      });
+      }
 
       if (prescriptionsToInsert.length > 0) {
-        showToast(`تمت إضافة المرضى، جاري إضافة ${prescriptionsToInsert.length} روشتة... 💊`);
+        showToast(`جاري إضافة ${prescriptionsToInsert.length} روشتة... 💊`);
+        const BATCH_SIZE = 50;
         
         for (let i = 0; i < prescriptionsToInsert.length; i += BATCH_SIZE) {
           let rxChunk = prescriptionsToInsert.slice(i, i + BATCH_SIZE);
@@ -30084,14 +30156,19 @@ async function directImportFile(e) {
             .from('prescriptions')
             .insert(rxChunk);
             
-          if (rxError) console.error("مشكلة في جزء من الروشتات: ", rxError);
+          if (rxError) console.error("مشكلة في إضافة جزء من الروشتات: ", rxError);
         }
       }
 
       await loadPatientsFromSupabase();
       updateStats();
       displayPatients();
-      showToast("تمت الإضافة بنجاح وبدون أي أخطاء! ✅");
+      
+      if (patientsToInsert.length === 0 && prescriptionsToInsert.length === 0 && updatesPromises.length === 0) {
+        showToast("كل البيانات موجودة مسبقاً، مفيش حاجة جديدة اتضافت ✅");
+      } else {
+        showToast("تمت المعالجة والإضافة بنجاح! ✅");
+      }
 
     } catch (error) {
       console.error(error);
