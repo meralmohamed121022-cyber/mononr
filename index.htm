@@ -25116,30 +25116,35 @@ let tempSelectedDrugs = []; // لتخزين الأدوية المختار مؤق
         function closeModal() {
             document.getElementById('modalOverlay').classList.remove('active');
         }
-   function confirmAction(message, callback, cancelCallback) {
+        function confirmAction(message, callback, cancelCallback) {
+    // هنحط الزراير جوه الـ content عشان نتفادى مشكلة الـ display: none اللي في الـ actions
+    const contentHtml = `
+        <p style="text-align: center; padding: 20px 10px; font-size: 16px; color: var(--dark); line-height: 1.5;">${message}</p>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 10px;">
+            <button class="btn-secondary" onclick="closeModal(); if(window.confirmCancelCb) window.confirmCancelCb();" style="margin:0; padding: 12px;">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="vertical-align: middle; margin-right: 5px;">
+                    <line x1="18" y1="6" x2="6" y2="18"></line>
+                    <line x1="6" y1="6" x2="18" y2="18"></line>
+                </svg>
+                Cancel
+            </button>
+            <button class="btn-primary" onclick="closeModal(); window.confirmCallback();" style="margin:0; padding: 12px; background: var(--danger);">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="vertical-align: middle; margin-right: 5px;">
+                    <polyline points="20 6 9 17 4 12"></polyline>
+                </svg>
+                Confirm
+            </button>
+        </div>
+    `;
+
     showModal(
-        '<span style="color: var(--warning);">⚠️ CONFIRM</span>',
-        `<p style="text-align: center; padding: 30px 20px; font-size: 16px; color: var(--dark);">${message}</p>`,
-        `
-        <button class="btn-secondary" onclick="closeModal(); if(window.confirmCancelCb) window.confirmCancelCb();">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                <line x1="18" y1="6" x2="6" y2="18"></line>
-                <line x1="6" y1="6" x2="18" y2="18"></line>
-            </svg>
-            Cancel
-        </button>
-        <button class="btn-primary" onclick="closeModal(); confirmCallback();">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                <polyline points="20 6 9 17 4 12"></polyline>
-            </svg>
-            Confirm
-        </button>
-        `
+        '<span style="color: var(--warning);">⚠️ CONFIRM ACTION</span>',
+        contentHtml
     );
     
-    // حفظ الدوال في window عشان نقدر نناديهم من الـ onclick اللي جوه المودال
+    // ربط الدوال بـ window عشان الـ onclick يشوفهم
     window.confirmCallback = callback;
-    window.confirmCancelCb = cancelCallback; 
+    window.confirmCancelCb = cancelCallback || function() {}; 
 }
         // ============================================
         // DUPLICATE DETECTION
@@ -25494,61 +25499,50 @@ async function deletePatientFromSupabase(patientId) {
     }
 }
 // ============================================
-// DELETE PATIENT (OPTIMIZED)
+// DELETE PATIENT (OPTIMIZED & FIXED)
 // ============================================
 async function deletePatient(patientId) {
+    // تحويل الـ ID لنص لضمان دقة الفلترة والمقارنة
+    const pId = String(patientId);
+
     confirmAction('Are you sure you want to delete this patient?', async function () {
         // 1. إغلاق النافذة فوراً
         closeModal();
         
         try {
-            console.log(`🗑️ Deleting patient: ${patientId}`);
+            console.log(`🗑️ Deleting patient: ${pId}`);
             
             // 2. الحذف من السيرفر (Supabase)
-            await deletePatientFromSupabase(patientId);
+            await deletePatientFromSupabase(pId);
             
-            // 3. الحذف من المصفوفة المحلية فوراً (عشان التحديث اللحظي)
-            patients = patients.filter(p => p.id !== patientId);
+            // 3. الحذف من المصفوفة المحلية فوراً (تحديث لحظي)
+            // استخدمنا String() هنا كمان عشان نتفادى مشاكل النوع (Number vs String)
+            patients = patients.filter(p => String(p.id) !== pId);
             
             // 4. حذف من طابور الصرف إذا كان موجوداً فيه
-            dispensingQueue = dispensingQueue.filter(p => p.id !== patientId);
+            if (typeof dispensingQueue !== 'undefined') {
+                dispensingQueue = dispensingQueue.filter(p => String(p.id) !== pId);
+            }
             
             // 5. تحديث العدادات (Total, Today, etc.)
             updateStats();
             
             // 6. إعادة رسم الجداول
             displayPatients();
-            renderDispensingQueue();
+            if (typeof renderDispensingQueue === 'function') {
+                renderDispensingQueue();
+            }
             
-            console.log(`✅ Total patients after delete: ${patients.length}`);
+            console.log(`✅ Deletion sync complete. Current count: ${patients.length}`);
             
-            // 7. رسالة نجاح
-            setTimeout(function () {
-                let successHTML = `
-                    <div style="text-align: center; padding: 30px">
-                        <div style="width: 80px; height: 80px; background: linear-gradient(135deg, #00B894, #00D2A0); border-radius: 50%; margin: 0 auto 20px; display: flex; align-items: center; justify-content: center; box-shadow: 0 8px 24px rgba(0, 184, 148, 0.3);">
-                            <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
-                                <polyline points="20 6 9 17 4 12"></polyline>
-                            </svg>
-                        </div>
-                        <p style="font-size: 18px; font-weight: 700; color: var(--dark); margin-bottom: 8px">Deleted Successfully! 🗑️</p>
-                        <p style="font-size: 14px; color: #636E72;">Total Patients: ${patients.length}</p>
-                    </div>
-                `;
-                showModal(
-                    '<span style="color: var(--secondary);">✅ SUCCESS</span>',
-                    successHTML,
-                    '<button class="btn-primary" style="grid-column: 1/3" onclick="closeModal()">OK</button>'
-                );
-                // إغلاق تلقائي بعد 1.5 ثانية
-                setTimeout(() => closeModal(), 1500);
-            }, 300);
+            // 7. رسالة نجاح خفيفة
+            showToast('Deleted Successfully! 🗑️');
             
         } catch (error) {
             console.error('❌ Delete error:', error);
             showModal(
                 '<span style="color: var(--danger);">❌ ERROR</span>',
-                `<p style="text-align: center; padding: 20px;">فشل الحذف: ${error.message}</p>`,
+                `<p style="text-align: center; padding: 20px;">فشل الحذف من السيرفر: ${error.message}</p>`,
                 '<button class="btn-primary" style="grid-column: 1/3" onclick="closeModal()">OK</button>'
             );
         }
@@ -28216,26 +28210,30 @@ async function updatePatientNameInDB(patientId, newName) {
         console.error('Failed to update name:', err);
     }
 }
-// 5. تأكيد الحذف
-function confirmRemoveFromQueue(patientId) {
-    showModal(
-        '<span style="color: var(--danger);">⚠️ Remove Confirmation</span>',
-        `
-        <div style="text-align: center; padding: 20px;">
-            <p style="font-size: 16px; color: var(--dark); margin-bottom: 10px;">
-                Remove this patient from queue?
-            </p>
-        </div>
-        `,
-        `
-        <button class="btn-secondary" onclick="closeModal()">Cancel</button>
-        <button class="btn-action btn-delete" onclick="executeRemoval('${patientId}')" style="justify-content: center; padding: 10px 20px;">
-            Yes, Remove
-        </button>
-        `
-    );
-}
+// دالة إزالة المريض من طابور الانتظار (زرار X)
+async function confirmRemoveFromQueue(patientId) {
+    const pId = String(patientId);
+    // تحديث محلي سريع (Optimistic UI)
+    dispensingQueue = dispensingQueue.filter(p => String(p.id) !== pId);
+    renderDispensingQueue(document.getElementById('queueFilterInput')?.value || '');
+    
+    try {
+        // تحديث في سوبابيز: نغير حالة in_queue لـ false
+        const { error } = await supabaseClient
+            .from('patients')
+            .update({ in_queue: false })
+            .eq('id', pId);
 
+        if (error) throw error;
+        
+        showToast('Removed from queue ✖️');
+        updateStats(); // تحديث العدادات
+    } catch (err) {
+        console.error("Failed to remove from queue", err);
+        // لو فشل السيرفر نرجع المريض للقائمة المحلية عشان الداتا متبوظش
+        loadPatientsFromSupabase(); 
+    }
+}
 // 6. تنفيذ الحذف (تحديث السيرفر)
 async function executeRemoval(patientId) {
     // تحديث الواجهة
