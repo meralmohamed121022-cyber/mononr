@@ -2277,42 +2277,97 @@
     transform: scale(0.95);
 }
 /* ============================================ */
-/* DISPENSED TAB STYLES */
+/* DISPENSED TAB STYLES (ENHANCED CSS ART) */
 /* ============================================ */
 .dispense-search-container {
     position: relative;
-    margin-bottom: 20px;
+    margin-bottom: 25px;
 }
-
+/* الحاوية الكبيرة للاقتراحات */
 .dispense-results-dropdown {
     position: absolute;
-    top: 100%;
+    top: calc(100% + 8px);
     left: 0;
     right: 0;
-    background: white;
-    border: 2px solid var(--border);
-    border-top: none;
-    border-radius: 0 0 12px 12px;
-    max-height: 300px;
+    background: #f1f3f5; /* خلفية رمادية فاتحة جداً لكامل القائمة */
+    border-radius: 16px;
+    max-height: 500px;
     overflow-y: auto;
     z-index: 1000;
-    box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+    box-shadow: 0 15px 40px rgba(0,0,0,0.2);
+    padding: 12px; /* مسافة بين الاقتراحات وإطار القائمة */
+    border: 1px solid #d1d8e0;
     display: none;
 }
 
+/* الكارت الخاص بكل اقتراح */
 .dispense-result-item {
-    padding: 12px 15px;
-    border-bottom: 1px solid #eee;
-    cursor: pointer;
+    padding: 15px;
+    border-radius: 12px;
+    margin-bottom: 12px; /* فاصل واضح بين كل كارت والثاني */
+    background: #ffffff; /* لون الكارت أبيض عشان يبرز فوق الخلفية الرمادية */
+    border: 1px solid #e0e6ed;
     display: flex;
     justify-content: space-between;
-    align-items: center;
+    align-items: flex-start;
+    gap: 20px;
+    transition: all 0.2s ease;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.02);
 }
 
 .dispense-result-item:hover {
-    background: #F8F9FE;
+    transform: translateY(-2px);
+    box-shadow: 0 8px 15px rgba(13, 71, 161, 0.1);
+    border-color: var(--primary);
 }
 
+/* مساحة الهوية عشان الزرار ميبقاش لازق */
+.res-id-section {
+    display: flex;
+    align-items: center;
+    gap: 15px; /* مسافة كافية بين الهوية والزرار */
+    margin-bottom: 10px;
+}
+
+.res-id {
+    font-family: 'Courier New', monospace;
+    font-size: 17px;
+    font-weight: 900;
+    color: var(--primary);
+    white-space: nowrap;
+}
+/* حقل الاسم بقى مضغوط وأنيق */
+.res-name-input-wrapper {
+    display: flex;
+    align-items: center;
+    background: #f1f3f5;
+    padding: 4px 10px;
+    border-radius: 8px;
+    border: 1px solid #e9ecef;
+    width: fit-content;
+    max-width: 300px;
+}
+
+.res-name-input-wrapper input {
+    border: none;
+    background: transparent;
+    font-size: 13px;
+    font-weight: 700;
+    color: #2d3436;
+    outline: none;
+    width: 100%;
+}
+
+.res-rx-badge {
+    font-size: 11px;
+    color: #0984e3;
+    font-weight: 700;
+    background: #E3F2FD;
+    padding: 3px 8px;
+    border-radius: 6px;
+    width: fit-content;
+}
+/* جدول الصرف الرئيسي */
 .dispensing-table {
     width: 100%;
     border-collapse: collapse;
@@ -2329,6 +2384,7 @@
     text-align: left;
     font-size: 12px;
     text-transform: uppercase;
+    letter-spacing: 1px;
 }
 
 .dispensing-table td {
@@ -2363,16 +2419,18 @@
 .rx-chip-mini {
     background: #E3F2FD;
     color: var(--primary);
-    padding: 2px 6px;
+    padding: 2px 8px;
     border-radius: 4px;
     font-size: 10px;
     font-family: monospace;
+    font-weight: 700;
+    border: 1px solid rgba(25, 118, 210, 0.1);
 }
+
 /* ============================================ */
 /* MOBILE RESPONSIVENESS FIXES */
 /* ============================================ */
 
-/* 1. ضبط الحاوية الرئيسية لتتناسب مع عرض الشاشة */
 @media (max-width: 768px) {
     .container {
         width: 100% !important;
@@ -2381,25 +2439,27 @@
         overflow-x: hidden; 
     }
 
-    /* 2. تحسين عرض التابات */
+    /* تحسين عرض التابات للموبايل */
     .nav-tabs {
         flex-wrap: nowrap;
         overflow-x: auto; 
         padding-bottom: 5px;
+        -webkit-overflow-scrolling: touch;
     }
     
     .nav-tab {
-        padding: 12px 5px;
+        padding: 12px 8px;
         font-size: 11px;
-        min-width: 70px;
+        min-width: 85px;
+        white-space: nowrap;
     }
 
-    /* 3. تعديل خاص لتابة Dispensed فقط لإزاحتها عن الصورة */
+    /* إزاحة لتجنب التداخل مع صورة البروفايل العائمة */
     #dispensed-tab {
-        padding-right: 80px !important; /* هذه القيمة تزيح المحتوى لليسار لتبعده عن الصورة */
+        padding-right: 85px !important; 
     }
 
-    /* 4. إصلاح جدول الـ Dispensed على الموبايل */
+    /* إصلاح جدول الـ Dispensed على الموبايل */
     .dispensing-table-container {
         border-radius: 12px;
         border: 1px solid #eee;
@@ -2412,54 +2472,48 @@
 
     .dispensing-table {
         width: 100%;
-        min-width: 600px; 
+        min-width: 650px; /* ضمان عدم انضغاط البيانات */
     }
 
-    /* تحسين المسافات داخل الجدول للموبايل */
     .dispensing-table th, 
     .dispensing-table td {
-        padding: 10px 8px; 
-        font-size: 12px;
+        padding: 12px 10px; 
+        font-size: 11px;
     }
 
-    /* 5. ضبط شريط البحث والفلتر في صفحة Dispensed */
+    /* ضبط شريط البحث والفلتر */
     .dispense-search-container {
         width: 100%;
         padding: 0;
     }
 
-    /* جعل شريط الفلتر والعداد يظهرون بشكل مرتب عمودياً */
+    /* ترتيب عناصر التحكم عمودياً في الموبايل */
     .dispensing-table-container > div:first-child {
         flex-direction: column;
-        align-items: flex-start;
-        gap: 10px;
+        align-items: stretch !important;
+        gap: 12px;
+        padding: 15px;
     }
 
     .dispensing-table-container > div:first-child > div:last-child {
         width: 100% !important; 
     }
 
-    /* 6. تصغير الأزرار والأيقونات قليلاً */
     .btn-remove-queue {
-        width: 24px;
-        height: 24px;
+        width: 28px;
+        height: 28px;
     }
     
     .dispense-checkbox {
-        width: 20px;
-        height: 20px;
-    }
-
-    .rx-chip-mini {
-        padding: 2px 5px;
-        font-size: 10px;
+        width: 22px;
+        height: 22px;
     }
 }
 
-/* إضافة إزاحة بسيطة أيضاً للشاشات الكبيرة لضمان عدم التداخل */
+/* إزاحة للشاشات الكبيرة لضمان مظهر متناسق */
 @media (min-width: 769px) {
     #dispensed-tab {
-        padding-right: 100px !important;
+        padding-right: 20px; /* مسافة طبيعية */
     }
 }
 /* ============================================ */
@@ -2501,26 +2555,153 @@
     text-transform: uppercase;
 }
 
-/* File List Styles inside Modal */
+/* ============================================ */
+/* FULLSCREEN MODAL - MAIN CONTAINER */
+/* ============================================ */
+#modalContent.docs-fullscreen-modal {
+    position: fixed;
+    inset: 0 !important;
+    width: 100vw !important;
+    height: 100vh !important;
+    max-width: none !important;
+    max-height: none !important;
+    margin: 0 !important;
+    display: flex;
+    flex-direction: column;
+    background: #ffffff;
+    z-index: 10000;
+    overflow: hidden;
+}
+
+.modal-header {
+    padding: 15px 30px;
+    border-bottom: 1px solid #f1f5f9;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-shrink: 0;
+}
+
+.modal-content {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 20px 50px;
+    overflow: hidden;
+}
+
+/* بوكس الرفع المطور مع Progress Bar */
 .file-upload-area {
-    border: 2px dashed #B2BEC3;
-    border-radius: 12px;
+    width: 100%;
+    max-width: 650px;
+    border: 2px dashed #cbd5e1;
+    border-radius: 20px;
     padding: 30px;
     text-align: center;
-    background: #F8F9FE;
+    background: #f8fafc;
     cursor: pointer;
-    transition: all 0.3s ease;
     margin-bottom: 20px;
+    transition: all 0.3s;
+    position: relative;
 }
 
 .file-upload-area:hover {
     border-color: var(--primary);
-    background: #E3F2FD;
+    background: #f0f7ff;
 }
 
+/* Progress Bar الـ CSS ART للتحميل */
+.upload-progress-container {
+    width: 100%;
+    height: 6px;
+    background: #e2e8f0;
+    border-radius: 10px;
+    margin-top: 15px;
+    overflow: hidden;
+    display: none; /* يظهر بالجافا سكريبت فقط وقت الرفع */
+}
+
+.upload-progress-bar {
+    width: 45%; /* مثال للقيمة */
+    height: 100%;
+    background: linear-gradient(90deg, #3b82f6, #2dd4bf);
+    border-radius: 10px;
+    transition: width 0.3s ease;
+}
+
+/* ============================================ */
+/* DELETE CONFIRMATION - CSS ART */
+/* ============================================ */
+.custom-confirm-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(15, 23, 42, 0.6);
+    backdrop-filter: blur(4px);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 11000;
+}
+
+.confirm-box {
+    background: white;
+    padding: 30px;
+    border-radius: 24px;
+    width: 90%;
+    max-width: 400px;
+    text-align: center;
+    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+    border: 1px solid #f1f5f9;
+}
+
+.confirm-icon {
+    width: 60px;
+    height: 60px;
+    background: #fee2e2;
+    color: #ef4444;
+    border-radius: 50%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-size: 24px;
+    margin: 0 auto 20px;
+}
+
+.confirm-title {
+    font-size: 18px;
+    font-weight: 700;
+    color: #1e293b;
+    margin-bottom: 10px;
+}
+
+.confirm-btns {
+    display: flex;
+    gap: 12px;
+    margin-top: 25px;
+}
+
+.btn-confirm {
+    flex: 1;
+    padding: 12px;
+    border-radius: 12px;
+    border: none;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.btn-confirm.yes { background: #ef4444; color: white; }
+.btn-confirm.no { background: #f1f5f9; color: #475569; }
+
+/* ============================================ */
+/* FILES LIST */
+/* ============================================ */
 .files-list-container {
-    max-height: 300px;
+    width: 100%;
+    max-width: 1000px;
+    flex: 1;
     overflow-y: auto;
+    padding-right: 10px;
 }
 
 .file-item {
@@ -2528,87 +2709,47 @@
     align-items: center;
     justify-content: space-between;
     background: white;
-    padding: 12px;
-    border-radius: 10px;
-    border: 1px solid #eee;
+    padding: 14px 20px;
+    border-radius: 16px;
+    border: 1px solid #f1f5f9;
     margin-bottom: 10px;
-    transition: all 0.2s ease;
 }
 
-.file-item:hover {
-    box-shadow: 0 4px 12px rgba(0,0,0,0.05);
-    border-color: var(--primary);
+.file-item.is-new {
+    background: #f0fdf4;
+    border-color: #86efac;
+    animation: fadeIn 0.5s ease;
 }
 
-.file-info {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    flex: 1;
-    overflow: hidden;
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
 }
 
-.file-icon {
-    width: 40px;
-    height: 40px;
-    border-radius: 8px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 20px;
-    font-weight: bold;
-    color: white;
-    flex-shrink: 0;
-}
+.file-info { display: flex; align-items: center; gap: 12px; }
+.file-icon { width: 42px; height: 42px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 16px; color: white; }
+.type-img { background: #3b82f6; }
+.type-pdf { background: #ef4444; }
 
-.type-pdf { background: #FF6B6B; }
-.type-excel { background: #21A366; }
-.type-img { background: #54A0FF; }
-.type-txt { background: #FFA502; }
-.type-other { background: #636E72; }
+.file-name { font-size: 13px; font-weight: 600; color: #334155; }
+.file-actions { display: flex; gap: 8px; }
 
-.file-details {
-    display: flex;
-    flex-direction: column;
-    overflow: hidden;
-}
-
-.file-name {
-    font-size: 13px;
-    font-weight: 700;
-    color: var(--dark);
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-}
-
-.file-size {
-    font-size: 10px;
-    color: #999;
-}
-
-.file-actions {
-    display: flex;
-    gap: 5px;
-}
+.modal-actions { display: none !important; }
 
 .btn-icon-small {
-    width: 28px;
-    height: 28px;
-    border-radius: 6px;
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
     border: none;
     display: flex;
     align-items: center;
     justify-content: center;
     cursor: pointer;
-    transition: all 0.2s;
 }
 
-.btn-view { background: #E3F2FD; color: var(--primary); }
-.btn-share { background: #E0F2F1; color: #00B894; }
-.btn-del { background: #FFEBEE; color: #FF6B6B; }
-
-.btn-icon-small:hover { transform: scale(1.1); }
+.btn-view { background: #eff6ff; color: #2563eb; }
+.btn-share { background: #f0fdf4; color: #16a34a; }
+.btn-del { background: #fef2f2; color: #dc2626; }
 /* زرار Reset الفلاتر */
 .btn-reset-filter {
     background: linear-gradient(135deg, #636E72, #2D3436);
@@ -3171,6 +3312,7 @@
 .btn-reset-filter:hover .icon-reset {
     transform: rotate(180deg);
 }
+
     </style>
 </head>
 <body>
@@ -3460,41 +3602,47 @@
                     <button class="btn-export" style="background: linear-gradient(135deg, #FF6B6B, #EE5A6F); color: white; width: 100%;" onclick="deleteAll()">Delete All Records</button>
                 </div>
             </div>
+<div id="dispensed-tab" class="tab-content">
+    <div class="section-title">💊 Daily Dispensing Queue</div>
+    
+    <div class="dispense-search-container">
+        <div class="search-box">
+            <div class="search-icon-wrapper">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#B2BEC3" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="11" cy="11" r="8"></circle>
+                    <path d="m21 21-4.35-4.35"></path>
+                </svg>
+            </div>
+            <input type="text" class="search-input" id="dispenseSearchInput" placeholder="Search by ID or Phone to ADD to queue..." oninput="searchForDispensing()" autocomplete="off">
+        </div>
+        <div id="dispenseSearchResults" class="dispense-results-dropdown"></div>
+    </div>
 
-            <div id="dispensed-tab" class="tab-content">
-                <div class="section-title">💊 Daily Dispensing Queue</div>
-                <div class="dispense-search-container">
-                    <div class="search-box">
-                        <div class="search-icon-wrapper">
-                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#B2BEC3" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><path d="m21 21-4.35-4.35"></path></svg>
-                        </div>
-                        <input type="text" class="search-input" id="dispenseSearchInput" placeholder="Search to ADD to queue..." oninput="searchForDispensing()" autocomplete="off">
-                    </div>
-                    <div id="dispenseSearchResults" class="dispense-results-dropdown"></div>
-                </div>
+    <div class="dispensing-table-container" style="margin-top: 20px;">
+        <div style="display: flex; justify-content: space-between; align-items: center; padding: 15px 20px; border-bottom: 1px solid #eee; background: #fcfcfc; border-radius: 12px 12px 0 0;">
+            <div style="font-size: 14px; font-weight: 700; color: var(--primary);">📋 Queue List <span id="queueCount" class="patient-badge">0</span></div>
+            <div style="position: relative; width: 250px;">
+                <input type="text" id="queueFilterInput" placeholder="Filter current list..." onkeyup="filterQueue()" style="width: 100%; padding: 8px 12px; border: 1px solid #ddd; border-radius: 20px; font-size: 12px; outline: none; box-shadow: inset 0 1px 3px rgba(0,0,0,0.05);">
+            </div>
+        </div>
+        <table class="dispensing-table">
+            <thead>
+                <tr>
+                    <th width="40">✖</th>
+                    <th width="80">#</th>
+                    <th>Patient Details</th>
+                    <th>Prescriptions</th>
+                    <th width="80">DRUGS</th>
+                    <th>Mobile</th>
+                    <th width="80">Done</th>
+                </tr>
+            </thead>
+            <tbody id="dispensingQueueBody"></tbody>
+        </table>
+        <div id="emptyDispenseMsg" class="no-data"><p>Queue is empty. Search above to add patients.</p></div>
+    </div>
+</div>
 
-                <div class="dispensing-table-container" style="margin-top: 20px;">
-                    <div style="display: flex; justify-content: space-between; align-items: center; padding: 15px 20px; border-bottom: 1px solid #eee; background: #fcfcfc;">
-                        <div style="font-size: 14px; font-weight: 700; color: var(--primary);">📋 Queue List <span id="queueCount" class="patient-badge">0</span></div>
-                        <div style="position: relative; width: 250px;">
-                            <input type="text" id="queueFilterInput" placeholder="Filter list..." onkeyup="filterQueue()" style="width: 100%; padding: 8px 10px; border: 1px solid #ddd; border-radius: 20px; font-size: 12px; outline: none;">
-                        </div>
-                    </div>
-                    <table class="dispensing-table">
-                      <thead>
-    <tr>
-        <th width="40">✖</th>
-        <th width="80">#</th>
-        <th>Patient Details</th>
-        <th>Prescriptions</th>
-        <th width="80">DRUGS</th> <th>Mobile</th>
-        <th width="80">Done</th>
-    </tr>
-</thead>
-                        <tbody id="dispensingQueueBody"></tbody>
-                    </table>
-                    <div id="emptyDispenseMsg" class="no-data"><p>Queue is empty.</p></div>
-                </div>
             </div> </div> </div> <div class="floating-docs-btn" onclick="openDocsManager()">
         <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="12" y1="18" x2="12" y2="12"></line><line x1="9" y1="15" x2="15" y2="15"></line></svg>
         <span class="icon-doc">DOCS</span>
@@ -3502,6 +3650,17 @@
 
     <input type="file" id="docsUploader" multiple style="display: none;" onchange="handleDocsUpload(this)">
     <div id="toastNotification" class="toast-notification"><span id="toastText"></span></div>
+    <div id="deleteConfirmModal" class="custom-confirm-overlay" style="display:none;">
+    <div class="confirm-box">
+        <div class="confirm-icon">!</div>
+        <h3 class="confirm-title">Are you sure?</h3>
+        <p class="confirm-text">You are about to permanently delete this file. This action cannot be undone.</p>
+        <div class="confirm-btns">
+            <button class="btn-confirm no" onclick="closeDeleteModal()">Cancel</button>
+            <button class="btn-confirm yes" onclick="confirmDelete()">Delete File</button>
+        </div>
+    </div>
+</div>
 </body>
 <img src="https://raw.githubusercontent.com/meralmohamed121022-cyber/Drug-Monograph/refs/heads/main/6_20251129_184528_0005.png" alt="Ph Mohamed Kholeif"
 style="position: fixed; bottom: 10px; right: 10px; width: 100px; height: 100px; border-radius: 50%; border: 3px solid white; box-shadow: 0 3px 10px rgba(0,0,0,0.4); background: white; padding: 2px; animation: float 4s ease-in-out infinite; z-index: 1000; cursor: pointer;"
@@ -25887,18 +26046,30 @@ function resetSaveBtn() {
                 displayPatients();
             }
         }
-      function displayPatients() {
+    function displayPatients() {
+    // 1. تحديث العدادات أولاً لضمان المزامنة
     updateStats();
     
     let searchTerm = document.getElementById('searchInput').value.trim();
     let container = document.getElementById('patientsContainer');
     container.innerHTML = '';
 
+    // 2. الحصول على القائمة المفلترة حسب الحالة (Today, Overdue, etc.)
     let filteredPatients = filterPatientsByStatus(currentFilter);
     
-    // التصفية لاستبعاد الموجودين في الطابور حالياً
-    filteredPatients = filteredPatients.filter(p => p.inQueue !== true);
+    // 3. الفلترة الأساسية (استبعاد الموجودين في الطابور + استبعاد الكروت بدون وصفات)
+    filteredPatients = filteredPatients.filter(p => {
+        const notInQueue = p.inQueue !== true;
+        // 👇 السطر الذهبي: الكارت لازم يكون فيه وصفات وفيها رقم فعلي عشان يظهر
+        const hasValidPrescriptions = p.prescriptions && 
+                                    p.prescriptions.length > 0 && 
+                                    p.prescriptions[0].number && 
+                                    p.prescriptions[0].number.trim() !== "";
+        
+        return notInQueue && hasValidPrescriptions;
+    });
 
+    // 4. تطبيق فلتر التاريخ (لو مفعل)
     if (dateFilterActive && dateFilterFrom && dateFilterTo) {
         filteredPatients = filteredPatients.filter(p => {
             let refillDate = new Date(p.nextRefillDate);
@@ -25907,12 +26078,14 @@ function resetSaveBtn() {
         });
     }
 
+    // 5. تطبيق محرك البحث Fuse
     if (fuse && searchTerm) {
         let fuseResults = fuse.search(searchTerm);
         let searchIds = fuseResults.map(r => r.item.id);
         filteredPatients = filteredPatients.filter(p => searchIds.includes(p.id));
     }
 
+    // 6. عرض رسالة "لا توجد نتائج" لو القائمة فضيت
     if (filteredPatients.length === 0) {
         container.innerHTML = `
             <div class="no-data">
@@ -25920,13 +26093,14 @@ function resetSaveBtn() {
                     <div class="icon icon-search" style="width: 40px; height: 40px; border-width: 4px; color: #B2BEC3; margin: 0 auto;"></div>
                 </div>
                 <p style="font-size: 18px; font-weight: 700; color: #95A5A6;">
-                    ${searchTerm ? 'No matching results in this list' : 'No patients found'}
+                    ${searchTerm ? 'No matching results in this list' : 'No valid patients found'}
                 </p>
             </div>
         `;
         return;
     }
 
+    // 7. العرض النهائي (تقسيم لمجموعات لو في تبويب المستورد)
     if (currentFilter === 'imported' && !searchTerm && !dateFilterActive) {
         const batches = {};
         filteredPatients.forEach(p => {
@@ -25949,10 +26123,7 @@ function resetSaveBtn() {
                 const d = new Date(dateKey);
                 if (!isNaN(d)) {
                     const dateStr = d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
-                    // ✅ التعديل الجوهري: إضافة الثواني (second: '2-digit') لضمان فصل الملفات المرفوعة في نفس الدقيقة
-                    // واستخدام 'en-GB' للحصول على تنسيق 24 ساعة واضح
                     const timeStr = d.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
-                    
                     displayHeader = `
                         <div style="display:flex; gap:15px; align-items:center;">
                             <span>📅 ${dateStr}</span>
@@ -25972,13 +26143,12 @@ function resetSaveBtn() {
                 <div class="import-batch-header" style="display:flex; justify-content:space-between; align-items:center;">
                     <div style="font-size:14px; font-weight:bold;">${displayHeader}</div>
                     <div style="display:flex; gap:10px; align-items:center;">
-                        <div style="background:#00B894; color:white; padding:3px 10px; border-radius:12px; font-size:11px; font-weight:bold; box-shadow:0 2px 5px rgba(0,0,0,0.1);">
+                        <div style="background:#00B894; color:white; padding:3px 10px; border-radius:12px; font-size:11px; font-weight:bold;">
                             ${batchList.length} Cards
                         </div>
                         ${!dateKey.includes('Manual') ? `
                             <button onclick="deleteImportBatch('${dateKey}')" 
-                                    style="background:#ff7675; border:none; color:white; padding:5px 10px; border-radius:8px; cursor:pointer; font-size:10px; font-weight:bold; display:flex; align-items:center; gap:5px; transition:0.2s;">
-                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+                                    style="background:#ff7675; border:none; color:white; padding:5px 10px; border-radius:8px; cursor:pointer; font-size:10px; font-weight:bold;">
                                 DELETE BATCH
                             </button>
                         ` : ''}
@@ -25995,6 +26165,7 @@ function resetSaveBtn() {
         });
 
     } else {
+        // العرض العادي (اللستة العادية)
         filteredPatients.forEach(patient => {
             let card = createPatientCard(patient, searchTerm);
             container.appendChild(card);
@@ -26270,51 +26441,66 @@ function createPatientCard(patient, searchTerm = '') {
             if (diff === 1) return 'Tomorrow';
             return `In ${diff} days`;
         }
-     function updateStats() {
-    console.log('📊 Updating Stats...');
+        function updateStats() {
+    console.log('📊 Updating Stats (Final Sync Mode)...');
     
-    // 1. حساب الإحصائيات (Calculations)
-    let today = new Date();
-    today.setHours(0, 0, 0, 0);
-    
-    // التعديل الأساسي هنا:
-    // نستخدم المتغير العالمي totalRealCount (اللي جبناه من الداتا بيز)
-    // لو لسه بصفر (أول تحميل)، نستخدم طول المصفوفة مؤقتاً
-    let total = totalRealCount > 0 ? totalRealCount : patients.length;
-    
-    // باقي العدادات بتتحسب من البيانات المحملة (لأنها بتعتمد على التواريخ)
-    // ملحوظة: العدادات الفرعية (Today/Overdue) هتكون دقيقة للبيانات المحملة فقط (أول 2000 مريض)
-    let todayCount = patients.filter(p => {
-        let refillDate = new Date(p.nextRefillDate);
-        refillDate.setHours(0, 0, 0, 0);
-        return refillDate.getTime() === today.getTime();
-    }).length;
-    
-    let upcomingCount = patients.filter(p => {
-        let refillDate = new Date(p.nextRefillDate);
-        refillDate.setHours(0, 0, 0, 0);
-        let diff = Math.floor((refillDate - today) / (1000 * 60 * 60 * 24));
-        return diff > 0 && diff <= 7;
-    }).length;
-    
-    let overdueCount = patients.filter(p => {
-        let refillDate = new Date(p.nextRefillDate);
-        refillDate.setHours(0, 0, 0, 0);
-        return refillDate < today;
-    }).length;
-    
-    console.log(`📊 Calculated: Total=${total} (Real Count), Today=${todayCount}, Upcoming=${upcomingCount}, Overdue=${overdueCount}`);
-    
-    // 2. تحديث الواجهة (Smart DOM Update)
+    const now = new Date();
+    const todayStr = now.toISOString().split('T')[0];
+    const nextWeek = new Date();
+    nextWeek.setDate(now.getDate() + 7);
+    const nextWeekStr = nextWeek.toISOString().split('T')[0];
+
+    // 1. تصفية المرضى (الحصول على الكروت الحقيقية فقط واستبعاد اللي في الطابور)
+    const validPatients = patients.filter(p => {
+        return p.inQueue !== true &&
+               p.nextRefillDate && 
+               p.prescriptions && 
+               p.prescriptions.length > 0 && 
+               p.prescriptions[0].number && 
+               p.prescriptions[0].number.trim() !== "";
+    });
+
+    let todaySet = new Set();
+    let upcomingSet = new Set();
+    let overdueSet = new Set();
+
+    validPatients.forEach(p => {
+        const pDate = p.nextRefillDate.split('T')[0];
+        const pId = p.id; 
+
+        if (pDate === todayStr) {
+            todaySet.add(pId);
+        } else if (pDate > todayStr && pDate <= nextWeekStr) {
+            upcomingSet.add(pId);
+        } else if (pDate < todayStr) {
+            overdueSet.add(pId);
+        }
+    });
+
+    const todayCount = todaySet.size;
+    const upcomingCount = upcomingSet.size;
+    const overdueCount = overdueSet.size;
+    const totalCount = validPatients.length;
+
+    // 2. تحديث الواجهة (البوكسات)
     const statsGrid = document.getElementById('statsGrid');
-    
     if (statsGrid) {
-        // التحقق: هل الكروت موجودة أصلاً؟
-        if (statsGrid.children.length === 0) {
-            // الحالة أ: الكروت مش موجودة -> نرسمها لأول مرة ونضيف IDs للأرقام
+        const elTotal = document.getElementById('val-total');
+        const elToday = document.getElementById('val-today');
+        const elUpcoming = document.getElementById('val-upcoming');
+        const elOverdue = document.getElementById('val-overdue');
+
+        // لو البوكسات مرسومة، نحدث الأرقام بس
+        if (elTotal && elToday && elUpcoming && elOverdue) {
+            elTotal.innerText = totalCount;
+            elToday.innerText = todayCount;
+            elUpcoming.innerText = upcomingCount;
+            elOverdue.innerText = overdueCount;
+        } else {
+            // لو مش مرسومة، نرسم الهيكل كامل
             statsGrid.innerHTML = `
                 <div class="stat-card total" onclick="filterPatients('all')">
-                    <div class="number" id="val-total">${total}</div>
+                    <div class="number" id="val-total">${totalCount}</div>
                     <div class="label">Total Patients</div>
                 </div>
                 <div class="stat-card today" onclick="filterPatients('today')">
@@ -26330,80 +26516,20 @@ function createPatientCard(patient, searchTerm = '') {
                     <div class="label">Overdue</div>
                 </div>
             `;
-        } else {
-            // الحالة ب: الكروت موجودة -> نحدث الأرقام فقط (بدون إعادة رسم)
-            try {
-                // نستخدم innerText للتأكد من التحديث الفوري
-                const elTotal = document.getElementById('val-total');
-                if(elTotal) elTotal.innerText = total; 
-                
-                const elToday = document.getElementById('val-today');
-                if(elToday) elToday.innerText = todayCount;
-                
-                const elUpcoming = document.getElementById('val-upcoming');
-                if(elUpcoming) elUpcoming.innerText = upcomingCount;
-                
-                const elOverdue = document.getElementById('val-overdue');
-                if(elOverdue) elOverdue.innerText = overdueCount;
-                
-            } catch (e) {
-                console.error("Error updating stat values directly", e);
-                // Fallback: لو حصل مشكلة، نعيد الرسم
-                statsGrid.innerHTML = ""; 
-                updateStats(); 
-            }
         }
     }
 
-    // 3. تحديث محرك البحث (Fuse.js)
+    // 3. تحديث محرك البحث
     if (window.Fuse) {
-        fuse = new Fuse(patients, {
-            keys: [
-                'nationalId', 
-                'phoneNumber', 
-                'generalNote',
-                'prescriptions.number', 
-                'prescriptions.note'
-            ],
+        fuse = new Fuse(validPatients, {
+            keys: ['nationalId', 'phoneNumber', 'generalNote', 'prescriptions.number', 'prescriptions.note'],
             threshold: 0.0,
             ignoreLocation: true,
             useExtendedSearch: true
         });
-        console.log('🔍 Fuse search engine re-indexed');
     }
 }
-        function filterPatientsByStatus(status) {
-            let today = new Date();
-            today.setHours(0, 0, 0, 0);
-            
-            switch(status) {
-                case 'all':
-                    return [...patients];
-                case 'today':
-                    return patients.filter(p => {
-                        let refillDate = new Date(p.nextRefillDate);
-                        refillDate.setHours(0, 0, 0, 0);
-                        return refillDate.getTime() === today.getTime();
-                    });
-                case 'upcoming':
-                    return patients.filter(p => {
-                        let refillDate = new Date(p.nextRefillDate);
-                        refillDate.setHours(0, 0, 0, 0);
-                        let diff = Math.floor((refillDate - today) / (1000 * 60 * 60 * 24));
-                        return diff > 0 && diff <= 7;
-                    });
-                case 'overdue':
-                    return patients.filter(p => {
-                        let refillDate = new Date(p.nextRefillDate);
-                        refillDate.setHours(0, 0, 0, 0);
-                        return refillDate < today;
-                    });
-                case 'imported':
-                    return patients.filter(p => p.imported);
-                default:
-                    return [...patients];
-            }
-        }
+
    function filterPatients(status) {
     currentFilter = status;
     
@@ -26427,9 +26553,11 @@ function createPatientCard(patient, searchTerm = '') {
 
         
         function searchPatients() {
-            displayPatients();
-        }
-        
+    // تحديث العدادات أولاً بناءً على البحث أو الفلترة الجديدة
+    updateStats(); 
+    // عرض المرضى (واللي أضفنا فيها شرط تجاهل الكروت بدون وصفات)
+    displayPatients();
+}
      // متغير عشان نحفظ حالة الفلترة بالتاريخ
 let dateFilterActive = false;
 let dateFilterFrom = null;
@@ -27748,14 +27876,14 @@ function searchForDispensing() {
         ).slice(0, 5);
     }
 
-    // الحالة 1: الهوية غير موجودة
     if (results.length === 0) {
         dropdown.innerHTML = `
-            <div style="padding: 15px; text-align: center; background: #f0f7ff; border: 1px solid var(--primary); border-radius: 0 0 12px 12px;">
-                <p style="font-size: 13px; color: var(--primary); margin-bottom: 10px; font-weight: bold;">🆔 ID: ${term} Not Found</p>
+            <div style="padding: 20px; text-align: center; background: #ffffff; border-radius: 12px; border: 2px dashed var(--primary);">
+                <div style="font-size: 24px; margin-bottom: 10px;">🔍</div>
+                <p style="font-size: 14px; color: var(--primary); margin-bottom: 15px; font-weight: bold;">ID: ${term} Not Found</p>
                 <button onclick="quickAddAndQueue('${term}')" 
-                        style="background:var(--primary); color:white; border:none; padding:10px 15px; border-radius:8px; cursor:pointer; width:100%; font-weight:bold; box-shadow: 0 4px 10px rgba(13,71,161,0.2);">
-                    + Quick Add to Queue
+                        style="background:var(--primary); color:white; border:none; padding:12px 20px; border-radius:10px; cursor:pointer; width:100%; font-weight:bold; box-shadow: 0 4px 12px rgba(13,71,161,0.2);">
+                    + Create New Card & Queue
                 </button>
             </div>
         `;
@@ -27763,7 +27891,6 @@ function searchForDispensing() {
         return;
     }
 
-    // الحالة 2: الهوية موجودة
     dropdown.innerHTML = results.map(p => {
         const hasName = p.patientName && p.patientName.trim() !== '';
         const rxNumbers = (p.prescriptions && p.prescriptions.length > 0) 
@@ -27772,58 +27899,34 @@ function searchForDispensing() {
         const hasPhone = p.phoneNumber && p.phoneNumber.trim() !== '';
 
         return `
-        <div class="dispense-result-item" style="display: flex; flex-direction: column; gap: 8px; padding: 15px; border-bottom: 1px solid #eee; background: white;">
-            
-            <div style="display: flex; justify-content: space-between; align-items: flex-start;">
-                <div>
-                    <div style="font-weight:900; color:var(--primary); font-family: 'Courier New', monospace; font-size: 16px;">${p.nationalId}</div>
-                    <div style="margin-top: 6px; display: flex; gap: 6px; flex-wrap: wrap; align-items: center;">
-                        ${hasName 
-                            ? `<span style="font-size:11px; color:#2E7D32; font-weight:bold; background:#E8F5E9; padding:4px 8px; border-radius:6px;">👤 ${p.patientName}</span>`
-                            : `<span style="font-size:11px; color:#e74c3c; font-weight:bold; background:#FFEBEE; padding:4px 8px; border-radius:6px;">⚠️ No Name</span>`
-                        }
-                        <span style="font-size:11px; color:#0984e3; font-weight:bold; background:#E3F2FD; padding:4px 8px; border-radius:6px;">💊 Rx: ${rxNumbers}</span>
-                    </div>
-                </div>
-                
-                <div>
-                    ${hasName 
-                        ? `<button onclick="addToQueue('${String(p.id)}')" 
-                                style="background:var(--secondary); color:white; border:none; padding:8px 12px; border-radius:8px; cursor:pointer; font-size:11px; font-weight:bold; box-shadow: 0 4px 10px rgba(0,184,148,0.2);">
-                            Add to Queue
-                           </button>`
-                        : ''
-                    }
-                </div>
+        <div class="dispense-result-item">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+                <div class="res-id">${p.nationalId}</div>
+                <button onclick="addToQueue('${String(p.id)}')" 
+                        style="background:var(--secondary); color:white; border:none; padding:8px 15px; border-radius:8px; cursor:pointer; font-size:11px; font-weight:bold; box-shadow: 0 4px 10px rgba(0,184,148,0.2);">
+                    Add to Queue
+                </button>
             </div>
 
-            <div style="margin-top: 5px; background: #fafafa; padding: 8px 12px; border-radius: 8px; border: 1px solid #eee;">
-                <div style="display: flex; gap: 8px; align-items: center;">
-                    <span style="font-size: 11px; color: #e67e22; font-weight: bold; white-space: nowrap;">📱 Phone:</span>
-                    <input type="text" id="search-phone-${p.id}" value="${p.phoneNumber || ''}" placeholder="05xxxxxxxx" maxlength="10"
-                           style="flex: 1; padding: 6px 10px; border: 1px solid #ddd; border-radius: 6px; font-size: 11px; outline: none; font-weight: bold;"
-                           onfocus="this.style.borderColor='var(--primary)'" onblur="this.style.borderColor='#ddd'">
-                    <button onclick="savePhoneFromSearch('${String(p.id)}')" 
-                            style="background:#0984e3; color:white; border:none; padding:6px 12px; border-radius:6px; cursor:pointer; font-size:11px; font-weight:bold;">
-                        ${hasPhone ? 'Update' : 'Save'}
-                    </button>
+            <div style="display: flex; gap: 8px; flex-wrap: wrap; margin-top: 4px; align-items: center;">
+                <div style="display: flex; align-items: center; background: #e8f5e9; padding: 2px 8px; border-radius: 8px; flex: 1; min-width: 200px; border: 1px solid #c8e6c9;">
+                    <span style="font-size: 14px; margin-right: 5px;">👤</span>
+                    <input type="text" id="name-input-${p.id}" value="${p.patientName || ''}" 
+                           placeholder="Enter or Edit Name..."
+                           style="border: none; background: transparent; font-size: 13px; font-weight: 700; color: #2d3436; width: 100%; outline: none; padding: 5px 0;">
                 </div>
+                <span class="res-rx-badge">💊 Rx: ${rxNumbers}</span>
             </div>
-            
-            ${!hasName ? `
-            <div style="margin-top: 5px; border-top: 1px dashed #eee; padding-top: 10px;">
-                <label style="font-size: 11px; color: #636E72; font-weight:bold; display: block; margin-bottom: 6px;">✨ Enter Name to Add to Queue:</label>
-                <div style="display: flex; gap: 6px;">
-                    <input type="text" id="new-name-input-${p.id}" placeholder="Patient Name..." 
-                           style="flex: 1; padding: 8px 12px; border: 2px solid #eee; border-radius: 8px; font-size: 12px; outline: none; color: var(--dark); font-weight: bold;"
-                           onfocus="this.style.borderColor='var(--primary)'" onblur="this.style.borderColor='#eee'">
-                    <button onclick="addNewVersionToQueue('${String(p.id)}')" 
-                            style="background:var(--primary); color:white; border:none; padding:8px 15px; border-radius:8px; cursor:pointer; font-size:12px; font-weight:bold; box-shadow: 0 4px 10px rgba(13,71,161,0.2);">
-                        Add & Queue
-                    </button>
-                </div>
+
+            <div style="margin-top: 5px; background: #fcfcfc; padding: 10px; border-radius: 8px; border: 1px solid #f0f0f0; display: flex; align-items: center; gap: 8px;">
+                <span style="font-size: 11px; color: #e67e22; font-weight: bold; white-space: nowrap;">📱 Phone:</span>
+                <input type="text" id="search-phone-${p.id}" value="${p.phoneNumber || ''}" placeholder="05xxxxxxxx" maxlength="10"
+                       style="flex: 1; padding: 6px 10px; border: 1px solid #ddd; border-radius: 6px; font-size: 12px; outline: none; font-weight: bold;">
+                <button onclick="savePhoneFromSearch('${String(p.id)}')" 
+                        style="background:#0984e3; color:white; border:none; padding:6px 12px; border-radius:6px; cursor:pointer; font-size:11px; font-weight:bold;">
+                    ${hasPhone ? 'Update' : 'Save'}
+                </button>
             </div>
-            ` : ''}
         </div>
         `;
     }).join('');
@@ -28260,17 +28363,26 @@ document.addEventListener('click', function(e) {
         document.getElementById('dispenseSearchResults').style.display = 'none';
     }
 });
+
 // ============================================
 // DOCUMENT MANAGER LOGIC (SUPABASE CONNECTED)
 // ============================================
 
 // مصفوفة لتخزين الملفات القادمة من قاعدة البيانات
 let storedFiles = []; 
-
 // 1. فتح المودال وجلب الملفات من السيرفر
 async function openDocsManager() {
     renderDocsModal(); // رسم الهيكل أولاً
-    await fetchDocsFromSupabase(); // بدء جلب البيانات
+    
+    // عرض الملفات المتخزنة محلياً فوراً للسرعة
+    if (storedFiles && storedFiles.length > 0) {
+        const titleEl = document.getElementById('docsModalTitle');
+        if (titleEl) titleEl.textContent = `MY FILES (${storedFiles.length})`;
+        renderDocsList();
+    }
+    
+    // بدء التحديث من السيرفر في الخلفية
+    fetchDocsFromSupabase(); 
 }
 
 // 2. دالة جلب الملفات من قاعدة البيانات (Supabase)
@@ -28278,8 +28390,10 @@ async function fetchDocsFromSupabase() {
     const container = document.getElementById('filesListRender');
     const titleEl = document.getElementById('docsModalTitle');
     
-    // عرض حالة التحميل
-    if(container) container.innerHTML = '<div style="text-align:center; padding:20px;"><div class="loading" style="border-color:var(--primary) transparent var(--primary) transparent;"></div></div>';
+    // عرض حالة التحميل فقط لو كانت القائمة فارغة تماماً
+    if(storedFiles.length === 0 && container) {
+        container.innerHTML = '<div style="text-align:center; padding:20px;"><div class="loading" style="border-color:var(--primary) transparent var(--primary) transparent;"></div></div>';
+    }
 
     try {
         // جلب الملفات الخاصة بالصيدلية الحالية فقط
@@ -28291,38 +28405,61 @@ async function fetchDocsFromSupabase() {
 
         if (error) throw error;
 
-        storedFiles = data || [];
-        renderDocsList(); // إعادة رسم القائمة بالبيانات الحقيقية
+        // دمج الملفات اللي قيد الرفع حالياً عشان ما تختفيش
+        const uploadingFiles = storedFiles.filter(f => f.isUploading);
         
-        // تحديث العنوان بالعدد الصحيح
-        if(titleEl) titleEl.textContent = `MY FILES (${storedFiles.length})`;
+        storedFiles = [...uploadingFiles, ...(data || [])];
+        renderDocsList(); 
+        
+        // تحديث العنوان بالعدد الصحيح الفعلي
+        if(titleEl) {
+            const actualCount = storedFiles.filter(f => !f.isUploading).length;
+            titleEl.textContent = `MY FILES (${actualCount})`;
+        }
 
     } catch (err) {
         console.error('Error fetching docs:', err);
-        if(container) container.innerHTML = '<div style="text-align:center; color:#e74c3c; padding:20px;">Failed to load files from cloud ☁️</div>';
+        if(storedFiles.length === 0 && container) {
+            container.innerHTML = '<div style="text-align:center; color:#e74c3c; padding:20px;">Failed to load files from cloud ☁️</div>';
+        }
     }
 }
 
-// 3. دالة رفع الملفات (رفع للسحابة + حفظ في القاعدة)
+// 3. دالة رفع الملفات (عرض فوري + رفع في الخلفية)
 async function handleDocsUpload(input) {
     if (!input.files || input.files.length === 0) return;
 
-    // حفظ المحتوى الحالي لعرضه في حالة الفشل
-    const container = document.getElementById('filesListRender');
-    const originalContent = container.innerHTML;
-    
-    // عرض مؤشر التحميل
-    container.innerHTML = `
-        <div style="text-align:center; padding:30px;">
-            <div class="loading" style="width:30px; height:30px; margin-bottom:10px;"></div>
-            <p style="color:var(--primary); font-weight:bold; font-size:12px;">Uploading to Cloud...</p>
-        </div>
-    `;
+    const files = Array.from(input.files);
+    const titleEl = document.getElementById('docsModalTitle');
+    const nowIso = new Date().toISOString();
+
+    // تجهيز كروت مؤقتة لعرضها فوراً بمؤشر تحميل
+    const tempFiles = files.map((file, index) => ({
+        id: `temp-${Date.now()}-${index}`,
+        file_name: file.name,
+        file_url: '#',
+        file_type: getFileType(file.name),
+        file_size: (file.size / 1024).toFixed(1) + ' KB',
+        created_at: nowIso,
+        isUploading: true,
+        isNew: true
+    }));
+
+    // إضافة الكروت المؤقتة للأعلى ورسم القائمة
+    storedFiles = [...tempFiles, ...storedFiles];
+    renderDocsList();
+
+    if (titleEl) {
+        const actualCount = storedFiles.filter(f => !f.isUploading).length;
+        titleEl.textContent = `MY FILES (${actualCount}) - Uploading...`;
+    }
 
     try {
-        for (const file of Array.from(input.files)) {
-            // A. تجهيز اسم فريد للملف (لمنع التكرار في التخزين)
-            // نستخدم Timestamp + تنظيف الاسم من الرموز الغريبة
+        for (let i = 0; i < files.length; i++) {
+            const file = files[i];
+            const tempId = tempFiles[i].id;
+
+            // A. تجهيز اسم فريد للملف
             const cleanName = file.name.replace(/[^a-zA-Z0-9.-]/g, '_');
             const filePath = `${currentUser.id}/${Date.now()}_${cleanName}`; 
 
@@ -28339,7 +28476,7 @@ async function handleDocsUpload(input) {
                 .getPublicUrl(filePath);
 
             // D. حفظ معلومات الملف في قاعدة البيانات (Table)
-            const { error: dbError } = await supabaseClient
+            const { data: insertedFile, error: dbError } = await supabaseClient
                 .from('pharmacy_docs')
                 .insert([{
                     pharmacy_id: currentUser.id,
@@ -28348,18 +28485,45 @@ async function handleDocsUpload(input) {
                     file_type: getFileType(file.name),
                     file_size: (file.size / 1024).toFixed(1) + ' KB',
                     storage_path: filePath
-                }]);
+                }])
+                .select()
+                .single();
 
             if (dbError) throw dbError;
+
+            // E. تحديث الكارت المؤقت بالبيانات الحقيقية في الواجهة فوراً
+            storedFiles = storedFiles.map(item => {
+                if (item.id === tempId) {
+                    return { ...insertedFile, isUploading: false, isNew: true };
+                }
+                return item;
+            });
+            renderDocsList();
         }
 
-        // E. نجاح! إعادة تحميل القائمة من السيرفر
-        await fetchDocsFromSupabase();
+        if (titleEl) {
+            const actualCount = storedFiles.filter(f => !f.isUploading).length;
+            titleEl.textContent = `MY FILES (${actualCount})`;
+        }
+
+        // إزالة تمييز "الجديد" بعد 10 دقائق
+        setTimeout(() => {
+            storedFiles = storedFiles.map(file => ({ ...file, isNew: false }));
+            renderDocsList();
+        }, 10 * 60 * 1000);
 
     } catch (error) {
         console.error('Upload Error:', error);
-        showModal('Error', `<p style="text-align:center;">Upload Failed: ${error.message}</p>`, '<button class="btn-primary" onclick="closeModal()">OK</button>');
-        container.innerHTML = originalContent; // استرجاع القائمة القديمة
+        // التراجع عن الكروت المؤقتة
+        storedFiles = storedFiles.filter(item => !String(item.id).startsWith('temp-'));
+        renderDocsList();
+        
+        if (titleEl) {
+            const actualCount = storedFiles.filter(f => !f.isUploading).length;
+            titleEl.textContent = `MY FILES (${actualCount})`;
+        }
+        
+        showModal('Error', `<p style="text-align:center;">Upload Failed: ${error.message}</p>`, '<button class="btn-primary" onclick="closeModalCustom()">OK</button>');
     }
     
     input.value = ''; // تصفير حقل الإدخال
@@ -28368,6 +28532,14 @@ async function handleDocsUpload(input) {
 // 4. حذف ملف (من القاعدة والتخزين)
 async function deleteDoc(id, storagePath) {
     if(!confirm('Are you sure you want to permanently delete this file?')) return;
+
+    // استبعاد الملف من الواجهة فوراً للسرعة
+    const previousFiles = [...storedFiles];
+    storedFiles = storedFiles.filter(f => f.id !== id);
+    renderDocsList();
+    
+    const titleEl = document.getElementById('docsModalTitle');
+    if(titleEl) titleEl.textContent = `MY FILES (${storedFiles.length})`;
 
     try {
         // A. حذف السجل من قاعدة البيانات
@@ -28383,17 +28555,13 @@ async function deleteDoc(id, storagePath) {
             await supabaseClient.storage.from('mono_docs').remove([storagePath]);
         }
 
-        // تحديث الواجهة محلياً فوراً (للسرعة)
-        storedFiles = storedFiles.filter(f => f.id !== id);
-        renderDocsList();
-        
-        // تحديث العداد
-        const titleEl = document.getElementById('docsModalTitle');
-        if(titleEl) titleEl.textContent = `MY FILES (${storedFiles.length})`;
-
     } catch (error) {
         console.error('Delete Error:', error);
-        alert('Failed to delete file from server');
+        alert('Failed to delete file from server. Reverting changes.');
+        // إرجاع الملف للواجهة في حالة فشل الحذف
+        storedFiles = previousFiles;
+        renderDocsList();
+        if(titleEl) titleEl.textContent = `MY FILES (${storedFiles.length})`;
     }
 }
 
@@ -28415,14 +28583,29 @@ function renderDocsModal() {
         </div>
 
         <div class="files-list-container" id="filesListRender">
-            </div>
+        </div>
     `;
 
     showModal(
         '<span style="color: var(--primary);">📁 Documents Manager</span>',
         content,
-        '<button class="btn-primary" onclick="closeModal()">Done</button>'
+        '<button class="btn-primary" onclick="closeModalCustom()">Done</button>'
     );
+
+    // إضافة الكلاس اللي بيكبر المودال للشاشة الكاملة
+    const modalContent = document.getElementById('modalContent');
+    if (modalContent) {
+        modalContent.classList.add('docs-fullscreen-modal');
+    }
+}
+
+// دالة مساعدة لقفل المودال عشان تشيل الكلاس Fullscreen
+function closeModalCustom() {
+    const modalContent = document.getElementById('modalContent');
+    if (modalContent) {
+        modalContent.classList.remove('docs-fullscreen-modal');
+    }
+    closeModal(); // استدعاء الدالة الأصلية في نظامك
 }
 
 // 6. رسم قائمة الملفات
@@ -28441,6 +28624,8 @@ function renderDocsList() {
         container.innerHTML = storedFiles.map((file) => generateFileHTML(file)).join('');
     }
 }
+
+// 7. بناء الـ HTML لكل كارت ملف
 function generateFileHTML(file) {
     let icon = '';
     let typeClass = 'type-other';
@@ -28453,7 +28638,7 @@ function generateFileHTML(file) {
     else { icon = 'DOC'; }
 
     // --- حساب الوقت المتبقي للحذف ---
-    const createdDate = new Date(file.created_at);
+    const createdDate = new Date(file.created_at || new Date().toISOString());
     const expireDate = new Date(createdDate.getTime() + (24 * 60 * 60 * 1000)); // +24 ساعة
     const now = new Date();
     const diffMs = expireDate - now; // الفرق بالملي ثانية
@@ -28473,20 +28658,35 @@ function generateFileHTML(file) {
     }
     // --------------------------------
 
+    // تحديد حالة الرفع أو كون الملف حديثاً (أقل من 10 دقائق)
+    const isUploading = file.isUploading === true;
+    const isFresh = file.isNew === true || ((new Date() - createdDate) < 10 * 60 * 1000); 
+
+    let badge = '';
+    if (isUploading) {
+        badge = `<span class="file-badge uploading" style="background:#e8f1ff; color:#2f80ed; font-size:10px; padding:2px 6px; border-radius:10px; margin-left:6px;">⬆ Uploading...</span>`;
+    } else if (isFresh) {
+        badge = `<span class="file-badge new" style="background:#dcfff1; color:#0f9d58; font-size:10px; padding:2px 6px; border-radius:10px; margin-left:6px;">✨ New</span>`;
+    }
+
+    const safeUrl = isUploading ? 'javascript:void(0)' : file.file_url;
+    const actionStyle = isUploading ? 'opacity: 0.4; pointer-events: none;' : '';
+
     return `
-        <div class="file-item">
+        <div class="file-item ${isFresh && !isUploading ? 'is-new' : ''}" style="${isFresh && !isUploading ? 'background: linear-gradient(135deg, #f2fff8 0%, #ecfffb 100%); border: 1px solid #7be0b8;' : ''}">
             <div class="file-info">
                 <div class="file-icon ${typeClass}">${icon}</div>
                 <div class="file-details">
-                    <div class="file-name" title="${file.file_name}">
-                        <a href="${file.file_url}" target="_blank" style="text-decoration:none; color:inherit;">${file.file_name}</a>
+                    <div class="file-name" title="${file.file_name}" style="display:flex; align-items:center;">
+                        <a href="${safeUrl}" ${isUploading ? '' : 'target="_blank"'} style="text-decoration:none; color:inherit; pointer-events:${isUploading ? 'none' : 'auto'};">${file.file_name}</a>
+                        ${badge}
                     </div>
                     <div class="file-size">
-                        ${file.file_size} ${expireText}
+                        ${file.file_size} ${!isUploading ? expireText : ''}
                     </div>
                 </div>
             </div>
-            <div class="file-actions">
+            <div class="file-actions" style="${actionStyle}">
                 <button class="btn-icon-small btn-view" onclick="window.open('${file.file_url}', '_blank')" title="View">
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
                 </button>
@@ -28502,6 +28702,7 @@ function generateFileHTML(file) {
         </div>
     `;
 }
+
 // 8. دالة مساعدة لتحديد نوع الملف
 function getFileType(fileName) {
     const ext = fileName.split('.').pop().toLowerCase();
@@ -28514,10 +28715,10 @@ function getFileType(fileName) {
 
 // 9. دالة المشاركة عبر واتساب (ترسل الرابط المباشر)
 function shareDocWhatsApp(fileUrl, fileName) {
-    // لأن الملف الآن مرفوع "أونلاين"، يمكننا إرسال الرابط مباشرة للطرف الآخر ليقوم بتحميله
     const text = `*Attached File:* ${fileName}\n*Download Link:* ${fileUrl}`;
     window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(text)}`, '_blank');
 }
+
 function resetFilters() {
     // مسح التواريخ
     document.getElementById('filterDateFrom').value = '';
@@ -29687,7 +29888,44 @@ async function addNewVersionToQueue(originalId) {
         btn.innerHTML = originalBtnContent;
     }
 }
+function filterPatientsByStatus(status) {
+    const now = new Date();
+    const todayStr = now.toISOString().split('T')[0];
+    
+    const nextWeek = new Date();
+    nextWeek.setDate(now.getDate() + 7);
+    const nextWeekStr = nextWeek.toISOString().split('T')[0];
 
+    // فلترة أولية: استبعاد أي كارت ملوش وصفة حقيقية
+    const validOnly = patients.filter(p => {
+        return p.prescriptions && 
+               p.prescriptions.length > 0 && 
+               p.prescriptions[0].number && 
+               p.prescriptions[0].number.trim() !== "";
+    });
+    
+    switch(status) {
+        case 'all':
+            return validOnly;
+        case 'today':
+            return validOnly.filter(p => p.nextRefillDate && p.nextRefillDate.split('T')[0] === todayStr);
+        case 'upcoming':
+            return validOnly.filter(p => {
+                if (!p.nextRefillDate) return false;
+                const d = p.nextRefillDate.split('T')[0];
+                return d > todayStr && d <= nextWeekStr;
+            });
+        case 'overdue':
+            return validOnly.filter(p => {
+                if (!p.nextRefillDate) return false;
+                return p.nextRefillDate.split('T')[0] < todayStr;
+            });
+        case 'imported':
+            return validOnly.filter(p => p.imported);
+        default:
+            return validOnly;
+    }
+}
     </script>
 </body>
 </html>
