@@ -26040,7 +26040,7 @@ function resetSaveBtn() {
                 displayPatients();
             }
         }
-    function displayPatients() {
+   function displayPatients() {
     // 1. تحديث العدادات أولاً لضمان المزامنة
     updateStats();
     
@@ -26054,7 +26054,6 @@ function resetSaveBtn() {
     // 3. الفلترة الأساسية (استبعاد الموجودين في الطابور + استبعاد الكروت بدون وصفات)
     filteredPatients = filteredPatients.filter(p => {
         const notInQueue = p.inQueue !== true;
-        // 👇 السطر الذهبي: الكارت لازم يكون فيه وصفات وفيها رقم فعلي عشان يظهر
         const hasValidPrescriptions = p.prescriptions && 
                                     p.prescriptions.length > 0 && 
                                     p.prescriptions[0].number && 
@@ -26094,7 +26093,7 @@ function resetSaveBtn() {
         return;
     }
 
-    // 7. العرض النهائي (تقسيم لمجموعات لو في تبويب المستورد)
+    // 7. العرض النهائي (تقسيم لمجموعات لو في تبويب المستورد أو العرض العام)
     if (currentFilter === 'imported' && !searchTerm && !dateFilterActive) {
         const batches = {};
         filteredPatients.forEach(p => {
@@ -26112,8 +26111,9 @@ function resetSaveBtn() {
         sortedKeys.forEach(dateKey => {
             const batchList = batches[dateKey];
             let displayHeader = dateKey;
+            let isManual = dateKey.includes('Manual');
             
-            if (!dateKey.includes('Manual')) {
+            if (!isManual) {
                 const d = new Date(dateKey);
                 if (!isNaN(d)) {
                     const dateStr = d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
@@ -26140,12 +26140,10 @@ function resetSaveBtn() {
                         <div style="background:#00B894; color:white; padding:3px 10px; border-radius:12px; font-size:11px; font-weight:bold;">
                             ${batchList.length} Cards
                         </div>
-                        ${!dateKey.includes('Manual') ? `
-                            <button onclick="deleteImportBatch('${dateKey}')" 
-                                    style="background:#ff7675; border:none; color:white; padding:5px 10px; border-radius:8px; cursor:pointer; font-size:10px; font-weight:bold;">
-                                DELETE BATCH
-                            </button>
-                        ` : ''}
+                        <button onclick="deleteImportBatch('${dateKey}')" 
+                                style="background:#ff7675; border:none; color:white; padding:5px 10px; border-radius:8px; cursor:pointer; font-size:10px; font-weight:bold;">
+                            DELETE BATCH
+                        </button>
                     </div>
                 </div>
                 <div class="import-batch-grid"></div>
@@ -29923,6 +29921,54 @@ function filterPatientsByStatus(status) {
         default:
             return validOnly;
     }
+}
+// ============================================
+// DELETE OLD (MANUAL) BATCH
+// ============================================
+async function deleteOldBatch() {
+    confirmAction('Are you sure you want to delete ALL manual/old entries? This cannot be undone.', async function () {
+        showLoading('Deleting old batch...');
+        
+        try {
+            // 1. نجيب الآي دي بتاع كل المرضى اللي معندهومش batch_id
+            const oldPatientIds = patients.filter(p => !p.import_batch_id).map(p => String(p.id));
+            
+            if (oldPatientIds.length === 0) {
+                showToast('No old entries to delete.');
+                hideLoading();
+                closeModal();
+                return;
+            }
+
+            // 2. نحذفهم من سوبابيز دفعة واحدة
+            const { error } = await supabaseClient
+                .from('patients')
+                .delete()
+                .in('id', oldPatientIds); // حذف جماعي باستخدام مصفوفة الآي دي
+
+            if (error) throw error;
+
+            // 3. تحديث محلي
+            patients = patients.filter(p => p.import_batch_id); // نخلي بس اللي ليهم batch_id
+            if (typeof dispensingQueue !== 'undefined') {
+                dispensingQueue = dispensingQueue.filter(p => oldPatientIds.indexOf(String(p.id)) === -1);
+            }
+
+            // 4. تحديث الشاشة
+            updateStats();
+            displayPatients();
+            if (typeof renderDispensingQueue === 'function') renderDispensingQueue();
+
+            closeModal();
+            showToast('Manual Batch Deleted! 🗑️');
+
+        } catch (error) {
+            console.error('Delete batch error:', error);
+            alert('Error deleting batch: ' + error.message);
+        } finally {
+            hideLoading();
+        }
+    });
 }
     </script>
 </body>
