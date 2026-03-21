@@ -25267,7 +25267,7 @@ let tempSelectedDrugs = []; // لتخزين الأدوية المختار مؤق
                 showLogin();
             });
         }
-      async function savePatientToSupabase(patient) {
+        async function savePatientToSupabase(patient) {
     try {
         const patientData = {
             pharmacy_id: currentUser.id,
@@ -25279,36 +25279,44 @@ let tempSelectedDrugs = []; // لتخزين الأدوية المختار مؤق
             next_refill_date: patient.nextRefillDate,
             general_note: patient.generalNote,
             imported: patient.imported,
-            // 🔥 التعديل الجذري: نأخذ القيمة من كائن المريض نفسه
-            // إذا لم تكن موجودة، نفترض false (عشان ميضفش في الديسبنس تلقائياً)
             in_queue: patient.inQueue || false, 
             queue_number: patient.queueNumber || null,
             drugs_list: patient.drugs_list || [],
             updated_at: new Date().toISOString()
         };
 
-        let query;
+        let resultId;
 
-        // وضع إضافة نسخة جديدة (Duplicate Name)
-        if (window.isContinuingAdding === true) {
-            console.log('🚀 Forcing INSERT for new record...');
-            query = supabaseClient.from('patients').insert([patientData]);
-        } 
-        // وضع التعديل
-        else if (editingPatientId) {
-            console.log(`📝 Standard Update for: ${editingPatientId}`);
-            query = supabaseClient.from('patients').update(patientData).eq('id', editingPatientId);
-        } 
-        // وضع الإضافة العادية
-        else {
-            query = supabaseClient.from('patients').insert([patientData]);
+        // 1. التعامل مع جدول المريض (Patients Table)
+        if (window.isContinuingAdding === true || !editingPatientId) {
+            // إضافة جديد
+            const { data, error } = await supabaseClient.from('patients').insert([patientData]).select().single();
+            if (error) throw error;
+            resultId = data.id;
+        } else {
+            // تعديل موجود
+            const { data, error } = await supabaseClient.from('patients').update(patientData).eq('id', editingPatientId).select().single();
+            if (error) throw error;
+            resultId = editingPatientId;
+
+            // في حالة التعديل: نمسح الوصفات القديمة المرتبطة عشان نكتب الجديدة
+            await supabaseClient.from('prescriptions').delete().eq('patient_id', resultId);
         }
 
-        const { data, error } = await query.select().single();
-        if (error) throw error;
-        
+        // 2. التعامل مع جدول الوصفات (Prescriptions Table) 🔥 دا الجزء اللي كان ناقصك
+        if (patient.prescriptions && patient.prescriptions.length > 0) {
+            const prescriptionsToInsert = patient.prescriptions.map(p => ({
+                patient_id: resultId,
+                prescription_number: p.number,
+                note: p.note || ''
+            }));
+
+            const { error: prescError } = await supabaseClient.from('prescriptions').insert(prescriptionsToInsert);
+            if (prescError) throw prescError;
+        }
+
         window.isContinuingAdding = false; 
-        return data.id;
+        return resultId;
 
     } catch (error) {
         window.isContinuingAdding = false;
