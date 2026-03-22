@@ -26039,7 +26039,7 @@ function resetSaveBtn() {
                 displayPatients();
             }
         }
-   function displayPatients() {
+        function displayPatients() {
     // 1. تحديث العدادات أولاً لضمان المزامنة
     updateStats();
     
@@ -26047,21 +26047,38 @@ function resetSaveBtn() {
     let container = document.getElementById('patientsContainer');
     container.innerHTML = '';
 
+    // حساب بداية اليوم الحالي (Local Time) لتصحيح الفلترة
+    const now = new Date();
+    const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+    const nextWeekEnd = todayStart + (7 * 24 * 60 * 60 * 1000);
+
     // 2. الحصول على القائمة المفلترة حسب الحالة (Today, Overdue, etc.)
-    let filteredPatients = filterPatientsByStatus(currentFilter);
-    
-    // 3. الفلترة الأساسية (استبعاد الموجودين في الطابور + استبعاد الكروت بدون وصفات)
-    filteredPatients = filteredPatients.filter(p => {
+    // استبدلنا filterPatientsByStatus بمنطق داخلي موحد لضمان الدقة
+    let filteredPatients = patients.filter(p => {
+        // الفلترة الأساسية: استبعاد الموجودين في الطابور + استبعاد الكروت بدون وصفات
         const notInQueue = p.inQueue !== true;
         const hasValidPrescriptions = p.prescriptions && 
-                                    p.prescriptions.length > 0 && 
-                                    p.prescriptions[0].number && 
-                                    p.prescriptions[0].number.trim() !== "";
+                                      p.prescriptions.length > 0 && 
+                                      p.prescriptions[0].number && 
+                                      p.prescriptions[0].number.trim() !== "";
         
-        return notInQueue && hasValidPrescriptions;
+        if (!notInQueue || !hasValidPrescriptions) return false;
+
+        // منطق التواريخ الموحد
+        if (!p.nextRefillDate) return currentFilter === 'all' || currentFilter === 'imported';
+        
+        const refillDate = new Date(p.nextRefillDate);
+        const refillTime = new Date(refillDate.getFullYear(), refillDate.getMonth(), refillDate.getDate()).getTime();
+
+        if (currentFilter === 'today') return refillTime === todayStart;
+        if (currentFilter === 'upcoming') return refillTime > todayStart && refillTime <= nextWeekEnd;
+        if (currentFilter === 'overdue') return refillTime < todayStart;
+        if (currentFilter === 'imported') return p.imported === true;
+        
+        return true; // في حالة 'all'
     });
 
-    // 4. تطبيق فلتر التاريخ (لو مفعل)
+    // 4. تطبيق فلتر التاريخ اليدوي (لو مفعل)
     if (dateFilterActive && dateFilterFrom && dateFilterTo) {
         filteredPatients = filteredPatients.filter(p => {
             let refillDate = new Date(p.nextRefillDate);
@@ -26077,7 +26094,7 @@ function resetSaveBtn() {
         filteredPatients = filteredPatients.filter(p => searchIds.includes(p.id));
     }
 
-    // 6. عرض رسالة "لا توجد نتائج" لو القائمة فضيت
+    // 6. عرض رسالة "لا توجد نتائج"
     if (filteredPatients.length === 0) {
         container.innerHTML = `
             <div class="no-data">
@@ -26085,14 +26102,14 @@ function resetSaveBtn() {
                     <div class="icon icon-search" style="width: 40px; height: 40px; border-width: 4px; color: #B2BEC3; margin: 0 auto;"></div>
                 </div>
                 <p style="font-size: 18px; font-weight: 700; color: #95A5A6;">
-                    ${searchTerm ? 'No matching results in this list' : 'No valid patients found'}
+                    ${searchTerm ? 'No matching results in this list' : 'No patients match this filter'}
                 </p>
             </div>
         `;
         return;
     }
 
-    // 7. العرض النهائي (تقسيم لمجموعات لو في تبويب المستورد أو العرض العام)
+    // 7. العرض النهائي (تقسيم لمجموعات لو في تبويب المستورد)
     if (currentFilter === 'imported' && !searchTerm && !dateFilterActive) {
         const batches = {};
         filteredPatients.forEach(p => {
@@ -26116,15 +26133,8 @@ function resetSaveBtn() {
                 const d = new Date(dateKey);
                 if (!isNaN(d)) {
                     const dateStr = d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
-                    const timeStr = d.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
-                    displayHeader = `
-                        <div style="display:flex; gap:15px; align-items:center;">
-                            <span>📅 ${dateStr}</span>
-                            <span style="background:rgba(255,255,255,0.15); padding:2px 8px; border-radius:4px; font-size:11px;">
-                                🕒 ${timeStr}
-                            </span>
-                        </div>
-                    `;
+                    const timeStr = d.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
+                    displayHeader = `📅 ${dateStr} <small style="opacity:0.6; margin-left:10px;">🕒 ${timeStr}</small>`;
                 }
             } else {
                 displayHeader = `📁 Manual / Old Entry`;
@@ -26133,34 +26143,23 @@ function resetSaveBtn() {
             const batchBox = document.createElement('div');
             batchBox.className = 'import-batch-container';
             batchBox.innerHTML = `
-                <div class="import-batch-header" style="display:flex; justify-content:space-between; align-items:center;">
-                    <div style="font-size:14px; font-weight:bold;">${displayHeader}</div>
-                    <div style="display:flex; gap:10px; align-items:center;">
-                        <div style="background:#00B894; color:white; padding:3px 10px; border-radius:12px; font-size:11px; font-weight:bold;">
-                            ${batchList.length} Cards
-                        </div>
-                        <button onclick="deleteImportBatch('${dateKey}')" 
-                                style="background:#ff7675; border:none; color:white; padding:5px 10px; border-radius:8px; cursor:pointer; font-size:10px; font-weight:bold;">
-                            DELETE BATCH
-                        </button>
+                <div class="import-batch-header">
+                    <div>${displayHeader}</div>
+                    <div style="display:flex; gap:10px;">
+                        <span class="patient-badge" style="background:#00B894;">${batchList.length} Cards</span>
+                        <button onclick="deleteImportBatch('${dateKey}')" style="background:#ff7675; border:none; color:white; padding:2px 10px; border-radius:8px; cursor:pointer; font-size:10px; font-weight:bold;">DELETE BATCH</button>
                     </div>
                 </div>
                 <div class="import-batch-grid"></div>
             `;
-
             const grid = batchBox.querySelector('.import-batch-grid');
-            batchList.forEach(patient => {
-                grid.appendChild(createPatientCard(patient, searchTerm));
-            });
+            batchList.forEach(p => grid.appendChild(createPatientCard(p, searchTerm)));
             container.appendChild(batchBox);
         });
 
     } else {
-        // العرض العادي (اللستة العادية)
-        filteredPatients.forEach(patient => {
-            let card = createPatientCard(patient, searchTerm);
-            container.appendChild(card);
-        });
+        // العرض العادي
+        filteredPatients.forEach(p => container.appendChild(createPatientCard(p, searchTerm)));
     }
 }
         // دالة مساعدة لعمل Highlight للنص
@@ -26432,17 +26431,22 @@ function createPatientCard(patient, searchTerm = '') {
             if (diff === 1) return 'Tomorrow';
             return `In ${diff} days`;
         }
-        function updateStats() {
-    console.log('📊 Updating Stats (Final Sync Mode)...');
+        // ============================================================
+// 1. دالة تحديث الإحصائيات (تعديل دقة تاريخ اليوم)
+// ============================================================
+function updateStats() {
+    console.log('📊 Updating Stats (Precise Local Date Mode)...');
     
     const now = new Date();
-    const todayStr = now.toISOString().split('T')[0];
-    const nextWeek = new Date();
-    nextWeek.setDate(now.getDate() + 7);
-    const nextWeekStr = nextWeek.toISOString().split('T')[0];
+    // تصفير الوقت للحصول على بداية اليوم المحلي (00:00:00) لضمان دقة المقارنة
+    const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+    
+    // حساب نهاية أسبوع من الآن (7 أيام)
+    const nextWeekEnd = todayStart + (7 * 24 * 60 * 60 * 1000);
 
     // 1. تصفية المرضى (الحصول على الكروت الحقيقية فقط واستبعاد اللي في الطابور)
     const validPatients = patients.filter(p => {
+        // التأكد من وجود بيانات صحيحة للوصفة وتاريخ ريفيل وغير موجود بالطابور
         return p.inQueue !== true &&
                p.nextRefillDate && 
                p.prescriptions && 
@@ -26451,26 +26455,24 @@ function createPatientCard(patient, searchTerm = '') {
                p.prescriptions[0].number.trim() !== "";
     });
 
-    let todaySet = new Set();
-    let upcomingSet = new Set();
-    let overdueSet = new Set();
+    let todayCount = 0;
+    let upcomingCount = 0;
+    let overdueCount = 0;
 
     validPatients.forEach(p => {
-        const pDate = p.nextRefillDate.split('T')[0];
-        const pId = p.id; 
+        const refillDate = new Date(p.nextRefillDate);
+        // تصفير وقت تاريخ المريض للمقارنة العادلة باليوم فقط
+        const refillTime = new Date(refillDate.getFullYear(), refillDate.getMonth(), refillDate.getDate()).getTime();
 
-        if (pDate === todayStr) {
-            todaySet.add(pId);
-        } else if (pDate > todayStr && pDate <= nextWeekStr) {
-            upcomingSet.add(pId);
-        } else if (pDate < todayStr) {
-            overdueSet.add(pId);
+        if (refillTime === todayStart) {
+            todayCount++;
+        } else if (refillTime > todayStart && refillTime <= nextWeekEnd) {
+            upcomingCount++;
+        } else if (refillTime < todayStart) {
+            overdueCount++;
         }
     });
 
-    const todayCount = todaySet.size;
-    const upcomingCount = upcomingSet.size;
-    const overdueCount = overdueSet.size;
     const totalCount = validPatients.length;
 
     // 2. تحديث الواجهة (البوكسات)
@@ -26481,14 +26483,13 @@ function createPatientCard(patient, searchTerm = '') {
         const elUpcoming = document.getElementById('val-upcoming');
         const elOverdue = document.getElementById('val-overdue');
 
-        // لو البوكسات مرسومة، نحدث الأرقام بس
+        // تحديث الأرقام مباشرة لو العناصر موجودة، أو إعادة رسم الشبكة بالكامل
         if (elTotal && elToday && elUpcoming && elOverdue) {
             elTotal.innerText = totalCount;
             elToday.innerText = todayCount;
             elUpcoming.innerText = upcomingCount;
             elOverdue.innerText = overdueCount;
         } else {
-            // لو مش مرسومة، نرسم الهيكل كامل
             statsGrid.innerHTML = `
                 <div class="stat-card total" onclick="filterPatients('all')">
                     <div class="number" id="val-total">${totalCount}</div>
@@ -26510,23 +26511,31 @@ function createPatientCard(patient, searchTerm = '') {
         }
     }
 
-    // 3. تحديث محرك البحث
+    // 3. تحديث محرك البحث ليشمل المرضى المفلترين فقط (Valid Patients)
     if (window.Fuse) {
         fuse = new Fuse(validPatients, {
-            keys: ['nationalId', 'phoneNumber', 'generalNote', 'prescriptions.number', 'prescriptions.note'],
-            threshold: 0.0,
+            keys: [
+                'nationalId', 
+                'phoneNumber', 
+                'generalNote', 
+                'prescriptions.number', 
+                'prescriptions.note'
+            ],
+            threshold: 0.2, // تحسين درجة الحساسية للبحث لتكون أكثر مرونة
             ignoreLocation: true,
             useExtendedSearch: true
         });
     }
 }
-
-   function filterPatients(status) {
+// ============================================================
+// 2. دالة فلترة المرضى (الربط مع التوقيت الجديد)
+// ============================================================
+function filterPatients(status) {
     currentFilter = status;
     
     document.querySelectorAll('.chip').forEach(chip => chip.classList.remove('active'));
     
-    // Find the chip button by its text content
+    // تحديث شكل الـ Chips
     let chips = document.querySelectorAll('.chip');
     chips.forEach(chip => {
         let chipText = chip.textContent.trim().toLowerCase();
@@ -26539,10 +26548,9 @@ function createPatientCard(patient, searchTerm = '') {
         }
     });
     
+    // استدعاء عرض المرضى
     displayPatients();
 }
-
-        
         function searchPatients() {
     // تحديث العدادات أولاً بناءً على البحث أو الفلترة الجديدة
     updateStats(); 
