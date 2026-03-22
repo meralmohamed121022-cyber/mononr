@@ -27055,10 +27055,11 @@ function processAndValidateData(rawData, isTextFile) {
     let skipped = []; 
     const batchTimestamp = new Date().toISOString(); 
 
+    // ريجيكس التعرف الذكي (Smart Patterns)
     const patterns = {
-        id: /^[1-4]\d{9}$/,
-        rx: /^[a-zA-Z]\d{7}$/i, 
-        phoneExtraction: /(?:966|0)?(5\d{8})/
+        id: /^[1-4]\d{9}$/,              // 10 أرقام تبدأ بـ 1 أو 2 أو 3 أو 4
+        rx: /^[a-z]\d{7}$/i,             // حرف وبعده 7 أرقام
+        phone: /^(05|5|9665|009665)\d{8}$/  // صيغ الجوال السعودي المختلفة
     };
 
     const cleanString = (val) => {
@@ -27082,99 +27083,113 @@ function processAndValidateData(rawData, isTextFile) {
     };
 
     rawData.forEach((row, index) => {
-        const keys = Object.keys(row);
-        const findKey = (possibleNames) => keys.find(k => 
-            possibleNames.some(name => k.toLowerCase().trim() === name.toLowerCase().trim())
-        );
-
-        // سحب البيانات مع دعم المسافات في أسماء أعمدة الإكسيل (مثل Next Refill Date)
-        const idRaw = cleanString(isTextFile ? row.nationalId : row[findKey(['id', 'nationalid', 'identity'])]);
-        const rxRaw = cleanString(isTextFile ? (row.prescription || row.prescriptionNumber) : row[findKey(['prescription', 'rx', 'prescription number', 'prescription_number', 'order'])]);
-        const phoneRaw = cleanString(isTextFile ? row.phoneNumber : row[findKey(['phone', 'phoneNumber', 'mobile'])]);
-        const nextRefillRaw = parseAnyDate(isTextFile ? row.nextRefillDate : row[findKey(['next refill date', 'nextrefilldate', 'next_refill_date', 'تاريخ الصرف القادم'])]);
+        let detectedId = "", detectedRx = "", detectedPhone = "", detectedNextRefill = "", detectedDispensing = "";
         
-        const cleanId = idRaw.replace(/\D/g, '');
-        const cleanRx = rxRaw.replace(/\s/g, '').toLowerCase();
+        // جلب كل قيم الصف وتحويلها لنصوص نظيفة
+        let values = Object.values(row).map(v => cleanString(v));
 
-        if (!patterns.id.test(cleanId)) {
-            skipped.push({ row: index + 1, id: idRaw, reason: "❌ Invalid ID" });
+        // 🧠 البحث الذكي داخل محتوى الخلايا (بدون الاعتماد على اسم العمود)
+        values.forEach(val => {
+            if (!val) return;
+
+            // 1. التعرف على الهوية
+            if (!detectedId && patterns.id.test(val)) {
+                detectedId = val;
+            } 
+            // 2. التعرف على الوصفة
+            else if (!detectedRx && patterns.rx.test(val)) {
+                detectedRx = val.toLowerCase();
+            } 
+            // 3. التعرف على الجوال ومعالجته (تحويل 966 أو 00966 إلى 0)
+            else if (!detectedPhone && patterns.phone.test(val)) {
+                let cleanPhone = val.replace(/^00966|^966|^0/, ''); 
+                detectedPhone = '0' + cleanPhone; // توحيد الصيغة لتبدأ بـ 05
+            }
+            // 4. التعرف على التاريخ (بناءً على شكل YYYY-MM-DD)
+            else if (val.includes('-') && val.length >= 10) {
+                let parsed = parseAnyDate(val);
+                if (parsed) {
+                    // أول تاريخ يقابله نعتبره ريفيل، ولو فيه تاني نعتبره صرف
+                    if (!detectedNextRefill) detectedNextRefill = parsed;
+                    else detectedDispensing = parsed;
+                }
+            }
+        });
+
+        // التحقق من وجود الأعمدة الأساسية (الهوية والوصفة)
+        if (!detectedId || !detectedRx) {
+            skipped.push({ row: index + 1, id: detectedId || "Unknown", reason: "❌ Missing ID or Rx Pattern" });
             return;
         }
 
-        // 🎯 البحث عن المريض بالهوية
-        const existingPatient = patients.find(p => String(p.nationalId) === cleanId);
+        // 🎯 فحص التكرار والمقارنة
+        const existingPatient = patients.find(p => String(p.nationalId) === detectedId);
 
         if (existingPatient) {
-            // 🔎 البحث عن الوصفة المحددة داخل المريض لمقارنة تاريخها الخاص
             const matchedRx = existingPatient.prescriptions.find(pr => 
-                String(pr.number).toLowerCase().trim() === cleanRx
+                String(pr.number).toLowerCase().trim() === detectedRx
             );
 
             if (matchedRx) {
-                // قراءة التاريخ القديم من الوصفة (دعم كل مسميات الحقول الممكنة)
-                const oldDateRaw = matchedRx.nextRefillDate || matchedRx.next_refill_date || matchedRx.date || "";
+                const oldDateRaw = matchedRx.nextRefillDate || matchedRx.next_refill_date || "";
                 const oldDate = parseAnyDate(oldDateRaw);
-                const newDate = nextRefillRaw;
+                const newDate = detectedNextRefill;
 
                 let changes = [];
-                let extractedPhone = '';
-                const phoneMatch = phoneRaw.replace(/\D/g, '').match(patterns.phoneExtraction);
-                if (phoneMatch) extractedPhone = '0' + phoneMatch[1];
+                if (detectedPhone && existingPatient.phoneNumber !== detectedPhone) changes.push(`Phone Update`);
                 
-                if (extractedPhone && existingPatient.phoneNumber !== extractedPhone) changes.push(`Phone Update`);
-                
-                // مقارنة تاريخ الوصفة المعينة
                 if (newDate && oldDate !== newDate) {
                     changes.push(`Date Update`);
                     updatesToCheck.push({
                         dbId: existingPatient.id,
-                        nationalId: cleanId,
-                        rxNumber: cleanRx,
+                        nationalId: detectedId,
+                        rxNumber: detectedRx,
                         changes: changes,
-                        newPhone: extractedPhone || existingPatient.phoneNumber,
+                        newPhone: detectedPhone || existingPatient.phoneNumber,
                         newDate: newDate,
-                        oldDate: oldDate || "No Date" 
+                        oldDate: oldDate || "No Date"
                     });
                     return;
                 } else if (changes.length > 0) {
                     updatesToCheck.push({
                         dbId: existingPatient.id,
-                        nationalId: cleanId,
-                        rxNumber: cleanRx,
+                        nationalId: detectedId,
+                        rxNumber: detectedRx,
                         changes: changes,
-                        newPhone: extractedPhone,
+                        newPhone: detectedPhone,
                         newDate: oldDate,
                         oldDate: oldDate
                     });
                     return;
                 } else {
-                    skipped.push({ row: index + 1, id: cleanId, reason: `✅ Rx ${cleanRx} is Up-to-date` });
+                    skipped.push({ row: index + 1, id: detectedId, reason: `✅ Rx ${detectedRx} is Current` });
                     return;
                 }
             }
         }
 
         // معالجة الإضافات الجديدة
-        let finalDispDate = parseAnyDate(isTextFile ? row.dispensingDate : row[findKey(['dispensing date', 'dispensingdate', 'date'])]) || new Date().toISOString().split('T')[0];
-        let finalNextDate = nextRefillRaw;
+        let finalDispDate = detectedDispensing || new Date().toISOString().split('T')[0];
+        let finalNextDate = detectedNextRefill;
+
         if (!finalNextDate) {
             let d = new Date(finalDispDate);
             d.setDate(d.getDate() + 24);
             finalNextDate = d.toISOString().split('T')[0];
         }
 
-        const uniqueKey = `${cleanId}_${cleanRx}`; 
+        const uniqueKey = `${detectedId}_${detectedRx}`; 
         if (!validPatients[uniqueKey]) {
             validPatients[uniqueKey] = {
-                nationalId: cleanId,
-                phoneNumber: phoneRaw,
+                nationalId: detectedId,
+                phoneNumber: detectedPhone,
                 dispensingDate: finalDispDate,
                 refillPeriod: 24,
                 nextRefillDate: finalNextDate,
-                prescriptions: [{ number: cleanRx, note: '' }],
-                generalNote: cleanString(isTextFile ? row.note : row[findKey(['note', 'generalnote', 'remarks'])]),
+                prescriptions: [{ number: detectedRx, note: '' }],
+                generalNote: "Auto-Imported",
                 imported: true,
-                importType: existingPatient ? "New Rx (Existing ID)" : "Full New Patient", 
+                importType: existingPatient ? "New Rx" : "New Patient", 
                 importDate: batchTimestamp 
             };
         }
