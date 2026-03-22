@@ -27049,17 +27049,18 @@ function analyzeImportFailure(skipped) {
         );
     }
 }
+
 function processAndValidateData(rawData, isTextFile) {
     let validPatients = {}; 
     let updatesToCheck = []; 
     let skipped = []; 
     const batchTimestamp = new Date().toISOString(); 
 
-    // ريجيكس التعرف الذكي (Smart Patterns)
+    // 🧠 ريجيكس التعرف الذكي (Smart Patterns)
     const patterns = {
         id: /^[1-4]\d{9}$/,              // 10 أرقام تبدأ بـ 1 أو 2 أو 3 أو 4
         rx: /^[a-z]\d{7}$/i,             // حرف وبعده 7 أرقام
-        phone: /^(05|5|9665|009665)\d{8}$/  // صيغ الجوال السعودي المختلفة
+        phone: /^(00966|966|0)?(5\d{8})$/ // التعرف على الجوال السعودي بمختلف بادئاته
     };
 
     const cleanString = (val) => {
@@ -27085,10 +27086,10 @@ function processAndValidateData(rawData, isTextFile) {
     rawData.forEach((row, index) => {
         let detectedId = "", detectedRx = "", detectedPhone = "", detectedNextRefill = "", detectedDispensing = "";
         
-        // جلب كل قيم الصف وتحويلها لنصوص نظيفة
+        // جلب كل قيم الصف (الخلايا)
         let values = Object.values(row).map(v => cleanString(v));
 
-        // 🧠 البحث الذكي داخل محتوى الخلايا (بدون الاعتماد على اسم العمود)
+        // 🔍 فحص كل خلية في الصف للتعرف على نوعها
         values.forEach(val => {
             if (!val) return;
 
@@ -27100,29 +27101,30 @@ function processAndValidateData(rawData, isTextFile) {
             else if (!detectedRx && patterns.rx.test(val)) {
                 detectedRx = val.toLowerCase();
             } 
-            // 3. التعرف على الجوال ومعالجته (تحويل 966 أو 00966 إلى 0)
-            else if (!detectedPhone && patterns.phone.test(val)) {
-                let cleanPhone = val.replace(/^00966|^966|^0/, ''); 
-                detectedPhone = '0' + cleanPhone; // توحيد الصيغة لتبدأ بـ 05
+            // 3. التعرف على الجوال ومعالجة المفتاح (00966, 966, 5 -> 05)
+            else if (!detectedPhone) {
+                const phoneMatch = val.match(patterns.phone);
+                if (phoneMatch) {
+                    detectedPhone = '0' + phoneMatch[2]; // دائماً نحولها لصيغة 05xxxxxxxx
+                }
             }
-            // 4. التعرف على التاريخ (بناءً على شكل YYYY-MM-DD)
+            // 4. التعرف على التاريخ
             else if (val.includes('-') && val.length >= 10) {
                 let parsed = parseAnyDate(val);
                 if (parsed) {
-                    // أول تاريخ يقابله نعتبره ريفيل، ولو فيه تاني نعتبره صرف
                     if (!detectedNextRefill) detectedNextRefill = parsed;
                     else detectedDispensing = parsed;
                 }
             }
         });
 
-        // التحقق من وجود الأعمدة الأساسية (الهوية والوصفة)
+        // التحقق من وجود البيانات الأساسية (هوية + وصفة) لضمان صحة السطر
         if (!detectedId || !detectedRx) {
-            skipped.push({ row: index + 1, id: detectedId || "Unknown", reason: "❌ Missing ID or Rx Pattern" });
+            skipped.push({ row: index + 1, id: detectedId || "Unknown", reason: "❌ Could not detect ID or Rx pattern" });
             return;
         }
 
-        // 🎯 فحص التكرار والمقارنة
+        // 🎯 فحص التكرار والمقارنة بالبيانات الحالية
         const existingPatient = patients.find(p => String(p.nationalId) === detectedId);
 
         if (existingPatient) {
@@ -27136,7 +27138,9 @@ function processAndValidateData(rawData, isTextFile) {
                 const newDate = detectedNextRefill;
 
                 let changes = [];
-                if (detectedPhone && existingPatient.phoneNumber !== detectedPhone) changes.push(`Phone Update`);
+                if (detectedPhone && existingPatient.phoneNumber !== detectedPhone) {
+                    changes.push(`Phone Update`);
+                }
                 
                 if (newDate && oldDate !== newDate) {
                     changes.push(`Date Update`);
@@ -27162,7 +27166,7 @@ function processAndValidateData(rawData, isTextFile) {
                     });
                     return;
                 } else {
-                    skipped.push({ row: index + 1, id: detectedId, reason: `✅ Rx ${detectedRx} is Current` });
+                    skipped.push({ row: index + 1, id: detectedId, reason: `✅ Rx ${detectedRx} already up-to-date` });
                     return;
                 }
             }
