@@ -27083,67 +27083,54 @@ function analyzeImportFailure(skipped) {
         );
     }
 }
-
 function processAndValidateData(rawData, isTextFile) {
     let validPatients = {}; 
     let updatesToCheck = []; 
     let skipped = []; 
     const batchTimestamp = new Date().toISOString(); 
 
-    // 🧠 ريجيكس التعرف الذكي (Smart Patterns)
+    // 1. بصمة النظام: نجمع كل (هوية + وصفة) موجودة حالياً في لستة واحدة للمقارنة السريعة
+    const existingMap = new Map();
+    patients.forEach(p => {
+        if (p.prescriptions && Array.isArray(p.prescriptions)) {
+            p.prescriptions.forEach(rx => {
+                // المفتاح الفريد: هوية المريض + رقم الوصفة (كلهم حروف صغيرة وبدون مسافات)
+                const key = `${String(p.nationalId).trim()}_${String(rx.number).toLowerCase().trim()}`;
+                existingMap.set(key, {
+                    patient: p,
+                    rx: rx
+                });
+            });
+        }
+    });
+
     const patterns = {
-        id: /^[1-4]\d{9}$/,              // 10 أرقام تبدأ بـ 1 أو 2 أو 3 أو 4
-        rx: /^[a-z]\d{7}$/i,             // حرف وبعده 7 أرقام
-        phone: /^(00966|966|0)?(5\d{8})$/ // التعرف على الجوال السعودي بمختلف بادئاته
+        id: /^[1-4]\d{9}$/,
+        rx: /^[a-z]\d{7}$/i,
+        phone: /^(00966|966|0)?(5\d{8})$/
     };
 
-    const cleanString = (val) => {
-        if (val === null || val === undefined || String(val).toLowerCase() === "null") return "";
-        return String(val).trim();
-    };
+    const cleanString = (val) => (val === null || val === undefined) ? "" : String(val).trim();
 
     const parseAnyDate = (dateVal) => {
         let cleanVal = cleanString(dateVal);
         if (!cleanVal) return null;
-        let d;
-        if (!isNaN(dateVal) && typeof dateVal !== 'boolean' && String(dateVal).length < 10) {
-            d = new Date((dateVal - 25569) * 86400 * 1000);
-        } else {
-            d = new Date(cleanVal);
-        }
-        if (d instanceof Date && !isNaN(d) && d.getFullYear() > 1900) {
-            return d.toISOString().split('T')[0];
-        }
-        return null;
+        let d = new Date(cleanVal);
+        return (d instanceof Date && !isNaN(d)) ? d.toISOString().split('T')[0] : null;
     };
 
     rawData.forEach((row, index) => {
         let detectedId = "", detectedRx = "", detectedPhone = "", detectedNextRefill = "", detectedDispensing = "";
-        
-        // جلب كل قيم الصف (الخلايا)
         let values = Object.values(row).map(v => cleanString(v));
 
-        // 🔍 فحص كل خلية في الصف للتعرف على نوعها
         values.forEach(val => {
             if (!val) return;
-
-            // 1. التعرف على الهوية
-            if (!detectedId && patterns.id.test(val)) {
-                detectedId = val;
-            } 
-            // 2. التعرف على الوصفة
-            else if (!detectedRx && patterns.rx.test(val)) {
-                detectedRx = val.toLowerCase();
-            } 
-            // 3. التعرف على الجوال ومعالجة المفتاح (00966, 966, 5 -> 05)
+            if (!detectedId && patterns.id.test(val)) detectedId = val;
+            else if (!detectedRx && patterns.rx.test(val)) detectedRx = val.toLowerCase();
             else if (!detectedPhone) {
                 const phoneMatch = val.match(patterns.phone);
-                if (phoneMatch) {
-                    detectedPhone = '0' + phoneMatch[2]; // دائماً نحولها لصيغة 05xxxxxxxx
-                }
-            }
-            // 4. التعرف على التاريخ
-            else if (val.includes('-') && val.length >= 10) {
+                if (phoneMatch) detectedPhone = '0' + phoneMatch[2];
+            } else if (val.includes('-') && val.length >= 10) {
                 let parsed = parseAnyDate(val);
                 if (parsed) {
                     if (!detectedNextRefill) detectedNextRefill = parsed;
@@ -27152,82 +27139,59 @@ function processAndValidateData(rawData, isTextFile) {
             }
         });
 
-        // التحقق من وجود البيانات الأساسية (هوية + وصفة) لضمان صحة السطر
         if (!detectedId || !detectedRx) {
-            skipped.push({ row: index + 1, id: detectedId || "Unknown", reason: "❌ Could not detect ID or Rx pattern" });
+            skipped.push({ row: index + 1, id: detectedId || "Unknown", reason: "❌ Missing ID or Rx" });
             return;
         }
 
-        // 🎯 فحص التكرار والمقارنة بالبيانات الحالية
-        const existingPatient = patients.find(p => String(p.nationalId) === detectedId);
+        // 🎯 المقارنة الصارمة باستخدام "البصمة"
+        const currentKey = `${detectedId.trim()}_${detectedRx.toLowerCase().trim()}`;
+        const existingMatch = existingMap.get(currentKey);
 
-        if (existingPatient) {
-            const matchedRx = existingPatient.prescriptions.find(pr => 
-                String(pr.number).toLowerCase().trim() === detectedRx
-            );
+        if (existingMatch) {
+            // [حالة تطابق]: الهوية والوصفة موجودين فعلاً
+            const p = existingMatch.patient;
+            const rx = existingMatch.rx;
 
-            if (matchedRx) {
-                const oldDateRaw = matchedRx.nextRefillDate || matchedRx.next_refill_date || "";
-                const oldDate = parseAnyDate(oldDateRaw);
-                const newDate = detectedNextRefill;
+            const oldNextRefill = parseAnyDate(rx.nextRefillDate || rx.next_refill_date || p.nextRefillDate || "");
+            const newNextRefill = detectedNextRefill;
 
-                let changes = [];
-                if (detectedPhone && existingPatient.phoneNumber !== detectedPhone) {
-                    changes.push(`Phone Update`);
-                }
-                
-                if (newDate && oldDate !== newDate) {
-                    changes.push(`Date Update`);
-                    updatesToCheck.push({
-                        dbId: existingPatient.id,
-                        nationalId: detectedId,
-                        rxNumber: detectedRx,
-                        changes: changes,
-                        newPhone: detectedPhone || existingPatient.phoneNumber,
-                        newDate: newDate,
-                        oldDate: oldDate || "No Date"
-                    });
-                    return;
-                } else if (changes.length > 0) {
-                    updatesToCheck.push({
-                        dbId: existingPatient.id,
-                        nationalId: detectedId,
-                        rxNumber: detectedRx,
-                        changes: changes,
-                        newPhone: detectedPhone,
-                        newDate: oldDate,
-                        oldDate: oldDate
-                    });
-                    return;
-                } else {
-                    skipped.push({ row: index + 1, id: detectedId, reason: `✅ Rx ${detectedRx} already up-to-date` });
-                    return;
-                }
+            let changes = [];
+            if (detectedPhone && String(p.phoneNumber || "").trim() !== detectedPhone) {
+                changes.push(`Phone Update`);
             }
+            if (newNextRefill && oldNextRefill && newNextRefill !== oldNextRefill) {
+                changes.push(`Date Update`);
+            }
+
+            if (changes.length > 0) {
+                updatesToCheck.push({
+                    dbId: p.id,
+                    nationalId: detectedId,
+                    rxNumber: detectedRx,
+                    changes: changes,
+                    newPhone: detectedPhone || p.phoneNumber,
+                    newDate: newNextRefill || oldNextRefill,
+                    oldDate: oldNextRefill || "No Date"
+                });
+            } else {
+                skipped.push({ row: index + 1, id: detectedId, reason: `✅ Rx ${detectedRx} already exists and is current.` });
+            }
+            return; // قفل الطريق على أي تكرار
         }
 
-        // معالجة الإضافات الجديدة
-        let finalDispDate = detectedDispensing || new Date().toISOString().split('T')[0];
-        let finalNextDate = detectedNextRefill;
-
-        if (!finalNextDate) {
-            let d = new Date(finalDispDate);
-            d.setDate(d.getDate() + 24);
-            finalNextDate = d.toISOString().split('T')[0];
-        }
-
+        // 3. إضافة الجديد (فقط لو مفتاح الهوية+الوصفة مش موجود نهائياً)
         const uniqueKey = `${detectedId}_${detectedRx}`; 
         if (!validPatients[uniqueKey]) {
             validPatients[uniqueKey] = {
                 nationalId: detectedId,
                 phoneNumber: detectedPhone,
-                dispensingDate: finalDispDate,
+                dispensingDate: detectedDispensing || new Date().toISOString().split('T')[0],
                 refillPeriod: 24,
-                nextRefillDate: finalNextDate,
+                nextRefillDate: detectedNextRefill || "",
                 prescriptions: [{ number: detectedRx, note: '' }],
                 generalNote: "Auto-Imported",
                 imported: true,
-                importType: existingPatient ? "New Rx" : "New Patient", 
                 importDate: batchTimestamp 
             };
         }
