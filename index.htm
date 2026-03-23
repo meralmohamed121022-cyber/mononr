@@ -25449,6 +25449,8 @@ let tempSelectedDrugs = []; // لتخزين الأدوية المختار مؤق
             in_queue: patient.inQueue || false, 
             queue_number: patient.queueNumber || null,
             drugs_list: patient.drugs_list || [],
+            // 🔥 إضافة حقل اللون لضمان حفظ حالة "الثلاجة" في السيرفر
+            cardcolor: patient.cardColor || 'none', 
             updated_at: new Date().toISOString()
         };
 
@@ -25456,25 +25458,28 @@ let tempSelectedDrugs = []; // لتخزين الأدوية المختار مؤق
 
         // 1. التعامل مع جدول المريض (Patients Table)
         if (window.isContinuingAdding === true || !editingPatientId) {
-            // إضافة جديد
+            // إضافة سجل جديد
             const { data, error } = await supabaseClient.from('patients').insert([patientData]).select().single();
             if (error) throw error;
             resultId = data.id;
         } else {
-            // تعديل موجود
+            // تعديل سجل موجود
             const { data, error } = await supabaseClient.from('patients').update(patientData).eq('id', editingPatientId).select().single();
             if (error) throw error;
             resultId = editingPatientId;
 
-            // في حالة التعديل: نمسح الوصفات القديمة المرتبطة عشان نكتب الجديدة
+            // في حالة التعديل: نمسح الوصفات القديمة المرتبطة عشان نكتب الجديدة لضمان نظافة البيانات
             await supabaseClient.from('prescriptions').delete().eq('patient_id', resultId);
         }
 
-        // 2. التعامل مع جدول الوصفات (Prescriptions Table) 🔥 دا الجزء اللي كان ناقصك
+        // 2. التعامل مع جدول الوصفات (Prescriptions Table)
         if (patient.prescriptions && patient.prescriptions.length > 0) {
             const prescriptionsToInsert = patient.prescriptions.map(p => ({
                 patient_id: resultId,
                 prescription_number: p.number,
+                // نربط التواريخ برضه جوه جدول الوصفات لو محتاجين تقارير دقيقة
+                dispensing_date: patient.dispensingDate,
+                next_refill_date: patient.nextRefillDate,
                 note: p.note || ''
             }));
 
@@ -27815,7 +27820,6 @@ function initDrugsSearch() {
 }
 // نادي الدالة فوراً بعد تعريف DRUGS_DB
 initDrugsSearch();
-
 function searchForDispensing() {
     const input = document.getElementById('dispenseSearchInput');
     const dropdown = document.getElementById('dispenseSearchResults');
@@ -27852,7 +27856,6 @@ function searchForDispensing() {
     }
 
     dropdown.innerHTML = results.map(p => {
-        const hasName = p.patientName && p.patientName.trim() !== '';
         const rxNumbers = (p.prescriptions && p.prescriptions.length > 0) 
             ? p.prescriptions.map(rx => rx.number).join(' - ') 
             : 'No Rx';
@@ -27860,25 +27863,33 @@ function searchForDispensing() {
 
         return `
         <div class="dispense-result-item">
-            <div style="display: flex; justify-content: space-between; align-items: center;">
+            <div style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
                 <div class="res-id">${p.nationalId}</div>
-                <button onclick="addToQueue('${String(p.id)}')" 
-                        style="background:var(--secondary); color:white; border:none; padding:8px 15px; border-radius:8px; cursor:pointer; font-size:11px; font-weight:bold; box-shadow: 0 4px 10px rgba(0,184,148,0.2);">
-                    Add to Queue
-                </button>
+                
+                <div style="display: flex; align-items: center; gap: 10px;">
+                    <label style="display: flex; align-items: center; gap: 5px; cursor: pointer; background: #E8F5E9; padding: 6px 12px; border-radius: 8px; border: 1px solid #c8e6c9; user-select: none;">
+                        <input type="checkbox" id="fridge-check-${p.id}" style="width: 16px; height: 16px; cursor: pointer;">
+                        <span style="font-size: 11px; font-weight: bold; color: #2E7D32;">❄️ Fridge</span>
+                    </label>
+
+                    <button onclick="addToQueue('${String(p.id)}')" 
+                            style="background:var(--secondary); color:white; border:none; padding:8px 15px; border-radius:8px; cursor:pointer; font-size:11px; font-weight:bold; box-shadow: 0 4px 10px rgba(0,184,148,0.2);">
+                        Add to Queue
+                    </button>
+                </div>
             </div>
 
-            <div style="display: flex; gap: 8px; flex-wrap: wrap; margin-top: 4px; align-items: center;">
-                <div style="display: flex; align-items: center; background: #e8f5e9; padding: 2px 8px; border-radius: 8px; flex: 1; min-width: 200px; border: 1px solid #c8e6c9;">
+            <div style="display: flex; gap: 8px; flex-wrap: wrap; margin-top: 8px; align-items: center;">
+                <div class="res-name-input-wrapper" style="flex: 1; min-width: 200px;">
                     <span style="font-size: 14px; margin-right: 5px;">👤</span>
                     <input type="text" id="name-input-${p.id}" value="${p.patientName || ''}" 
                            placeholder="Enter or Edit Name..."
-                           style="border: none; background: transparent; font-size: 13px; font-weight: 700; color: #2d3436; width: 100%; outline: none; padding: 5px 0;">
+                           style="border: none; background: transparent; font-size: 13px; font-weight: 700; color: #2d3436; width: 100%; outline: none;">
                 </div>
                 <span class="res-rx-badge">💊 Rx: ${rxNumbers}</span>
             </div>
 
-            <div style="margin-top: 5px; background: #fcfcfc; padding: 10px; border-radius: 8px; border: 1px solid #f0f0f0; display: flex; align-items: center; gap: 8px;">
+            <div style="margin-top: 8px; background: #fcfcfc; padding: 10px; border-radius: 8px; border: 1px solid #f0f0f0; display: flex; align-items: center; gap: 8px;">
                 <span style="font-size: 11px; color: #e67e22; font-weight: bold; white-space: nowrap;">📱 Phone:</span>
                 <input type="text" id="search-phone-${p.id}" value="${p.phoneNumber || ''}" placeholder="05xxxxxxxx" maxlength="10"
                        style="flex: 1; padding: 6px 10px; border: 1px solid #ddd; border-radius: 6px; font-size: 12px; outline: none; font-weight: bold;">
@@ -27931,29 +27942,40 @@ async function savePhoneFromSearch(patientId) {
 async function addToQueue(patientId) {
     const pId = String(patientId);
     const nameInput = document.getElementById(`name-input-${pId}`);
+    const fridgeCheck = document.getElementById(`fridge-check-${pId}`); // التقاط التشيك بوكس
     const newName = nameInput ? nameInput.value.trim() : '';
+    
+    // ✅ تحديد اللون: لو تلاجة ابعت 'blue' (اللي بيظهر أخضر عندك) وإلا ابعت 'none'
+    const assignedColor = (fridgeCheck && fridgeCheck.checked) ? 'blue' : 'none';
     
     const patient = patients.find(p => String(p.id) === pId);
     if (!patient) return;
 
-    // 🔥 الحل هنا: لازم نمرر inQueue: true في الحالتين عشان الداتا بيز تفهم
     if (newName !== '' && newName !== patient.patientName) {
-        window.isContinuingAdding = true; // تفعيل وضع الإضافة القسرية
+        window.isContinuingAdding = true; 
         
         const newPatientData = {
             ...patient,
             patientName: newName,
             id: null, 
             realDbId: null,
-            inQueue: true // لإضافته للطابور في السجل الجديد
+            inQueue: true,
+            cardColor: assignedColor // 🔥 إضافة اللون للسجل الجديد
         };
 
-        const assignedNumber = await proceedToAddToQueue(null, newPatientData, newName);
-        showToast(`✅ New Record Added to Queue as #${assignedNumber}`);
+        // ✅ تم تمرير assignedColor كبارامتر رابع لضمان الحفظ في السيرفر
+        const assignedNumber = await proceedToAddToQueue(null, newPatientData, newName, assignedColor);
+        showToast(`✅ New Record Added (Fridge: ${fridgeCheck.checked ? 'Yes' : 'No'})`);
     } else {
-        // للمريض الموجود أصلاً، بنمرر inQueue: true عشان يتحدث في الداتا بيز
-        const updatedPatient = { ...patient, inQueue: true };
-        const assignedNumber = await proceedToAddToQueue(pId, updatedPatient, patient.patientName || '');
+        // للمريض الموجود أصلاً، نحدث حالته في الطابور واللون
+        const updatedPatient = { 
+            ...patient, 
+            inQueue: true, 
+            cardColor: assignedColor // 🔥 إضافة اللون لتحديث السجل الحالي
+        };
+        
+        // ✅ تم تمرير assignedColor كبارامتر رابع لضمان الحفظ في السيرفر
+        const assignedNumber = await proceedToAddToQueue(pId, updatedPatient, patient.patientName || '', assignedColor);
         showToast(`✅ Added to queue as #${assignedNumber}`);
     }
     
@@ -29356,26 +29378,27 @@ async function addDueTodayToQueue() {
         }
     );
 }
-async function proceedToAddToQueue(pId, patient, patientName) {
+async function proceedToAddToQueue(pId, patient, patientName, assignedColor) {
     // 1. حساب رقم الدور الجديد
     const nextNumber = dispensingQueue.length > 0 
         ? Math.max(...dispensingQueue.map(p => parseInt(p.queueNumber) || 0)) + 1 
         : 1;
 
     try {
-        // 2. تجهيز البيانات الأساسية
+        // 2. تجهيز البيانات الأساسية مع إضافة اللون المختار (لضمان حفظه في Supabase)
         const dataToSave = {
             ...patient,
             inQueue: true,
             queueNumber: nextNumber, // الرقم اللي هيتسيف
             patientName: patientName,
+            cardColor: assignedColor || 'none', // 🔥 حفظ اللون (تلاجة أو عادي)
             drugs_list: patient.drugs_list || []
         };
 
-        // 3. الحفظ في السيرفر
+        // 3. الحفظ في السيرفر (الدالة دي بتبعت الـ cardColor لجدول سوبابيز)
         const savedId = await savePatientToSupabase(dataToSave);
         
-        // 4. تجهيز الكائن النهائي للواجهة
+        // 4. تجهيز الكائن النهائي للواجهة المحلية
         const finalPatientEntry = {
             ...dataToSave,
             id: savedId,
@@ -29385,6 +29408,7 @@ async function proceedToAddToQueue(pId, patient, patientName) {
         // 5. تحديث المصفوفات المحلية
         dispensingQueue.push(finalPatientEntry);
         
+        // لو المريض مش موجود في القائمة العامة (حالة سجل جديد) ضيفه
         if (!patients.find(p => String(p.id) === String(savedId))) {
             patients.unshift(finalPatientEntry);
         }
@@ -29394,15 +29418,16 @@ async function proceedToAddToQueue(pId, patient, patientName) {
         renderDispensingQueue(document.getElementById('queueFilterInput')?.value || '');
         updateStats();
 
-        // ✅ التعديل المطلوب: إظهار رقم الانتظار في التنبيه
-        showToast(`✅ Added to Queue: Number #${nextNumber} 🚀`);
+        // إظهار التنبيه مع رقم الانتظار وحالة الثلاجة
+        const fridgeStatus = assignedColor === 'blue' ? '❄️ Fridge' : '📦 Normal';
+        showToast(`✅ #${nextNumber} Added (${fridgeStatus}) 🚀`);
         
-        console.log(`✅ Added to queue with ID: ${savedId} as #${nextNumber}`);
+        console.log(`✅ Added to queue with ID: ${savedId} as #${nextNumber} [Color: ${assignedColor}]`);
         return nextNumber;
 
     } catch(err) {
         console.error('Cloud Sync Error:', err);
-        showToast('❌ Failed to add to queue');
+        showToast('❌ Failed to sync with Cloud');
         throw err;
     }
 }
