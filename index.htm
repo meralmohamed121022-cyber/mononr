@@ -27241,14 +27241,17 @@ function showImportPreviewUI(result) {
     
     let html = `<div style="background: white; padding: 20px; border-radius: 16px; border: 2px solid var(--primary); margin-top: 20px; box-shadow: 0 10px 40px rgba(0,0,0,0.1); animation: slideUp 0.3s ease;">`;
 
+    // تعديل الـ Render عشان الـ ID يكون فريد والـ onchange يبعت النوع صح
     const renderSelectAll = (type, label) => `
         <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 10px; background: rgba(255,255,255,0.5); padding: 5px 10px; border-radius: 8px;">
-            <input type="checkbox" id="selectAll${type}" checked onchange="toggleImportType('${type}', this.checked)" style="cursor:pointer; width:16px; height:16px;">
-            <label for="selectAll${type}" style="font-size: 12px; font-weight: 800; color: var(--dark); cursor:pointer;">Select All ${label}</label>
+            <input type="checkbox" id="selectAll${type}" checked 
+                   onchange="toggleImportType('${type}', this.checked)" 
+                   style="cursor:pointer; width:18px; height:18px;">
+            <label for="selectAll${type}" style="font-size: 13px; font-weight: 800; color: var(--dark); cursor:pointer; user-select:none;">Select All ${label}</label>
         </div>
     `;
 
-    // --- قسم التحديثات مع المقارنة البصرية الواضحة ---
+    // --- قسم التحديثات ---
     if (result.updates && result.updates.length > 0) {
         html += `
             <div style="background: #E3F2FD; border: 1px solid #90CAF9; padding: 15px; border-radius: 12px; margin-bottom: 20px;">
@@ -27277,7 +27280,7 @@ function showImportPreviewUI(result) {
                                         ` : `<div style="color:#666; font-size:11px;">Date: ${u.oldDate}</div>`}
                                     </td>
                                     <td style="padding: 10px; text-align: right;">
-                                        ${u.changes.map(c => `<span style="background:#E1F5FE; color:#0277BD; padding:2px 8px; border-radius:10px; font-size:10px; font-weight:bold;">${c}</span>`).join('')}
+                                        ${u.changes.map(c => `<span style="background:#E1F5FE; color:#0277BD; padding:2px 8px; border-radius:10px; font-size:10px; font-weight:bold; margin-left:2px;">${c}</span>`).join('')}
                                     </td>
                                 </tr>`;
                             }).join('')}
@@ -27308,8 +27311,8 @@ function showImportPreviewUI(result) {
                                         <div style="font-family: monospace; font-weight: bold; color: #2D3436;">${p.nationalId}</div>
                                         <div style="font-size:11px; color:#666;">Refill: ${p.nextRefillDate}</div>
                                     </td>
-                                    <td style="padding: 10px;">
-                                        ${p.prescriptions.map(rx => `<span style="display:inline-block; border:1px solid #ddd; padding:2px 5px; border-radius:4px; margin-right:3px; font-size:10px;">${rx.number}</span>`).join('')}
+                                    <td style="padding: 10px; text-align: right;">
+                                        ${p.prescriptions.map(rx => `<span style="display:inline-block; border:1px solid #ddd; padding:2px 5px; border-radius:4px; margin-left:3px; font-size:10px; font-weight:bold; background:#f8f9fa;">${rx.number}</span>`).join('')}
                                     </td>
                                 </tr>
                             `).join('')}
@@ -27322,7 +27325,7 @@ function showImportPreviewUI(result) {
 
     if (result.skipped.length > 0) {
         html += `<div style="border-top: 2px dashed #ddd; margin-top: 15px; padding-top: 15px;">
-            <details><summary style="cursor: pointer; color: #636E72; font-size: 13px; font-weight: 700;">⚠️ Skipped ${result.skipped.length} Records</summary>
+            <details><summary style="cursor: pointer; color: #636E72; font-size: 13px; font-weight: 700;">⚠️ Skipped ${result.skipped.length} Records (Details)</summary>
             <div style="margin-top: 10px; max-height: 100px; overflow-y: auto; background: #F8F9FE; border-radius: 8px; padding: 10px; font-size: 11px;">
             ${result.skipped.map(s => `<div>• Row ${s.row}: ${s.reason}</div>`).join('')}
             </div></details></div>`;
@@ -30321,7 +30324,20 @@ async function directImportFile(e) {
   }
 }
 
+function toggleImportType(type, isChecked) {
+    // تحديد الكلاس بناءً على النوع (Update أو New)
+    const className = type === 'Update' ? '.import-check-update' : '.import-check-new';
+    
+    // جلب كل التشيك بوكسات اللي من النوع ده
+    const checkboxes = document.querySelectorAll(className);
+    
+    // تطبيق نفس حالة "Select All" عليهم كلهم
+    checkboxes.forEach(cb => {
+        cb.checked = isChecked;
+    });
 
+    console.log(`✅ Toggled ${type} checkboxes to: ${isChecked}`);
+}
     </script>
 </body>
 </html>
