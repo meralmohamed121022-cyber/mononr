@@ -25100,22 +25100,22 @@ id="profileImage" />
     }
 ];
 let tempSelectedDrugs = []; // لتخزين الأدوية المختار مؤقتاً قبل الحفظ
-        // ============================================
-        // MODAL FUNCTIONS
-        // ============================================
-        function showModal(title, content, actions) {
-            const modalContent = document.getElementById('modalContent');
-            modalContent.innerHTML = `
-                <div class="modal-header">
-                    <div class="modal-title">${title}</div>
-                    <button class="modal-close" onclick="closeModal()">×</button>
-                </div>
-                <div class="modal-content">${content}</div>
-                ${actions ? `<div class="modal-actions">${actions}</div>` : ''}
-            `;
-            document.getElementById('modalOverlay').classList.add('active');
-        }
-        
+      function showModal(title, content, actions, customClass = '') {
+    const modalContent = document.getElementById('modalContent');
+    
+    // مسح أي كلاسات قديمة عشان ميبوظش المودالات التانية
+    modalContent.className = 'modal-box ' + customClass;
+    
+    modalContent.innerHTML = `
+        <div class="modal-header">
+            <div class="modal-title">${title}</div>
+            <button class="modal-close" onclick="closeModal()">×</button>
+        </div>
+        <div class="modal-content">${content}</div>
+        ${actions ? `<div class="modal-actions" style="display:grid !important;">${actions}</div>` : ''}
+    `;
+    document.getElementById('modalOverlay').classList.add('active');
+}
         function closeModal() {
             document.getElementById('modalOverlay').classList.remove('active');
         }
@@ -29544,58 +29544,65 @@ window.executeQuickAdd = async function(id) {
         }
     }
 };
+
 let tempDrugs = []; // مصفوفة مؤقتة للأدوية
-
 function openDrugPickerForQueue(patientId, patientName) {
-    // 1. تصفير المصفوفة المؤقتة
-    tempDrugs = []; 
-    
-    // 2. البحث عن المريض في قائمة الطابور لضمان استدعاء بياناته الحالية
-    const patient = dispensingQueue.find(p => String(p.id) === String(patientId));
-    
-    if (!patient) {
-        showToast('⚠️ Patient not found in queue');
-        return;
-    }
+    const pId = String(patientId);
+    const patient = dispensingQueue.find(p => String(p.id) === pId) || patients.find(p => String(p.id) === pId);
+    if (!patient) return;
 
-    // 3. إذا كان المريض عنده أدوية فعلاً، خذ نسخة منها (Deep Copy) لمنع التداخل
-    if (patient.drugs_list) {
-        tempDrugs = JSON.parse(JSON.stringify(patient.drugs_list));
-    }
+    // 1. شحن البيانات المؤقتة
+    tempDrugs = (patient.drugs_list && Array.isArray(patient.drugs_list)) 
+        ? JSON.parse(JSON.stringify(patient.drugs_list)) 
+        : [];
 
-    // 4. فتح المودال بواجهة البحث والإضافة
-    showModal(
-        `<span style="color: var(--primary);">📦 Manage Drugs List</span>`,
-        `
-        <div style="padding: 5px;">
-            <div style="background: #f0f7ff; padding: 10px; border-radius: 10px; margin-bottom: 15px; border-left: 4px solid var(--primary);">
-                <div style="font-weight: 800; font-size: 14px; color: var(--dark);">${patient.nationalId}</div>
-                <div style="font-size: 11px; color: #636e72;">${patient.patientName || 'No Name'}</div>
+    // 2. بناء المحتوى بالكامل (Body + Footer) جوه متغير واحد لضمان العرض
+    const fullContentHtml = `
+        <div style="display: flex; flex-direction: column; gap: 12px; max-height: 75vh;">
+            
+            <div style="background: #f0f7ff; padding: 12px; border-radius: 12px; border-left: 5px solid var(--primary); box-shadow: 0 2px 5px rgba(0,0,0,0.05); flex-shrink: 0;">
+                <div style="font-weight: 900; font-size: 15px; color: var(--dark); font-family: monospace;">${patient.nationalId}</div>
+                <div style="font-size: 12px; color: #636e72; font-weight: 600;">${patient.patientName || 'No Name'}</div>
             </div>
 
-            <div style="display: flex; gap: 8px; margin-bottom: 10px;">
+            <div style="display: flex; gap: 8px; flex-shrink: 0; align-items: center;">
                 <div style="position: relative; flex: 1;">
-                    <input type="text" id="dbDrugSearch" class="form-input" placeholder="Search name or 6-digit code..." oninput="searchInDrugsDB(this.value)" autocomplete="off">
-                    <div id="dbDrugResults" style="position: absolute; top: 100%; left: 0; right: 0; max-height: 180px; overflow-y: auto; border: 1px solid #ddd; display: none; background: #fff; z-index: 10001; border-radius: 8px; box-shadow: 0 8px 24px rgba(0,0,0,0.15);"></div>
+                    <input type="text" id="dbDrugSearch" class="form-input" 
+                           placeholder="Search drug..." 
+                           oninput="searchInDrugsDB(this.value)" autocomplete="off"
+                           style="margin:0; width: 100%;">
+                    <div id="dbDrugResults" style="position: absolute; top: 100%; left: 0; right: 0; max-height: 150px; overflow-y: auto; border: 1px solid #ddd; display: none; background: #fff; z-index: 11000; border-radius: 8px; box-shadow: 0 10px 25px rgba(0,0,0,0.1);"></div>
                 </div>
-                <input type="number" id="dbDrugQty" class="form-input" value="1" min="1" style="width: 60px; text-align:center; font-weight:bold;">
-                <button class="btn-primary" onclick="addDrugToTemp()" style="margin:0; width:45px; font-size:22px; display:flex; align-items:center; justify-content:center;">+</button>
+                <input type="number" id="dbDrugQty" class="form-input" value="1" min="1" style="width: 60px; text-align:center; font-weight:900; color:var(--primary); margin:0;">
+                <button class="btn-primary" onclick="addDrugToTemp()" style="margin:0; width:45px; height: 42px; font-size:24px; display:flex; align-items:center; justify-content:center;">+</button>
             </div>
             
-            <div id="tempDrugsList" style="min-height: 150px; max-height: 300px; overflow-y: auto; background: #f8f9fa; border-radius: 12px; padding: 12px; border: 1px dashed #ced4da;">
+            <div id="tempDrugsList" style="flex: 1; overflow-y: auto; min-height: 150px; background: #fdfdfd; border-radius: 15px; padding: 10px; border: 2px dashed #e3e8ff;">
                 </div>
+
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; padding-top: 15px; border-top: 1px solid #eee; flex-shrink: 0;">
+                <button class="btn-secondary" onclick="closeModal()" style="padding: 12px; margin:0;">CANCEL</button>
+                <button class="btn-primary" id="finalSaveDrugsBtn" 
+                        onclick="savePatientWithDrugs('${pId}', '${(patient.patientName || '').replace(/'/g, "\\'")}')" 
+                        style="padding: 12px; margin:0; display:flex; align-items:center; justify-content:center; gap:8px;">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path><polyline points="17 21 17 13 7 13 7 21"></polyline><polyline points="7 3 7 8 15 8"></polyline></svg>
+                    SAVE CHANGES
+                </button>
+            </div>
         </div>
-        `,
-        `
-        <button class="btn-secondary" onclick="closeModal()">CANCEL</button>
-        <button class="btn-primary" onclick="savePatientWithDrugs('${patientId}', '${patientName}')">SAVE CHANGES</button>
-        `
+    `;
+
+    // 4. فتح المودال (نبعت الـ Content كله في بارامتر واحد ونترك الـ actions فاضي لتجنب display:none)
+    showModal(
+        `<span style="color: var(--primary);">📦 Manage Drugs List</span>`,
+        fullContentHtml,
+        "" // سيب دي فاضية عشان الـ CSS عندك مبيظهرش الـ modal-actions أحياناً
     );
 
-    // 5. استدعاء دالة الرسم فوراً لعرض الأصناف المخزنة (إن وجدت)
+    // 5. رسم القائمة فوراً
     setTimeout(() => {
         renderTempDrugsList();
-    }, 50);
+    }, 100);
 }
 function searchInDrugsDB(term) {
     const resultsDiv = document.getElementById('dbDrugResults');
@@ -29656,19 +29663,72 @@ function addDrugToTemp() {
     const existingIndex = tempDrugs.findIndex(d => d.name === name);
 
     if (existingIndex !== -1) {
-        // 2. إذا وجده مكرراً يظهر سؤال التعديل
-        if (confirm(`الصنف "${name}" مضاف بالفعل بقائمة هذا المريض. هل تريد تحديث الكمية إلى (${qty})؟`)) {
-            tempDrugs[existingIndex].qty = qty; // تحديث الكمية
+        // 🎨 تصميم الـ CSS Art لرسالة التكرار
+        const duplicateArtHtml = `
+            <div style="text-align: center; padding: 10px;">
+                <div class="update-icon-anim">
+                    <div class="update-circle"></div>
+                    <div class="update-arrow"></div>
+                </div>
+                <h3 style="color: var(--primary); margin: 15px 0 5px 0; font-size: 18px;">Item Already Exists</h3>
+                <p style="color: #636e72; font-size: 14px; line-height: 1.4;">
+                    The item <b>"${name}"</b> is already in the list.<br>
+                    Do you want to update its quantity to <b>(${qty})</b>?
+                </p>
+            </div>
+            <style>
+                .update-icon-anim {
+                    width: 60px;
+                    height: 60px;
+                    margin: 0 auto;
+                    position: relative;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                }
+                .update-circle {
+                    width: 40px;
+                    height: 40px;
+                    border: 4px solid #e3f2fd;
+                    border-top-color: var(--primary);
+                    border-radius: 50%;
+                    animation: spin-sync 2s linear infinite;
+                }
+                .update-arrow {
+                    position: absolute;
+                    width: 0;
+                    height: 0;
+                    border-left: 8px solid transparent;
+                    border-right: 8px solid transparent;
+                    border-bottom: 12px solid var(--primary);
+                    top: 10px;
+                }
+                @keyframes spin-sync {
+                    to { transform: rotate(360deg); }
+                }
+            </style>
+        `;
+
+        // 2. استخدام المودال المخصص بدلاً من confirm المتصفح
+        confirmAction(duplicateArtHtml, () => {
+            // في حالة الموافقة
+            tempDrugs[existingIndex].qty = qty;
+            renderTempDrugsList();
             showToast('✅ Quantity updated');
-        } else {
-            return; // خروج بدون تغيير
-        }
-    } else {
-        // 3. إضافة صنف جديد
-        tempDrugs.push({ name: name, qty: qty });
+            
+            // تنظيف المدخلات بعد التحديث
+            nameInput.value = '';
+            qtyInput.value = '1';
+            nameInput.focus();
+        });
+        
+        return; // خروج لانتظار رد المستخدم من المودال
     }
+
+    // 3. إضافة صنف جديد (لو مش مكرر)
+    tempDrugs.push({ name: name, qty: qty });
     
-    // تصفير الخانات للعملية التالية
+    // تصفير الخانات
     nameInput.value = '';
     qtyInput.value = '1';
     nameInput.focus();
@@ -29730,37 +29790,42 @@ function editTempEntry(index) {
 }
 async function savePatientWithDrugs(pId, patientName) {
     const pIdStr = String(pId);
-    const saveBtn = document.querySelector('.modal-actions .btn-primary');
+    const saveBtn = document.getElementById('finalSaveDrugsBtn');
     const originalText = saveBtn ? saveBtn.innerHTML : 'SAVE CHANGES';
     
-    // 1. العثور على العنصر في الطابور المحلي
+    // 1. تحديد المريض في الطابور المحلي
     const queueIndex = dispensingQueue.findIndex(p => String(p.id) === pIdStr);
+    
     if (queueIndex === -1) {
         showToast("⚠️ Entry not found in local queue");
         return;
     }
 
-    // 2. تجهيز البيانات وتحديث الواجهة فوراً (Optimistic UI)
+    // 2. تجهيز البيانات (نسخة عميقة لضمان عدم حدوث تداخل)
     const targetDbId = dispensingQueue[queueIndex].realDbId || pIdStr;
     const oldDrugsList = JSON.parse(JSON.stringify(dispensingQueue[queueIndex].drugs_list || []));
     
-    // تحديث محلي سريع
-    dispensingQueue[queueIndex].drugs_list = JSON.parse(JSON.stringify(tempDrugs));
-    dispensingQueue[queueIndex].patientName = patientName;
+    // ✅ التأكد إن tempDrugs مصفوفة صالحة قبل الحفظ
+    const drugsToSave = (Array.isArray(tempDrugs)) ? JSON.parse(JSON.stringify(tempDrugs)) : [];
 
-    // تحديث مصفوفة المرضى العامة
+    // --- تحديث محلي فوري (Optimistic Update) ---
+    // تحديث لستة الأدوية والاسم في الطابور عشان العداد (X Items SHOW) يتحدث فوراً
+    dispensingQueue[queueIndex].drugs_list = drugsToSave;
+    if (patientName) dispensingQueue[queueIndex].patientName = patientName;
+
+    // تحديث مصفوفة المرضى العامة (للبحث والفلترة)
     const mainPatient = patients.find(p => String(p.id) === String(targetDbId));
     if (mainPatient) {
-        mainPatient.drugs_list = JSON.parse(JSON.stringify(tempDrugs));
-        mainPatient.patientName = patientName;
+        mainPatient.drugs_list = drugsToSave;
+        if (patientName) mainPatient.patientName = patientName;
     }
 
-    // إغلاق المودال ورسم الجدول فوراً لمنع اللاج
+    // إغلاق المودال ورسم الجدول فوراً عشان اليوزر يشوف التغيير في لحظتها
     closeModal();
     renderDispensingQueue(document.getElementById('queueFilterInput')?.value || '');
-    showToast('⚡ Updating Cloud...');
+    showToast('💾 Syncing with cloud...');
 
-    // 3. التنفيذ في السيرفر (في الخلفية)
+    // 3. التنفيذ في السيرفر (Background Sync)
     try {
         if (saveBtn) {
             saveBtn.innerHTML = '<span class="loading"></span> SYNCING...';
@@ -29770,31 +29835,34 @@ async function savePatientWithDrugs(pId, patientName) {
         const { error } = await supabaseClient
             .from('patients')
             .update({ 
-                drugs_list: tempDrugs, 
+                drugs_list: drugsToSave, 
                 patient_name: patientName 
             })
             .eq('id', targetDbId);
 
         if (error) throw error;
         
-        showToast('✅ Drugs Synced Successfully');
+        showToast(`✅ Saved! ${drugsToSave.length} items linked.`);
 
     } catch (err) {
         console.error('❌ Sync Error:', err);
         
-        // في حالة الفشل: استرجاع البيانات القديمة محلياً
-        dispensingQueue[queueIndex].drugs_list = oldDrugsList;
+        // في حالة الفشل: استعادة البيانات القديمة محلياً لإبلاغ المستخدم
+        if (queueIndex !== -1) {
+            dispensingQueue[queueIndex].drugs_list = oldDrugsList;
+        }
+        
         renderDispensingQueue(document.getElementById('queueFilterInput')?.value || '');
         
-        showModal('❌ Sync Failed', 
-            `<p style="color:var(--danger)">Could not save to server. Local data reverted.</p><br><small>${err.message}</small>`, 
-            '<button class="btn-primary" onclick="closeModal()">OK</button>'
+        showModal(
+            '<span style="color:var(--danger)">❌ Sync Failed</span>', 
+            `<div style="text-align:center; padding:10px;">
+                <p style="font-weight:bold; margin-bottom:10px;">Data could not be saved to Cloud.</p>
+                <p style="font-size:12px; color:#666;">Local view reverted. Please check your connection.</p>
+                <small style="color:#ee5253; display:block; margin-top:10px; font-family:monospace;">${err.message}</small>
+             </div>`, 
+            '<button class="btn-primary" onclick="closeModal()">Try Again</button>'
         );
-        
-        if (saveBtn) {
-            saveBtn.innerHTML = originalText;
-            saveBtn.disabled = false;
-        }
     }
 }
 async function updatePatientNameInline(queueEntryId, newName) {
