@@ -27951,47 +27951,68 @@ async function savePhoneFromSearch(patientId) {
 }
 async function addToQueue(patientId) {
     const pId = String(patientId);
+    // تحديد الزرار اللي انضغط لتغيير حالته
+    const btn = event.target.closest('button');
     const nameInput = document.getElementById(`name-input-${pId}`);
-    const fridgeCheck = document.getElementById(`fridge-check-${pId}`); // التقاط التشيك بوكس
+    const fridgeCheck = document.getElementById(`fridge-check-${pId}`);
     const newName = nameInput ? nameInput.value.trim() : '';
     
-    // ✅ تحديد اللون: لو تلاجة ابعت 'blue' (اللي بيظهر أخضر عندك) وإلا ابعت 'none'
+    if (!btn) return;
+
+    // 1. حفظ شكل الزرار الأصلي وتفعيل حالة الـ Waiting
+    const originalBtnHtml = btn.innerHTML;
+    btn.disabled = true;
+    btn.innerHTML = '<span class="loading" style="width:12px; height:12px; border-width:2px; vertical-align:middle;"></span> WAITING...';
+
+    // تحديد اللون بناءً على الثلاجة
     const assignedColor = (fridgeCheck && fridgeCheck.checked) ? 'blue' : 'none';
-    
     const patient = patients.find(p => String(p.id) === pId);
-    if (!patient) return;
-
-    if (newName !== '' && newName !== patient.patientName) {
-        window.isContinuingAdding = true; 
-        
-        const newPatientData = {
-            ...patient,
-            patientName: newName,
-            id: null, 
-            realDbId: null,
-            inQueue: true,
-            cardColor: assignedColor // 🔥 إضافة اللون للسجل الجديد
-        };
-
-        // ✅ تم تمرير assignedColor كبارامتر رابع لضمان الحفظ في السيرفر
-        const assignedNumber = await proceedToAddToQueue(null, newPatientData, newName, assignedColor);
-        showToast(`✅ New Record Added (Fridge: ${fridgeCheck.checked ? 'Yes' : 'No'})`);
-    } else {
-        // للمريض الموجود أصلاً، نحدث حالته في الطابور واللون
-        const updatedPatient = { 
-            ...patient, 
-            inQueue: true, 
-            cardColor: assignedColor // 🔥 إضافة اللون لتحديث السجل الحالي
-        };
-        
-        // ✅ تم تمرير assignedColor كبارامتر رابع لضمان الحفظ في السيرفر
-        const assignedNumber = await proceedToAddToQueue(pId, updatedPatient, patient.patientName || '', assignedColor);
-        showToast(`✅ Added to queue as #${assignedNumber}`);
-    }
     
-    // تنظيف الواجهة
-    document.getElementById('dispenseSearchResults').style.display = 'none';
-    document.getElementById('dispenseSearchInput').value = '';
+    if (!patient) {
+        btn.disabled = false;
+        btn.innerHTML = originalBtnHtml;
+        showToast('⚠️ Patient not found');
+        return;
+    }
+
+    try {
+        let assignedNumber;
+
+        if (newName !== '' && newName !== patient.patientName) {
+            window.isContinuingAdding = true;
+            const newPatientData = {
+                ...patient,
+                patientName: newName,
+                id: null, 
+                realDbId: null,
+                inQueue: true,
+                cardColor: assignedColor
+            };
+
+            // ننتظر السيرفر يرجع الرقم
+            assignedNumber = await proceedToAddToQueue(null, newPatientData, newName, assignedColor);
+        } else {
+            const updatedPatient = { ...patient, inQueue: true, cardColor: assignedColor };
+            // ننتظر السيرفر يرجع الرقم
+            assignedNumber = await proceedToAddToQueue(pId, updatedPatient, patient.patientName || '', assignedColor);
+        }
+
+        // تنظيف واجهة البحث
+        document.getElementById('dispenseSearchResults').style.display = 'none';
+        document.getElementById('dispenseSearchInput').value = '';
+        
+        // 2. إظهار رقم الانتظار الحقيقي وحالة الثلاجة في الـ Toast
+        const fridgeIcon = assignedColor === 'blue' ? '❄️' : '📦';
+        showToast(`✅ #${assignedNumber} Added ${fridgeIcon}`);
+
+    } catch (err) {
+        console.error('Add to Queue Error:', err);
+        showToast('❌ Sync Error: Try again');
+    } finally {
+        // إرجاع الزرار لحالته الأصلية بعد الانتهاء
+        btn.disabled = false;
+        btn.innerHTML = originalBtnHtml;
+    }
 }
 async function addDueTodayToQueue() {
     // 1. تحديد المرضى اللي مواعيدهم النهارده (Due Today)
@@ -29442,20 +29463,21 @@ async function proceedToAddToQueue(pId, patient, patientName, assignedColor) {
     }
 }
 async function quickAddAndQueue(newId) {
-    // التقاط حالة الثلاجة من Checkbox البحث قبل إخفاء النتائج
+    // 1. التقاط حالة الثلاجة من Checkbox البحث قبل إخفاء النتائج لضمان المزامنة
     const quickFridgeCheck = document.getElementById('quick-fridge-check');
     const isFridgeInit = quickFridgeCheck ? quickFridgeCheck.checked : false;
 
-    // إخفاء نتائج البحث
+    // 2. إخفاء نتائج البحث فوراً
     const dropdown = document.getElementById('dispenseSearchResults');
     if (dropdown) dropdown.style.display = 'none';
 
+    // 3. فتح المودال مع واجهة الإضافة السريعة
     showModal(
         '<span style="color: var(--primary);">⚡ Quick Add to Queue</span>',
         `
         <div style="padding: 5px;">
-            <div style="background: #e3f2fd; padding: 10px; border-radius: 8px; margin-bottom: 15px; text-align: center;">
-                <span style="font-size: 13px; color: #1565c0; font-weight: bold;">ID: ${newId}</span>
+            <div style="background: #e3f2fd; padding: 12px; border-radius: 12px; margin-bottom: 15px; text-align: center; border: 1px solid #bbdefb;">
+                <span style="font-size: 14px; color: #0d47a1; font-weight: 800; font-family: monospace;">ID: ${newId}</span>
             </div>
             
             <div class="form-group">
@@ -29469,27 +29491,36 @@ async function quickAddAndQueue(newId) {
             </div>
 
             <div style="margin-bottom: 20px;">
-                <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; background: #E8F5E9; padding: 12px; border-radius: 10px; border: 1px solid #c8e6c9;">
-                    <input type="checkbox" id="modal-quick-fridge" ${isFridgeInit ? 'checked' : ''} style="width: 18px; height: 18px;">
-                    <span style="font-size: 13px; font-weight: bold; color: #2E7D32;">❄️ Fridge RX (أدوية ثلاجة)</span>
+                <label style="display: flex; align-items: center; gap: 10px; cursor: pointer; background: #E8F5E9; padding: 12px; border-radius: 12px; border: 1px solid #c8e6c9; transition: 0.2s;" onmouseover="this.style.background='#c8e6c9'" onmouseout="this.style.background='#E8F5E9'">
+                    <input type="checkbox" id="modal-quick-fridge" ${isFridgeInit ? 'checked' : ''} style="width: 20px; height: 20px; cursor: pointer;">
+                    <span style="font-size: 13px; font-weight: 800; color: #2E7D32;">❄️ Fridge RX (أدوية ثلاجة)</span>
                 </label>
             </div>
 
             <div class="form-group">
                 <label class="form-label">Prescription Number (Optional)</label>
-                <input type="text" id="quickRx" class="form-input" placeholder="a1234567" maxlength="8" style="text-transform: lowercase;">
+                <input type="text" id="quickRx" class="form-input" placeholder="a1234567" maxlength="8" style="text-transform: lowercase; font-family: monospace; font-weight: bold;">
             </div>
             
-            <div style="background: #fff9e6; padding: 10px; border-radius: 8px; font-size: 11px; color: #666; border-left: 4px solid #ffc107;">
-                * Name is mandatory. Phone and Rx can be added later.
+            <div style="background: #fff9e6; padding: 12px; border-radius: 10px; font-size: 11px; color: #7d5a00; border-left: 5px solid #ffc107; line-height: 1.4;">
+                <strong>Note:</strong> Name is mandatory to create a record. <br>Phone and Rx can be updated later from the queue list.
             </div>
         </div>
         `,
         `
-        <button class="btn-secondary" onclick="closeModal()">CANCEL</button>
-        <button class="btn-primary" onclick="window.executeQuickAdd('${newId}')">CONFIRM & ADD TO QUEUE</button>
+        <button class="btn-secondary" onclick="closeModal()" style="margin:0;">CANCEL</button>
+        <button class="btn-primary" id="executeQuickAddBtn" onclick="window.executeQuickAdd('${newId}')" style="margin:0;">
+            <span id="quickAddBtnText">CONFIRM & ADD</span>
+            <span id="quickAddBtnLoading" style="display:none;" class="loading"></span>
+        </button>
         `
     );
+
+    // فوكس تلقائي على خانة الاسم لتسريع العمل
+    setTimeout(() => {
+        const nameInput = document.getElementById('quickName');
+        if (nameInput) nameInput.focus();
+    }, 500);
 }
 window.executeQuickAdd = async function(id) {
     const name = document.getElementById('quickName').value.trim();
