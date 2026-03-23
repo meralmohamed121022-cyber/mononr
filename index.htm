@@ -26057,17 +26057,23 @@ function resetSaveBtn() {
             calculateNextRefill();
         }
         
-        function switchTab(tabName) {
-            document.querySelectorAll('.nav-tab').forEach(tab => tab.classList.remove('active'));
-            document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
-            
-            document.querySelector(`[onclick="switchTab('${tabName}')"]`).classList.add('active');
-            document.getElementById(tabName + '-tab').classList.add('active');
-            
-            if (tabName === 'patients') {
-                displayPatients();
-            }
-        }
+      function switchTab(tabName) {
+    document.querySelectorAll('.nav-tab').forEach(tab => tab.classList.remove('active'));
+    document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+    
+    document.querySelector(`[onclick="switchTab('${tabName}')"]`).classList.add('active');
+    document.getElementById(tabName + '-tab').classList.add('active');
+    
+    // ✅ التعديل السحري هنا
+    if (tabName === 'patients') {
+        // بدلاً من عرض الكل، هننادي فلتر Today مباشرة
+        filterPatients('today'); 
+        
+        // ونأكد إن شريط البحث فاضي عشان ميتداخلش مع الفلتر
+        const searchInput = document.getElementById('searchInput');
+        if (searchInput) searchInput.value = '';
+    }
+}
         function displayPatients() {
     // 1. تحديث العدادات أولاً لضمان المزامنة
     updateStats();
