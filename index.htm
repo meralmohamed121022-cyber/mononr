@@ -3312,7 +3312,45 @@
 .btn-reset-filter:hover .icon-reset {
     transform: rotate(180deg);
 }
+/* 1. تغيير خلفية حاوية التاب الخاص بالمرضى فقط */
+#patients-tab {
+    background: #0d1b2a; /* أزرق غامق جداً (Navy Night) */
+    border-radius: 20px;
+    padding: 25px !important;
+    box-shadow: inset 0 8px 32px rgba(0,0,0,0.4); /* ظل داخلي يعطي عمق */
+    min-height: 80vh;
+    margin-top: 15px;
+}
 
+/* 2. تحسين شكل الكارت (Patient Card) ليبرز فوق الخلفية الغامقة */
+.patient-card {
+    background: #ffffff !important; /* التأكد من أن الكارت أبيض */
+    border: none !important; /* إزالة الحدود القديمة */
+    border-radius: 16px;
+    margin-bottom: 20px;
+    box-shadow: 0 10px 25px rgba(0,0,0,0.3); /* ظل خارجي قوي يبرز الحدود */
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+/* 3. تأثير عند تمرير الماوس (Hover) لزيادة البروز */
+.patient-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 15px 35px rgba(0,0,0,0.5);
+}
+
+/* 4. تعديل كروت "أدوية الثلاجة" المستوردة أو المعلمة بالأخضر */
+.patient-card.imported, .patient-card.today {
+    box-shadow: 0 8px 20px rgba(0, 184, 148, 0.2); /* ظل ملون خفيف */
+}
+
+/* 5. ضبط حاوية العدادات والبحث عشان متختفيش */
+#statsGrid, .search-box {
+    background: rgba(255, 255, 255, 0.05);
+    padding: 15px;
+    border-radius: 15px;
+    margin-bottom: 20px;
+    backdrop-filter: blur(5px);
+}
     </style>
 </head>
 <body>
@@ -25220,21 +25258,7 @@ let tempSelectedDrugs = []; // لتخزين الأدوية المختار مؤق
         `
     );
     
-    // Generate QR codes
-    setTimeout(() => {
-        duplicates.forEach(patient => {
-            const container = document.getElementById(`qr-modal-${patient.id}`);
-            if (container) {
-                container.innerHTML = '';
-                const qrID = createMiniQR(patient.nationalId, 'ID');
-                container.appendChild(qrID);
-                patient.prescriptions.forEach((presc, idx) => {
-                    const qrPresc = createMiniQR(presc.number, `RX${idx + 1}`);
-                    container.appendChild(qrPresc);
-                });
-            }
-        });
-    }, 100);
+   
 }
         
         function createMiniQR(text, label) {
@@ -26379,10 +26403,7 @@ function createPatientCard(patient, searchTerm = '') {
             </div>
         ` : ''}
         
-        <div style="position:relative;">
-            <div class="section-qr" id="qr-${patient.id}" onclick="openQRGallery('${patient.id}')" title="Click to Expand All QRs"></div>
-            <div style="position:absolute; top:20px; right:5px; font-size:10px; color:#aaa; pointer-events:none;">🔍 Expand</div>
-        </div>
+       
 
         <div class="card-footer" style="grid-template-columns: ${patient.imported ? 'repeat(3, 1fr)' : 'repeat(3, 1fr)'};">
             <button class="btn-action btn-edit" onclick="editPatient('${patient.id}')">
