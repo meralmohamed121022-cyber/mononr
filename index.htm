@@ -26074,7 +26074,7 @@ function resetSaveBtn() {
         if (searchInput) searchInput.value = '';
     }
 }
-        function displayPatients() {
+     function displayPatients() {
     // 1. تحديث العدادات أولاً لضمان المزامنة
     updateStats();
     
@@ -26088,9 +26088,7 @@ function resetSaveBtn() {
     const nextWeekEnd = todayStart + (7 * 24 * 60 * 60 * 1000);
 
     // 2. الحصول على القائمة المفلترة حسب الحالة (Today, Overdue, etc.)
-    // استبدلنا filterPatientsByStatus بمنطق داخلي موحد لضمان الدقة
     let filteredPatients = patients.filter(p => {
-        // الفلترة الأساسية: استبعاد الموجودين في الطابور + استبعاد الكروت بدون وصفات
         const notInQueue = p.inQueue !== true;
         const hasValidPrescriptions = p.prescriptions && 
                                       p.prescriptions.length > 0 && 
@@ -26099,7 +26097,6 @@ function resetSaveBtn() {
         
         if (!notInQueue || !hasValidPrescriptions) return false;
 
-        // منطق التواريخ الموحد
         if (!p.nextRefillDate) return currentFilter === 'all' || currentFilter === 'imported';
         
         const refillDate = new Date(p.nextRefillDate);
@@ -26111,6 +26108,13 @@ function resetSaveBtn() {
         if (currentFilter === 'imported') return p.imported === true;
         
         return true; // في حالة 'all'
+    });
+
+    // 🎯 التعديل الأساسي: ترتيب الكروت من تاريخ الريفل الأقرب للأبعد
+    filteredPatients.sort((a, b) => {
+        const dateA = a.nextRefillDate ? new Date(a.nextRefillDate).getTime() : Infinity;
+        const dateB = b.nextRefillDate ? new Date(b.nextRefillDate).getTime() : Infinity;
+        return dateA - dateB;
     });
 
     // 4. تطبيق فلتر التاريخ اليدوي (لو مفعل)
@@ -26127,6 +26131,9 @@ function resetSaveBtn() {
         let fuseResults = fuse.search(searchTerm);
         let searchIds = fuseResults.map(r => r.item.id);
         filteredPatients = filteredPatients.filter(p => searchIds.includes(p.id));
+        // ملحوظة: Fuse غالباً يعيد النتائج مرتبة حسب "قوة التطابق"، 
+        // إذا أردت الحفاظ على الترتيب الزمني حتى في البحث، اترك السطر القادم:
+        filteredPatients.sort((a, b) => new Date(a.nextRefillDate) - new Date(b.nextRefillDate));
     }
 
     // 6. عرض رسالة "لا توجد نتائج"
@@ -26161,6 +26168,9 @@ function resetSaveBtn() {
 
         sortedKeys.forEach(dateKey => {
             const batchList = batches[dateKey];
+            // ترتيب داخلي للباتش برضه عشان التاريخ الأقرب يظهر فوق
+            batchList.sort((a, b) => new Date(a.nextRefillDate) - new Date(b.nextRefillDate));
+
             let displayHeader = dateKey;
             let isManual = dateKey.includes('Manual');
             
@@ -26193,7 +26203,7 @@ function resetSaveBtn() {
         });
 
     } else {
-        // العرض العادي
+        // العرض العادي (مرتب الآن زمنياً تلقائياً)
         filteredPatients.forEach(p => container.appendChild(createPatientCard(p, searchTerm)));
     }
 }
