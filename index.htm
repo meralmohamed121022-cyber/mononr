@@ -3351,10 +3351,16 @@
     margin-bottom: 20px;
     backdrop-filter: blur(5px);
 }
+.stat-card.need-rx-box {
+    background: linear-gradient(135deg, #e67e22 0%, #d35400 100%);
+    color: white;
+    border: none;
+    box-shadow: 0 8px 24px rgba(230, 126, 34, 0.3);
+}
     </style>
 </head>
 <body>
-    <div id="modalOverlay" class="modal-overlay">
+   <div id="modalOverlay" class="modal-overlay">
         <div class="modal-box" id="modalContent"></div>
     </div>
     
@@ -3552,37 +3558,35 @@
                 </div>
 
                 <div class="section-title"><span style="font-size: 18px;">📝</span> Additional Notes</div>
-               <div class="quick-notes-grid">
-    <button class="quick-note-btn" onclick="addQuickNote('👑 VVIP')">👑 VVIP</button>
-    <button class="quick-note-btn" onclick="addQuickNote('⭐ VIP')">⭐ VIP</button>
-    <button class="quick-note-btn" onclick="addQuickNote('⚠️ NEED NEW RX NO')">⚠️ NEED NEW RX NO</button>
-    <button class="quick-note-btn" onclick="addQuickNote('📡 SENSOR')">📡 SENSOR</button>
-    <button class="quick-note-btn" onclick="addQuickNote('💉 INSULIN')">💉 INSULIN</button>
-    
-    <button class="quick-note-btn" onclick="addQuickNote('🧠 KEPPRA')">🧠 KEPPRA</button>
-    <button class="quick-note-btn" onclick="addQuickNote('💊 HEROX')">💊 HEROX</button>
-    <button class="quick-note-btn" onclick="addQuickNote('🫀 BRILINTA')">🫀 BRILINTA</button>
-    <button class="quick-note-btn" onclick="addQuickNote('🩸 ELIQUIS')">🩸 ELIQUIS</button>
-    
-    <button class="quick-note-btn" onclick="addQuickNote('📞 NO ANSWER')">📞 NO ANSWER</button>
-    <button class="quick-note-btn" onclick="addQuickNote('❌ REJECTED')">❌ REJECTED</button>
-    </div>
+                <div class="quick-notes-grid">
+                    <button class="quick-note-btn" onclick="addQuickNote('👑 VVIP')">👑 VVIP</button>
+                    <button class="quick-note-btn" onclick="addQuickNote('⭐ VIP')">⭐ VIP</button>
+                    <button class="quick-note-btn" onclick="addQuickNote('⚠️ NEED NEW RX NO')">⚠️ NEED NEW RX NO</button>
+                    <button class="quick-note-btn" onclick="addQuickNote('📡 SENSOR')">📡 SENSOR</button>
+                    <button class="quick-note-btn" onclick="addQuickNote('💉 INSULIN')">💉 INSULIN</button>
+                    
+                    <button class="quick-note-btn" onclick="addQuickNote('🧠 KEPPRA')">🧠 KEPPRA</button>
+                    <button class="quick-note-btn" onclick="addQuickNote('💊 HEROX')">💊 HEROX</button>
+                    <button class="quick-note-btn" onclick="addQuickNote('🫀 BRILINTA')">🫀 BRILINTA</button>
+                    <button class="quick-note-btn" onclick="addQuickNote('🩸 ELIQUIS')">🩸 ELIQUIS</button>
+                    
+                    <button class="quick-note-btn" onclick="addQuickNote('📞 NO ANSWER')">📞 NO ANSWER</button>
+                    <button class="quick-note-btn" onclick="addQuickNote('❌ REJECTED')">❌ REJECTED</button>
+                </div>
                 <div class="form-group">
                     <textarea class="form-input" id="generalNote" rows="4" placeholder="Add general notes here..." style="resize: vertical;"></textarea>
                 </div>
-<button class="btn-primary" onclick="savePatient()" id="saveBtn">
-    <span id="saveBtnIcon">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path>
-            <polyline points="17 21 17 13 7 13 7 21"></polyline>
-            <polyline points="7 3 7 8 15 8"></polyline>
-        </svg>
-    </span>
-    <span id="saveButtonText">ADD PATIENT</span>
-    <span id="saveBtnLoading" style="display:none;" class="loading"></span>
-</button>
-
-              
+                <button class="btn-primary" onclick="savePatient()" id="saveBtn">
+                    <span id="saveBtnIcon">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path>
+                            <polyline points="17 21 17 13 7 13 7 21"></polyline>
+                            <polyline points="7 3 7 8 15 8"></polyline>
+                        </svg>
+                    </span>
+                    <span id="saveButtonText">ADD PATIENT</span>
+                    <span id="saveBtnLoading" style="display:none;" class="loading"></span>
+                </button>
             </div>
 
             <div id="patients-tab" class="tab-content">
@@ -3593,26 +3597,26 @@
                     </div>
                     <input type="text" class="search-input" id="searchInput" placeholder="Search by ID, prescription..." oninput="searchPatients()">
                 </div>
-              <div class="date-filter">
-    <input type="date" id="filterDateFrom" onchange="applyDateFilter()">
-    <input type="date" id="filterDateTo" onchange="applyDateFilter()">
-    <button class="btn-reset-filter" onclick="resetFilters()" title="Reset Filters">
-        <i class="icon-reset"></i>
-    </button>
-</div>
-<input type="file" id="directImportInput" accept=".json, .xlsx, .xls" style="display: none;" onchange="directImportFile(event)">
+                <div class="date-filter">
+                    <input type="date" id="filterDateFrom" onchange="applyDateFilter()">
+                    <input type="date" id="filterDateTo" onchange="applyDateFilter()">
+                    <button class="btn-reset-filter" onclick="resetFilters()" title="Reset Filters">
+                        <i class="icon-reset"></i>
+                    </button>
+                </div>
+                <input type="file" id="directImportInput" accept=".json, .xlsx, .xls" style="display: none;" onchange="directImportFile(event)">
 
+                <div class="filter-chips">
+                    <div class="chip active" onclick="filterPatients('all')">All</div>
+                    <div class="chip" onclick="filterPatients('today')">Due Today</div>
+                    <div class="chip" onclick="filterPatients('upcoming')">Upcoming Week</div>
+                    <div class="chip" onclick="filterPatients('overdue')">Overdue</div>
+                    <div class="chip" onclick="filterPatients('need_rx')">Need New RX</div> 
+                    <div class="chip" onclick="filterPatients('imported')">Imported</div>
+                </div>
 
-<div class="filter-chips">
-    <div class="chip active" onclick="filterPatients('all')">All</div>
-    <div class="chip" onclick="filterPatients('today')">Due Today</div>
-    <div class="chip" onclick="filterPatients('upcoming')">Upcoming Week</div>
-    <div class="chip" onclick="filterPatients('overdue')">Overdue</div>
-    <div class="chip" onclick="filterPatients('imported')">Imported</div>
-</div>                <div id="patientsContainer"></div>
-            </div>
-
-            <div id="data-tab" class="tab-content">
+                <div id="patientsContainer"></div>
+            </div> <div id="data-tab" class="tab-content">
                 <div class="export-section">
                     <div class="export-title">
                         <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--dark)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
@@ -3638,52 +3642,45 @@
                         <button class="btn-export btn-text" onclick="exportData('text')" data-tooltip="Export Text">Text</button>
                     </div>
                 </div>
-
-                <div class="export-section">
-                  
+            </div> <div id="dispensed-tab" class="tab-content">
+                <div class="section-title">💊 Daily Dispensing Queue</div>
+                
+                <div class="dispense-search-container">
+                    <div class="search-box">
+                        <div class="search-icon-wrapper">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#B2BEC3" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <circle cx="11" cy="11" r="8"></circle>
+                                <path d="m21 21-4.35-4.35"></path>
+                            </svg>
+                        </div>
+                        <input type="text" class="search-input" id="dispenseSearchInput" placeholder="Search by ID or Phone to ADD to queue..." oninput="searchForDispensing()" autocomplete="off">
+                    </div>
+                    <div id="dispenseSearchResults" class="dispense-results-dropdown"></div>
                 </div>
-            </div>
-<div id="dispensed-tab" class="tab-content">
-    <div class="section-title">💊 Daily Dispensing Queue</div>
-    
-    <div class="dispense-search-container">
-        <div class="search-box">
-            <div class="search-icon-wrapper">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#B2BEC3" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <circle cx="11" cy="11" r="8"></circle>
-                    <path d="m21 21-4.35-4.35"></path>
-                </svg>
-            </div>
-            <input type="text" class="search-input" id="dispenseSearchInput" placeholder="Search by ID or Phone to ADD to queue..." oninput="searchForDispensing()" autocomplete="off">
-        </div>
-        <div id="dispenseSearchResults" class="dispense-results-dropdown"></div>
-    </div>
 
-    <div class="dispensing-table-container" style="margin-top: 20px;">
-        <div style="display: flex; justify-content: space-between; align-items: center; padding: 15px 20px; border-bottom: 1px solid #eee; background: #fcfcfc; border-radius: 12px 12px 0 0;">
-            <div style="font-size: 14px; font-weight: 700; color: var(--primary);">📋 Queue List <span id="queueCount" class="patient-badge">0</span></div>
-            <div style="position: relative; width: 250px;">
-                <input type="text" id="queueFilterInput" placeholder="Filter current list..." onkeyup="filterQueue()" style="width: 100%; padding: 8px 12px; border: 1px solid #ddd; border-radius: 20px; font-size: 12px; outline: none; box-shadow: inset 0 1px 3px rgba(0,0,0,0.05);">
-            </div>
-        </div>
-        <table class="dispensing-table">
-            <thead>
-                <tr>
-                    <th width="40">✖</th>
-                    <th width="80">#</th>
-                    <th>Patient Details</th>
-                    <th>Prescriptions</th>
-                    <th width="80">DRUGS</th>
-                    <th>Mobile</th>
-                    <th width="80">Done</th>
-                </tr>
-            </thead>
-            <tbody id="dispensingQueueBody"></tbody>
-        </table>
-        <div id="emptyDispenseMsg" class="no-data"><p>Queue is empty. Search above to add patients.</p></div>
-    </div>
-</div>
-
+                <div class="dispensing-table-container" style="margin-top: 20px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; padding: 15px 20px; border-bottom: 1px solid #eee; background: #fcfcfc; border-radius: 12px 12px 0 0;">
+                        <div style="font-size: 14px; font-weight: 700; color: var(--primary);">📋 Queue List <span id="queueCount" class="patient-badge">0</span></div>
+                        <div style="position: relative; width: 250px;">
+                            <input type="text" id="queueFilterInput" placeholder="Filter current list..." onkeyup="filterQueue()" style="width: 100%; padding: 8px 12px; border: 1px solid #ddd; border-radius: 20px; font-size: 12px; outline: none; box-shadow: inset 0 1px 3px rgba(0,0,0,0.05);">
+                        </div>
+                    </div>
+                    <table class="dispensing-table">
+                        <thead>
+                            <tr>
+                                <th width="40">✖</th>
+                                <th width="80">#</th>
+                                <th>Patient Details</th>
+                                <th>Prescriptions</th>
+                                <th width="80">DRUGS</th>
+                                <th>Mobile</th>
+                                <th width="80">Done</th>
+                            </tr>
+                        </thead>
+                        <tbody id="dispensingQueueBody"></tbody>
+                    </table>
+                    <div id="emptyDispenseMsg" class="no-data"><p>Queue is empty. Search above to add patients.</p></div>
+                </div>
             </div> </div> </div> <div class="floating-docs-btn" onclick="openDocsManager()">
         <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="12" y1="18" x2="12" y2="12"></line><line x1="9" y1="15" x2="15" y2="15"></line></svg>
         <span class="icon-doc">DOCS</span>
@@ -3691,17 +3688,18 @@
 
     <input type="file" id="docsUploader" multiple style="display: none;" onchange="handleDocsUpload(this)">
     <div id="toastNotification" class="toast-notification"><span id="toastText"></span></div>
+    
     <div id="deleteConfirmModal" class="custom-confirm-overlay" style="display:none;">
-    <div class="confirm-box">
-        <div class="confirm-icon">!</div>
-        <h3 class="confirm-title">Are you sure?</h3>
-        <p class="confirm-text">You are about to permanently delete this file. This action cannot be undone.</p>
-        <div class="confirm-btns">
-            <button class="btn-confirm no" onclick="closeDeleteModal()">Cancel</button>
-            <button class="btn-confirm yes" onclick="confirmDelete()">Delete File</button>
+        <div class="confirm-box">
+            <div class="confirm-icon">!</div>
+            <h3 class="confirm-title">Are you sure?</h3>
+            <p class="confirm-text">You are about to permanently delete this file. This action cannot be undone.</p>
+            <div class="confirm-btns">
+                <button class="btn-confirm no" onclick="closeDeleteModal()">Cancel</button>
+                <button class="btn-confirm yes" onclick="confirmDelete()">Delete File</button>
+            </div>
         </div>
     </div>
-</div>
 </body>
 <img src="https://raw.githubusercontent.com/meralmohamed121022-cyber/Drug-Monograph/refs/heads/main/6_20251129_184528_0005.png" alt="Ph Mohamed Kholeif"
 style="position: fixed; bottom: 10px; right: 10px; width: 100px; height: 100px; border-radius: 50%; border: 3px solid white; box-shadow: 0 3px 10px rgba(0,0,0,0.4); background: white; padding: 2px; animation: float 4s ease-in-out infinite; z-index: 1000; cursor: pointer;"
@@ -26074,7 +26072,7 @@ function resetSaveBtn() {
         if (searchInput) searchInput.value = '';
     }
 }
-     function displayPatients() {
+function displayPatients() {
     // 1. تحديث العدادات أولاً لضمان المزامنة
     updateStats();
     
@@ -26082,12 +26080,12 @@ function resetSaveBtn() {
     let container = document.getElementById('patientsContainer');
     container.innerHTML = '';
 
-    // حساب بداية اليوم الحالي (Local Time) لتصحيح الفلترة
+    // حساب بداية اليوم الحالي
     const now = new Date();
     const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
     const nextWeekEnd = todayStart + (7 * 24 * 60 * 60 * 1000);
 
-    // 2. الحصول على القائمة المفلترة حسب الحالة (Today, Overdue, etc.)
+    // 2. الحصول على القائمة المفلترة حسب الحالة
     let filteredPatients = patients.filter(p => {
         const notInQueue = p.inQueue !== true;
         const hasValidPrescriptions = p.prescriptions && 
@@ -26101,23 +26099,37 @@ function resetSaveBtn() {
         
         const refillDate = new Date(p.nextRefillDate);
         const refillTime = new Date(refillDate.getFullYear(), refillDate.getMonth(), refillDate.getDate()).getTime();
+        
+        // فحص الشروط الخاصة (التاريخ فات + النوت موجودة)
+        const hasRxNote = p.generalNote && p.generalNote.toUpperCase().includes('NEED NEW RX NO');
+        const isDateOverdue = refillTime < todayStart;
+        const isActualNeedRx = isDateOverdue && hasRxNote; // دي الحالة اللي بتتسحب من الأوفر دو
 
+        // 🎯 تنفيذ منطق العزل والفلترة
+        if (currentFilter === 'need_rx') {
+            return isActualNeedRx;
+        }
+
+        // إذا كان المريض ينطبق عليه وصف "Need RX فعلي" (متأخر + نوت)، نخفيه من باقي القوائم
+        if (isActualNeedRx) return false;
+
+        // باقي الفلاتر تشتغل طبيعي
         if (currentFilter === 'today') return refillTime === todayStart;
         if (currentFilter === 'upcoming') return refillTime > todayStart && refillTime <= nextWeekEnd;
-        if (currentFilter === 'overdue') return refillTime < todayStart;
+        if (currentFilter === 'overdue') return isDateOverdue; // هيعرض فقط المتأخرين اللي "معندهومش" النوت
         if (currentFilter === 'imported') return p.imported === true;
         
-        return true; // في حالة 'all'
+        return true; // All
     });
 
-    // 🎯 التعديل الأساسي: ترتيب الكروت من تاريخ الريفل الأقرب للأبعد
+    // 🎯 الترتيب الأساسي: من تاريخ الريفل الأقرب للأبعد
     filteredPatients.sort((a, b) => {
         const dateA = a.nextRefillDate ? new Date(a.nextRefillDate).getTime() : Infinity;
         const dateB = b.nextRefillDate ? new Date(b.nextRefillDate).getTime() : Infinity;
         return dateA - dateB;
     });
 
-    // 4. تطبيق فلتر التاريخ اليدوي (لو مفعل)
+    // 4. تطبيق فلتر التاريخ اليدوي
     if (dateFilterActive && dateFilterFrom && dateFilterTo) {
         filteredPatients = filteredPatients.filter(p => {
             let refillDate = new Date(p.nextRefillDate);
@@ -26131,8 +26143,6 @@ function resetSaveBtn() {
         let fuseResults = fuse.search(searchTerm);
         let searchIds = fuseResults.map(r => r.item.id);
         filteredPatients = filteredPatients.filter(p => searchIds.includes(p.id));
-        // ملحوظة: Fuse غالباً يعيد النتائج مرتبة حسب "قوة التطابق"، 
-        // إذا أردت الحفاظ على الترتيب الزمني حتى في البحث، اترك السطر القادم:
         filteredPatients.sort((a, b) => new Date(a.nextRefillDate) - new Date(b.nextRefillDate));
     }
 
@@ -26144,14 +26154,14 @@ function resetSaveBtn() {
                     <div class="icon icon-search" style="width: 40px; height: 40px; border-width: 4px; color: #B2BEC3; margin: 0 auto;"></div>
                 </div>
                 <p style="font-size: 18px; font-weight: 700; color: #95A5A6;">
-                    ${searchTerm ? 'No matching results in this list' : 'No patients match this filter'}
+                    ${searchTerm ? 'No matching results' : 'No patients match this filter'}
                 </p>
             </div>
         `;
         return;
     }
 
-    // 7. العرض النهائي (تقسيم لمجموعات لو في تبويب المستورد)
+    // 7. العرض النهائي
     if (currentFilter === 'imported' && !searchTerm && !dateFilterActive) {
         const batches = {};
         filteredPatients.forEach(p => {
@@ -26168,18 +26178,13 @@ function resetSaveBtn() {
 
         sortedKeys.forEach(dateKey => {
             const batchList = batches[dateKey];
-            // ترتيب داخلي للباتش برضه عشان التاريخ الأقرب يظهر فوق
             batchList.sort((a, b) => new Date(a.nextRefillDate) - new Date(b.nextRefillDate));
 
             let displayHeader = dateKey;
-            let isManual = dateKey.includes('Manual');
-            
-            if (!isManual) {
+            if (!dateKey.includes('Manual')) {
                 const d = new Date(dateKey);
                 if (!isNaN(d)) {
-                    const dateStr = d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
-                    const timeStr = d.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
-                    displayHeader = `📅 ${dateStr} <small style="opacity:0.6; margin-left:10px;">🕒 ${timeStr}</small>`;
+                    displayHeader = `📅 ${d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })} <small style="opacity:0.6; margin-left:10px;">🕒 ${d.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}</small>`;
                 }
             } else {
                 displayHeader = `📁 Manual / Old Entry`;
@@ -26203,7 +26208,6 @@ function resetSaveBtn() {
         });
 
     } else {
-        // العرض العادي (مرتب الآن زمنياً تلقائياً)
         filteredPatients.forEach(p => container.appendChild(createPatientCard(p, searchTerm)));
     }
 }
@@ -26477,18 +26481,17 @@ function createPatientCard(patient, searchTerm = '') {
 // 1. دالة تحديث الإحصائيات (تعديل دقة تاريخ اليوم)
 // ============================================================
 function updateStats() {
-    console.log('📊 Updating Stats (Precise Local Date Mode)...');
+    console.log('📊 Updating Stats (Precise Logic: Overdue + Note = Need RX)...');
     
     const now = new Date();
-    // تصفير الوقت للحصول على بداية اليوم المحلي (00:00:00) لضمان دقة المقارنة
+    // تصفير الوقت للحصول على بداية اليوم المحلي (00:00:00)
     const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
     
     // حساب نهاية أسبوع من الآن (7 أيام)
     const nextWeekEnd = todayStart + (7 * 24 * 60 * 60 * 1000);
 
-    // 1. تصفية المرضى (الحصول على الكروت الحقيقية فقط واستبعاد اللي في الطابور)
+    // 1. تصفية المرضى (الحصول على الكروت الحقيقية فقط)
     const validPatients = patients.filter(p => {
-        // التأكد من وجود بيانات صحيحة للوصفة وتاريخ ريفيل وغير موجود بالطابور
         return p.inQueue !== true &&
                p.nextRefillDate && 
                p.prescriptions && 
@@ -26500,18 +26503,30 @@ function updateStats() {
     let todayCount = 0;
     let upcomingCount = 0;
     let overdueCount = 0;
+    let needRxCount = 0;
 
     validPatients.forEach(p => {
         const refillDate = new Date(p.nextRefillDate);
-        // تصفير وقت تاريخ المريض للمقارنة العادلة باليوم فقط
         const refillTime = new Date(refillDate.getFullYear(), refillDate.getMonth(), refillDate.getDate()).getTime();
+        
+        // فحص النوت
+        const hasRxNote = p.generalNote && p.generalNote.toUpperCase().includes('NEED NEW RX NO');
+        // فحص هل التاريخ فات (أصغر من بداية النهاردة)
+        const isDateOverdue = refillTime < todayStart;
 
-        if (refillTime === todayStart) {
-            todayCount++;
-        } else if (refillTime > todayStart && refillTime <= nextWeekEnd) {
-            upcomingCount++;
-        } else if (refillTime < todayStart) {
-            overdueCount++;
+        // 🎯 الشرط المعدل: لو التاريخ فات "و" فيه النوت -> يروح لبوكس Need RX
+        if (isDateOverdue && hasRxNote) {
+            needRxCount++;
+        } else {
+            // لو الشرطين مع بعض متحققهوش، يكمل في مساره الزمني الطبيعي
+            if (refillTime === todayStart) {
+                todayCount++; // هيفضل هنا حتى لو فيه النوت بس ميعاده النهاردة
+            } else if (refillTime > todayStart && refillTime <= nextWeekEnd) {
+                upcomingCount++; // هيفضل هنا حتى لو فيه النوت بس لسه ميعاده قدام
+            } else if (isDateOverdue) {
+                // هيفضل في الأوفر دو لو تاريخه فات بس "مفهوش" النوت
+                overdueCount++;
+            }
         }
     });
 
@@ -26524,13 +26539,14 @@ function updateStats() {
         const elToday = document.getElementById('val-today');
         const elUpcoming = document.getElementById('val-upcoming');
         const elOverdue = document.getElementById('val-overdue');
+        const elNeedRx = document.getElementById('val-need-rx');
 
-        // تحديث الأرقام مباشرة لو العناصر موجودة، أو إعادة رسم الشبكة بالكامل
-        if (elTotal && elToday && elUpcoming && elOverdue) {
+        if (elTotal && elToday && elUpcoming && elOverdue && elNeedRx) {
             elTotal.innerText = totalCount;
             elToday.innerText = todayCount;
             elUpcoming.innerText = upcomingCount;
             elOverdue.innerText = overdueCount;
+            elNeedRx.innerText = needRxCount;
         } else {
             statsGrid.innerHTML = `
                 <div class="stat-card total" onclick="filterPatients('all')">
@@ -26549,21 +26565,19 @@ function updateStats() {
                     <div class="number" id="val-overdue">${overdueCount}</div>
                     <div class="label">Overdue</div>
                 </div>
+                <div class="stat-card need-rx-box" onclick="filterPatients('need_rx')" style="background: linear-gradient(135deg, #e67e22 0%, #d35400 100%); color: white; border: none;">
+                    <div class="number" id="val-need-rx">${needRxCount}</div>
+                    <div class="label">Need New RX</div>
+                </div>
             `;
         }
     }
 
-    // 3. تحديث محرك البحث ليشمل المرضى المفلترين فقط (Valid Patients)
+    // 3. تحديث محرك البحث
     if (window.Fuse) {
         fuse = new Fuse(validPatients, {
-            keys: [
-                'nationalId', 
-                'phoneNumber', 
-                'generalNote', 
-                'prescriptions.number', 
-                'prescriptions.note'
-            ],
-            threshold: 0.2, // تحسين درجة الحساسية للبحث لتكون أكثر مرونة
+            keys: ['nationalId', 'phoneNumber', 'generalNote', 'prescriptions.number', 'prescriptions.note'],
+            threshold: 0.2,
             ignoreLocation: true,
             useExtendedSearch: true
         });
@@ -26575,31 +26589,35 @@ function updateStats() {
 function filterPatients(status) {
     currentFilter = status;
     
+    // مسح كلاس active من كل الـ chips
     document.querySelectorAll('.chip').forEach(chip => chip.classList.remove('active'));
     
-    // تحديث شكل الـ Chips
+    // تحديث شكل الـ Chips بناءً على الفلتر المختار
     let chips = document.querySelectorAll('.chip');
     chips.forEach(chip => {
         let chipText = chip.textContent.trim().toLowerCase();
+        
+        // التحقق من حالة الفلتر لمطابقتها مع نص الزرار
         if ((status === 'all' && chipText === 'all') ||
             (status === 'today' && chipText === 'due today') ||
             (status === 'upcoming' && chipText === 'upcoming week') ||
             (status === 'overdue' && chipText === 'overdue') ||
+            (status === 'need_rx' && chipText === 'need new rx') || // السطر اللي بيشغل اللون الأخضر للزرار الجديد
             (status === 'imported' && chipText === 'imported')) {
             chip.classList.add('active');
         }
     });
     
-    // استدعاء عرض المرضى
+    // استدعاء عرض المرضى بالمنطق الجديد
     displayPatients();
 }
-        function searchPatients() {
+
+function searchPatients() {
     // تحديث العدادات أولاً بناءً على البحث أو الفلترة الجديدة
     updateStats(); 
-    // عرض المرضى (واللي أضفنا فيها شرط تجاهل الكروت بدون وصفات)
+    // عرض المرضى
     displayPatients();
-}
-     // متغير عشان نحفظ حالة الفلترة بالتاريخ
+}     // متغير عشان نحفظ حالة الفلترة بالتاريخ
 let dateFilterActive = false;
 let dateFilterFrom = null;
 let dateFilterTo = null;
