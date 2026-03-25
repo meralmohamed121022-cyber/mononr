@@ -25706,53 +25706,68 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 });
-      function initializeApp() {
-            // 1. الإعدادات الأولية للعناصر
-            document.getElementById('dispensingDate').valueAsDate = new Date();
-            addPrescription();
-            
-            // 2. تفعيل المستمعين (Event Listeners)
-            document.getElementById('dispensingDate').addEventListener('change', calculateNextRefill);
-            document.getElementById('searchInput').addEventListener('input', searchPatients);
-            document.getElementById('filterDateFrom').addEventListener('change', applyDateFilter);
-            document.getElementById('filterDateTo').addEventListener('change', applyDateFilter);
-            
-            document.getElementById('importFileData').addEventListener('change', handleImportFile);
-            
-            // التحقق من التكرار عند الخروج من حقل الهوية
-            document.getElementById('nationalId').addEventListener('blur', checkIDDuplicate);
-            
-            // 3. العرض الأولي للبيانات
-            calculateNextRefill();
-            displayPatients();
+    function initializeApp() {
+    // 1. الإعدادات الأولية للعناصر
+    document.getElementById('dispensingDate').valueAsDate = new Date();
+    addPrescription();
+    
+    // 2. تفعيل المستمعين (Event Listeners)
+    document.getElementById('dispensingDate').addEventListener('change', calculateNextRefill);
+    document.getElementById('searchInput').addEventListener('input', searchPatients);
+    document.getElementById('filterDateFrom').addEventListener('change', applyDateFilter);
+    document.getElementById('filterDateTo').addEventListener('change', applyDateFilter);
+    
+    document.getElementById('importFileData').addEventListener('change', handleImportFile);
+    
+    // التحقق من التكرار عند الخروج من حقل الهوية
+    document.getElementById('nationalId').addEventListener('blur', checkIDDuplicate);
+    
+    // 3. العرض الأولي للبيانات
+    calculateNextRefill();
+    displayPatients();
 
-            // ============================================================
-            // 🆕 التعديل الجديد: تفعيل المزامنة اللحظية (Realtime Sync)
-            // ============================================================
-            if (currentUser) {
-                console.log('🟢 Connecting to Realtime updates...');
-                
-                const subscription = supabaseClient
-                    .channel('public:patients') // قناة استماع عامة لجدول المرضى
-                    .on(
-                        'postgres_changes', 
-                        { event: '*', schema: 'public', table: 'patients' }, // الاستماع لأي تغيير (إضافة، حذف، تعديل)
-                        (payload) => {
-                            console.log('🔄 Change detected from another device:', payload);
-                            
-                            // عند حدوث أي تغيير، نقوم بإعادة تحميل البيانات وتحديث الشاشة
-                            loadPatientsFromSupabase().then(() => {
-                                displayPatients();
-                                
-                                // (اختياري) عرض تنبيه صغير يخبرك أن هناك تحديثاً حدث
-                                // showModal('Updated', 'Data has been updated from another device', 'OK'); 
-                            });
-                        }
-                    )
-                    .subscribe();
-            }
-        }
+    // ============================================================
+    // ⚡ تفعيل المزامنة اللحظية (Supabase Realtime Sync)
+    // ============================================================
+    if (currentUser) {
+        console.log('🟢 Connecting to Realtime updates...');
         
+        const subscription = supabaseClient
+            .channel('public:patients') // قناة استماع عامة لجدول المرضى
+            .on(
+                'postgres_changes', 
+                { event: '*', schema: 'public', table: 'patients' }, // الاستماع لأي تغيير (إضافة، حذف، تعديل)
+                (payload) => {
+                    console.log('🔄 Change detected from another device:', payload);
+                    
+                    // عند حدوث أي تغيير، نقوم بإعادة تحميل البيانات وتحديث كل الشاشات
+                    loadPatientsFromSupabase().then(() => {
+                        // 1. تحديث العدادات العلوية
+                        updateStats();
+                        
+                        // 2. تحديث قائمة المرضى (Patients Tab)
+                        displayPatients();
+                        
+                        // 3. تحديث طابور الصرف مع الحفاظ على الكلمة المكتوبة في البحث لو موجودة
+                        const queueFilter = document.getElementById('queueFilterInput')?.value || '';
+                        if (typeof renderDispensingQueue === 'function') {
+                            renderDispensingQueue(queueFilter);
+                        }
+                        
+                        // 4. إظهار إشعار هادئ يوضح إن الداتا اتحدثت
+                        if (typeof showToast === 'function') {
+                            showToast('🔄 Data synced in background');
+                        }
+                    });
+                }
+            )
+            .subscribe((status) => {
+                if (status === 'SUBSCRIBED') {
+                    console.log('✅ Realtime Sync is Active and Listening!');
+                }
+            });
+    }
+}
         async function checkIDDuplicate() {
             const nationalId = document.getElementById('nationalId').value.trim();
             if (!nationalId || editingPatientId) return;
