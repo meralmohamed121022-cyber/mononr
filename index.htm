@@ -30450,7 +30450,8 @@ async function saveSensorReminder(patientId) {
 const alertAudio = new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3');
 
 function initReminderWatcher() {
-    // تقليل زمن الفحص لـ 10 ثواني عشان نضمن الدقة أول ما الدقيقة تيجي
+    console.log("🟢 Sensor Watcher Active (7s Ring / 2m Auto-Snooze)");
+    
     setInterval(() => {
         const now = new Date();
         const year = now.getFullYear();
@@ -30458,52 +30459,49 @@ function initReminderWatcher() {
         const day = String(now.getDate()).padStart(2, '0');
         const hours = String(now.getHours()).padStart(2, '0');
         const minutes = String(now.getMinutes()).padStart(2, '0');
-        
         const currentTimeStr = `${year}-${month}-${day}T${hours}:${minutes}`;
 
         patients.forEach(p => {
             if (p.sensor_reminder === currentTimeStr) {
-                // منع تكرار التنبيه في نفس الدقيقة
-                if (window.lastAlarmedId !== p.id + currentTimeStr) {
-                    window.lastAlarmedId = p.id + currentTimeStr;
+                // 1. تشغيل التنبيه لو لسه مبدأش
+                if (window.currentlyRingingId !== p.id && window.lastAutoSnooze !== p.id + currentTimeStr) {
                     playSensorAlert(p);
                 }
             }
+            
+            // 2. نظام الـ Auto-Snooze: لو المنبه شغال بقاله 7 ثواني واليوزر متفاعلش
+            // بنحسب لو فات 7 ثواني على بداية الدقيقة الحالية والمنبه لسه شغال
+            if (window.currentlyRingingId === p.id && now.getSeconds() >= 7) {
+                console.log("🕒 Auto-Snoozing after 7 seconds of no response...");
+                window.lastAutoSnooze = p.id + currentTimeStr; // منع التكرار في نفس الدقيقة
+                autoSnoozeProcess(p.id, 2); // تأجيل تلقائي دقيقتين
+            }
         });
-    }, 10000); 
+    }, 1000); // فحص كل ثانية لضمان دقة الـ 7 ثواني
 }
 function playSensorAlert(patient) {
-    window.currentlyRingingId = patient.id; 
+    window.currentlyRingingId = patient.id;
     displayPatients(); 
     
-    // تشغيل الصوت
-    alertAudio.loop = true; // هيفضل يكرر النغمة
-    alertAudio.play().catch(e => console.log("Audio blocked"));
+    alertAudio.loop = true;
+    alertAudio.play().catch(e => console.log("Interaction needed for sound"));
 
-    // --- التعديل السحري هنا: إيقاف الصوت أوتوماتيك بعد 10 ثواني ---
-    setTimeout(() => {
-        if (window.currentlyRingingId === patient.id) {
-            alertAudio.pause();
-            alertAudio.currentTime = 0;
-            // اختياري: لو عايزه يفضل لونه أحمر في الكارت بس من غير صوت، سيب السطر الجاي
-            // لو عايزه يرجع لونه الطبيعي أول ما الصوت يسكت، فك الكومنت عن السطر اللي تحت:
-            // window.currentlyRingingId = null; displayPatients();
-            showToast("🔔 التنبيه الصوتي توقف بعد 10 ثواني");
-        }
-    }, 10000); // 10000 مللي ثانية = 10 ثواني
-    // ---------------------------------------------------------
-
+    // المودال الجديد بتصميم Mo المفضل
     showModal(
-        '<span style="color: #d63031; font-weight: 900;">⚠️ SENSOR TIME!</span>',
-        `<div style="text-align:center; padding: 10px 0;">
-            <div style="font-size: 50px; margin-bottom: 10px;">🔔</div>
-            <h2 style="color: #2d3436; font-family: monospace; font-size: 26px;">${patient.nationalId}</h2>
-            <p style="color: #636e72; font-weight: bold;">حان الآن موعد صرف السنسور</p>
-         </div>`,
+        '<span style="color: #d63031; font-weight: 900;">🚨 SENSOR TIME ALERT</span>',
+        `<div style="text-align:center; padding: 20px;">
+            <div style="font-size: 60px; margin-bottom: 15px; animation: ring-shake 0.5s infinite;">🔔</div>
+            <h2 style="color: #2d3436; font-family: monospace;">${patient.nationalId}</h2>
+            <p style="font-weight: bold; color: #636e72;">حان الآن موعد صرف السنسور</p>
+            <p style="font-size: 11px; color: #ff7675; margin-top: 10px;">سيتوقف الصوت ويؤجل تلقائياً بعد 7 ثوانٍ ما لم تتفاعل</p>
+         </div>
+         <style>
+            @keyframes ring-shake { 0% {transform:rotate(0)} 25% {transform:rotate(10deg)} 75% {transform:rotate(-10deg)} 100% {transform:rotate(0)} }
+         </style>`,
         `<div style="display: flex; flex-direction: column; gap: 10px; width: 100%;">
-            <button class="btn-primary" onclick="clearReminder('${patient.id}')" style="background: #00b894; height: 50px; font-weight: 900;">✅ MARK DONE (DELETE ALARM)</button>
-            <button class="btn-secondary" onclick="snoozeReminder('${patient.id}')" style="border: 2px solid #6c5ce7; color: #6c5ce7; font-weight: 800; height: 45px;">💤 SNOOZE 10 MINS</button>
-            <button class="btn-secondary" onclick="stopAlarmSound(); closeModal();" style="background: #eee; border:none; height: 40px; color: #666;">🔇 STOP SOUND & CLOSE</button>
+            <button class="btn-primary" onclick="clearReminder('${patient.id}')" style="background: #00b894; height: 50px; font-weight: 900; border:none; border-radius:12px;">✅ MARK AS DONE (STOP ALARM)</button>
+            <button class="btn-secondary" onclick="snoozeReminder('${patient.id}', 10)" style="border: 2px solid #6c5ce7; color: #6c5ce7; font-weight: 800; height: 45px; border-radius:12px;">💤 SNOOZE 10 MINS</button>
+            <button class="btn-secondary" onclick="stopAlarmSound(); closeModal();" style="background: #f1f2f6; border:none; height: 40px; color: #666; border-radius:12px; margin-top: 5px; font-weight: bold;">🔇 STOP SOUND & CLOSE</button>
         </div>`
     );
 }
@@ -30547,40 +30545,63 @@ async function clearReminder(patientId) {
 initReminderWatcher();
 // دالة إيقاف الصوت فقط (Stop) - المنبه هيفضل موجود في الداتابيز
 // دالة إيقاف الصوت وتحديث شكل الكارت
+// دالة إيقاف الصوت (ثابتة ومعتمدة)
 function stopAlarmSound() {
     if (alertAudio) {
         alertAudio.pause();
         alertAudio.currentTime = 0;
     }
-    window.currentlyRingingId = null; // إنهاء حالة الضرب
-    displayPatients(); // تحديث القائمة لإخفاء زرار STOP من الكارت
-    showToast('🔊 Sound Muted');
+    window.currentlyRingingId = null;
+    displayPatients(); 
 }
 
-// دالة السحب من المنبه (تعديل مدة الـ Snooze هنا)
-async function snoozeReminder(patientId) {
+// دالة الـ Snooze اليدوي (عبر الأزرار)
+async function snoozeReminder(patientId, mins = 10) {
     stopAlarmSound();
-    
-    const snoozeMinutes = 10; // <--- يا Mo غير الرقم ده (10) لأي عدد دقائق تحبه (مثلاً 5 أو 15)
-    
-    const now = new Date();
-    now.setMinutes(now.getMinutes() + snoozeMinutes);
-    
-    // تنسيق التاريخ الجديد
-    const tzOffset = now.getTimezoneOffset() * 60000;
-    const localISOTime = (new Date(now - tzOffset)).toISOString().slice(0, 16);
+    const nextTime = new Date(new Date().getTime() + mins * 60000);
+    const tzOffset = nextTime.getTimezoneOffset() * 60000;
+    const formattedTime = (new Date(nextTime - tzOffset)).toISOString().slice(0, 16);
 
     try {
-        await supabaseClient.from('patients').update({ sensor_reminder: localISOTime }).eq('id', patientId);
+        await supabaseClient.from('patients').update({ sensor_reminder: formattedTime }).eq('id', patientId);
         const p = patients.find(pat => String(pat.id) === String(patientId));
-        if (p) p.sensor_reminder = localISOTime;
-        
+        if (p) p.sensor_reminder = formattedTime;
         closeModal();
         displayPatients();
-        showToast(`💤 Snoozed for ${snoozeMinutes} mins`);
+        showToast(`💤 Snoozed for ${mins} mins`);
     } catch (e) { showToast('❌ Error'); }
 }
 
+// دالة الـ Auto Snooze التلقائي (لو مردتش في 7 ثواني)
+async function autoSnoozeProcess(patientId, minutes) {
+    stopAlarmSound(); 
+    closeModal();     
+    
+    const nextTime = new Date(new Date().getTime() + minutes * 60000);
+    const tzOffset = nextTime.getTimezoneOffset() * 60000;
+    const formattedTime = (new Date(nextTime - tzOffset)).toISOString().slice(0, 16);
+
+    try {
+        await supabaseClient.from('patients').update({ sensor_reminder: formattedTime }).eq('id', patientId);
+        const p = patients.find(pat => String(pat.id) === String(patientId));
+        if (p) p.sensor_reminder = formattedTime;
+        displayPatients();
+        showToast(`💤 Auto-Snoozed: Done for ${minutes} mins`);
+    } catch (e) { console.error("AutoSnooze Error", e); }
+}
+
+// دالة إنهاء المنبه (تم الصرف)
+async function clearReminder(patientId) {
+    stopAlarmSound();
+    try {
+        await supabaseClient.from('patients').update({ sensor_reminder: null }).eq('id', patientId);
+        const p = patients.find(pat => String(pat.id) === String(patientId));
+        if (p) p.sensor_reminder = null;
+        closeModal();
+        displayPatients();
+        showToast('✅ Alarm Dismissed & Cleared');
+    } catch (err) { showToast('❌ Database Error'); }
+}
 function playSensorAlert(patient) {
     window.currentlyRingingId = patient.id; // تسجيل المريض اللي بيضرب
     displayPatients(); // تحديث الكارت فوراً لإظهار زرار الـ STOP الثابت
