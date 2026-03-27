@@ -26341,13 +26341,6 @@ function createPatientCard(patient, searchTerm = '') {
                     status === 'overdue' ? 'OVERDUE' : 
                     status === 'upcoming' ? 'UPCOMING' : 'SCHEDULED';
 
-    let whatsappLink = '';
-    if (patient.phoneNumber) {
-        let cleanPhone = patient.phoneNumber.replace(/\D/g, '');
-        if (cleanPhone.startsWith('05')) cleanPhone = '966' + cleanPhone.substring(1);
-        whatsappLink = `https://wa.me/${cleanPhone}`;
-    }
-
     const hl_nationalId = highlightMatch(patient.nationalId, searchTerm);
     const hl_phone = highlightMatch(patient.phoneNumber, searchTerm);
 
@@ -26363,23 +26356,57 @@ function createPatientCard(patient, searchTerm = '') {
         };
         parts.forEach(part => {
             let cssClass = 'badge-default';
-            let textToShow = part;
+            let partUpper = part.toUpperCase();
             for (const [key, config] of Object.entries(tagsMap)) {
-                if (part.toUpperCase().includes(key)) { cssClass = config.class; break; }
+                if (partUpper.includes(key)) { cssClass = config.class; break; }
             }
-            badgesHtml += `<span class="note-badge ${cssClass}" style="font-size: 10px; padding: 4px 8px;">${highlightMatch(textToShow, searchTerm)}</span>`;
+            badgesHtml += `<span class="note-badge ${cssClass}" style="font-size: 10px; padding: 4px 8px;">${highlightMatch(part, searchTerm)}</span>`;
         });
         badgesHtml += '</div>';
         return badgesHtml;
     };
 
-    // --- HTML ---
+    // --- منطقة المنبه بتصميم Modern (Pull System) ---
+    let sensorReminderHtml = '';
+    if (patient.generalNote && patient.generalNote.toUpperCase().includes('SENSOR')) {
+        const hasAlarm = patient.sensor_reminder;
+        const isRinging = window.currentlyRingingId === patient.id;
+
+        sensorReminderHtml = `
+            <div id="alarm-box-${patient.id}" style="margin-top: 15px; padding: 15px; background: ${isRinging ? '#fff5f5' : (hasAlarm ? '#f0f9ff' : '#fffcf5')}; border-radius: 15px; border: 2px solid ${isRinging ? '#d63031' : (hasAlarm ? '#74b9ff' : '#ffeaa7')}; transition: all 0.3s ease; box-shadow: inset 0 1px 3px rgba(0,0,0,0.05);">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                    <div style="display: flex; align-items: center; gap: 8px; font-size: 12px; font-weight: 800; color: ${isRinging ? '#d63031' : (hasAlarm ? '#0984e3' : '#e67e22')};">
+                        <span style="font-size: 16px;">${isRinging ? '🚨' : (hasAlarm ? '🔔' : '🔕')}</span> SENSOR ALERT
+                    </div>
+                    ${isRinging ? `
+                        <button onclick="stopAlarmSound()" style="background:#d63031; color:white; border:none; padding:5px 12px; border-radius:8px; font-size:10px; font-weight:bold; cursor:pointer; animation: blink 0.5s infinite;">STOP SOUND</button>
+                    ` : (hasAlarm ? '<span style="background:#0984e3; color:white; padding:3px 10px; border-radius:12px; font-size:9px; font-weight:bold;">ACTIVE</span>' : '')}
+                </div>
+                <div style="display: flex; gap: 8px; align-items: center;">
+                    <input type="datetime-local" id="rem-time-${patient.id}" 
+                           value="${patient.sensor_reminder || ''}" 
+                           style="flex: 1; padding: 10px; border: 1.5px solid #dfe6e9; border-radius: 10px; font-size: 12px; outline: none; background: white; color: #2d3436;">
+                    <button onclick="saveSensorReminder('${patient.id}')" 
+                            style="background: #00b894; color: white; border: none; padding: 10px 15px; border-radius: 10px; cursor: pointer; font-weight: 900; font-size: 11px; box-shadow: 0 4px 6px rgba(0,184,148,0.2);">
+                        SET
+                    </button>
+                    ${hasAlarm ? `
+                        <button onclick="deleteReminder('${patient.id}')" 
+                                style="background: #fab1a0; color: #d63031; border: none; padding: 10px; border-radius: 10px; cursor: pointer; font-weight: 900;" title="Delete Alarm">
+                            🗑️
+                        </button>
+                    ` : ''}
+                </div>
+                ${hasAlarm && !isRinging ? `<div style="font-size: 10px; color: #636e72; margin-top: 8px; font-weight: 600; display: flex; align-items: center; gap: 5px;"><span>🕒</span> Next: ${patient.sensor_reminder.replace('T', ' at ')}</div>` : ''}
+            </div>
+        `;
+    }
+
     card.innerHTML = `
         <div class="patient-header">
             <div style="flex: 1;">
                 <div style="display: flex; align-items: center;">
                     <div class="patient-id">${hl_nationalId}</div>
-                    
                     <button class="btn-check-inline" onclick="checkHistory('${patient.id}'); event.stopPropagation();" title="Check History">
                         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
                         CHECK
@@ -26437,10 +26464,10 @@ function createPatientCard(patient, searchTerm = '') {
                 ${processNotes(patient.generalNote)}
             </div>
         ` : ''}
-        
-       
 
-        <div class="card-footer" style="grid-template-columns: ${patient.imported ? 'repeat(3, 1fr)' : 'repeat(3, 1fr)'};">
+        ${sensorReminderHtml}
+
+        <div class="card-footer" style="grid-template-columns: repeat(3, 1fr); margin-top: 15px;">
             <button class="btn-action btn-edit" onclick="editPatient('${patient.id}')">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg> Edit
             </button>
@@ -26452,18 +26479,6 @@ function createPatientCard(patient, searchTerm = '') {
             </button>
         </div>
     `;
-    
-    // QR Code Generation
-    setTimeout(() => {
-        let qrContainer = document.getElementById('qr-' + patient.id);
-        if (qrContainer) {
-            qrContainer.innerHTML = '';
-            qrContainer.appendChild(createQRElement(patient.nationalId, 'ID', patient.nationalId));
-            patient.prescriptions.forEach((presc, idx) => {
-                qrContainer.appendChild(createQRElement(presc.number, 'RX ' + (idx + 1), presc.number));
-            });
-        }
-    }, 100);
     
     return card;
 }
@@ -27138,16 +27153,29 @@ function processAndValidateData(rawData, isTextFile) {
     let skipped = []; 
     const batchTimestamp = new Date().toISOString(); 
 
-    // 1. بصمة النظام: نجمع كل (هوية + وصفة) موجودة حالياً في لستة واحدة للمقارنة السريعة
+    // 1. بناء خريطة النظام الحالية مع تحديد الحالة (Status) بدقة
     const existingMap = new Map();
     patients.forEach(p => {
         if (p.prescriptions && Array.isArray(p.prescriptions)) {
             p.prescriptions.forEach(rx => {
-                // المفتاح الفريد: هوية المريض + رقم الوصفة (كلهم حروف صغيرة وبدون مسافات)
                 const key = `${String(p.nationalId).trim()}_${String(rx.number).toLowerCase().trim()}`;
+                
+                // حساب الحالة بناءً على التواريخ والملاحظات
+                const refillDate = new Date(p.nextRefillDate);
+                const today = new Date();
+                today.setHours(0,0,0,0);
+                const isOverdue = refillDate < today;
+                const hasRxNote = p.generalNote && p.generalNote.toUpperCase().includes('NEED NEW RX NO');
+                
+                let currentStatus = 'Active';
+                if (isOverdue && hasRxNote) currentStatus = 'Need New RX';
+                else if (isOverdue) currentStatus = 'Overdue';
+                else if (p.imported) currentStatus = 'Imported';
+
                 existingMap.set(key, {
                     patient: p,
-                    rx: rx
+                    rx: rx,
+                    status: currentStatus
                 });
             });
         }
@@ -27193,43 +27221,48 @@ function processAndValidateData(rawData, isTextFile) {
             return;
         }
 
-        // 🎯 المقارنة الصارمة باستخدام "البصمة"
         const currentKey = `${detectedId.trim()}_${detectedRx.toLowerCase().trim()}`;
         const existingMatch = existingMap.get(currentKey);
 
+        // المنطق المطور: فحص الحالة قبل الـ Skip
         if (existingMatch) {
-            // [حالة تطابق]: الهوية والوصفة موجودين فعلاً
-            const p = existingMatch.patient;
-            const rx = existingMatch.rx;
-
-            const oldNextRefill = parseAnyDate(rx.nextRefillDate || rx.next_refill_date || p.nextRefillDate || "");
-            const newNextRefill = detectedNextRefill;
-
-            let changes = [];
-            if (detectedPhone && String(p.phoneNumber || "").trim() !== detectedPhone) {
-                changes.push(`Phone Update`);
-            }
-            if (newNextRefill && oldNextRefill && newNextRefill !== oldNextRefill) {
-                changes.push(`Date Update`);
-            }
-
-            if (changes.length > 0) {
-                updatesToCheck.push({
-                    dbId: p.id,
+            const s = existingMatch.status;
+            
+            // لو الحالة واحدة من التلاتة دول، هنعتبره صالح للإضافة (سحب للـ Imported)
+            if (s === 'Overdue' || s === 'Need New RX' || s === 'Imported') {
+                const uniqueKey = `PULL_${index}_${detectedId}`; 
+                validPatients[uniqueKey] = {
                     nationalId: detectedId,
-                    rxNumber: detectedRx,
-                    changes: changes,
-                    newPhone: detectedPhone || p.phoneNumber,
-                    newDate: newNextRefill || oldNextRefill,
-                    oldDate: oldNextRefill || "No Date"
-                });
+                    phoneNumber: detectedPhone || existingMatch.patient.phoneNumber,
+                    dispensingDate: detectedDispensing || new Date().toISOString().split('T')[0],
+                    refillPeriod: 24,
+                    nextRefillDate: detectedNextRefill || "",
+                    prescriptions: [{ number: detectedRx, note: '' }],
+                    generalNote: `Re-Imported`,
+                    imported: true,
+                    importDate: batchTimestamp,
+                    oldStatus: s // إرسال الحالة للـ UI عشان تظهر في البوكس البرتقالي
+                };
             } else {
-                skipped.push({ row: index + 1, id: detectedId, reason: `✅ Rx ${detectedRx} already exists and is current.` });
+                // الكارت سليم ومواعيده لسه مجاتش، حدث التليفون بس لو اتغير
+                if (detectedPhone && String(existingMatch.patient.phoneNumber || "").trim() !== detectedPhone) {
+                    updatesToCheck.push({
+                        dbId: existingMatch.patient.id,
+                        nationalId: detectedId,
+                        rxNumber: detectedRx,
+                        changes: [`Phone Update`],
+                        newPhone: detectedPhone,
+                        newDate: detectedNextRefill || existingMatch.patient.nextRefillDate,
+                        oldDate: existingMatch.patient.nextRefillDate
+                    });
+                } else {
+                    skipped.push({ row: index + 1, id: detectedId, reason: `✅ Rx ${detectedRx} is Active & Current.` });
+                }
             }
-            return; // قفل الطريق على أي تكرار
+            return; 
         }
 
-        // 3. إضافة الجديد (فقط لو مفتاح الهوية+الوصفة مش موجود نهائياً)
+        // إضافة مريض جديد تماماً
         const uniqueKey = `${detectedId}_${detectedRx}`; 
         if (!validPatients[uniqueKey]) {
             validPatients[uniqueKey] = {
@@ -27241,7 +27274,8 @@ function processAndValidateData(rawData, isTextFile) {
                 prescriptions: [{ number: detectedRx, note: '' }],
                 generalNote: "Auto-Imported",
                 imported: true,
-                importDate: batchTimestamp 
+                importDate: batchTimestamp,
+                oldStatus: null // هيظهر في البوكس الأخضر
             };
         }
     });
@@ -27251,210 +27285,226 @@ function processAndValidateData(rawData, isTextFile) {
 function showImportPreviewUI(result) {
     switchTab('data');
     const container = document.getElementById('importPreview');
-    
+    if (!container) return;
+
     let html = `<div style="background: white; padding: 20px; border-radius: 16px; border: 2px solid var(--primary); margin-top: 20px; box-shadow: 0 10px 40px rgba(0,0,0,0.1); animation: slideUp 0.3s ease;">`;
 
-    // تعديل الـ Render عشان الـ ID يكون فريد والـ onchange يبعت النوع صح
-    const renderSelectAll = (type, label) => `
-        <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 10px; background: rgba(255,255,255,0.5); padding: 5px 10px; border-radius: 8px;">
-            <input type="checkbox" id="selectAll${type}" checked 
-                   onchange="toggleImportType('${type}', this.checked)" 
-                   style="cursor:pointer; width:18px; height:18px;">
-            <label for="selectAll${type}" style="font-size: 13px; font-weight: 800; color: var(--dark); cursor:pointer; user-select:none;">Select All ${label}</label>
+    const renderHeader = (color, icon, title, count) => `
+        <div style="background: ${color}; padding: 12px 15px; border-radius: 12px 12px 0 0; display: flex; align-items: center; gap: 10px; border-bottom: 2px solid rgba(0,0,0,0.05);">
+            <span style="font-size: 20px;">${icon}</span>
+            <h3 style="margin: 0; font-size: 15px; color: var(--dark); flex: 1;">${title} (${count})</h3>
         </div>
     `;
 
-    // --- قسم التحديثات ---
-    if (result.updates && result.updates.length > 0) {
+    // فصل البيانات بناءً على الحالة
+    const brandNewEntries = result.valid.filter(p => !p.oldStatus);
+    const statusUpdateEntries = result.valid.filter(p => p.oldStatus);
+
+    // 1. بوكس السحب لـ Imported (Overdue / Need New RX)
+    if (statusUpdateEntries.length > 0) {
         html += `
-            <div style="background: #E3F2FD; border: 1px solid #90CAF9; padding: 15px; border-radius: 12px; margin-bottom: 20px;">
-                <h3 style="color: #1565C0; margin-top: 0; display: flex; align-items: center; gap: 10px; font-size: 16px;">
-                    <span>🔄</span> Found ${result.updates.length} Updates (Data Comparison)
-                </h3>
-                ${renderSelectAll('Update', 'Updates')}
-                <div style="max-height: 250px; overflow-y: auto; background: white; border: 1px solid #BBDEFB; border-radius: 8px;">
-                    <table style="width: 100%; border-collapse: collapse; font-size: 12px;">
+            <div style="border: 2px solid #FFCC80; border-radius: 14px; margin-bottom: 20px; overflow: hidden;">
+                ${renderHeader('#FFF3E0', '🚚', 'Move to Imported (Pull Log)', statusUpdateEntries.length)}
+                <div style="max-height: 250px; overflow-y: auto;">
+                    <table style="width: 100%; border-collapse: collapse; font-size: 12px; background: white;">
                         <tbody>
-                            ${result.updates.map((u, i) => {
-                                const isDateChanged = u.oldDate !== u.newDate;
+                            ${statusUpdateEntries.map((p, i) => {
+                                let badgeColor = p.oldStatus === 'Overdue' ? '#e74c3c' : '#e67e22';
                                 return `
                                 <tr style="border-bottom: 1px solid #eee;">
-                                    <td style="padding: 10px; width: 40px; text-align: center;">
-                                        <input type="checkbox" class="import-check-update" data-idx="${i}" checked>
+                                    <td style="padding: 12px; width: 40px; text-align: center;">
+                                        <input type="checkbox" class="import-check-new" data-type="reimport" data-id="${p.nationalId}" data-rx="${p.prescriptions[0].number}" checked>
                                     </td>
-                                    <td style="padding: 10px;">
-                                        <div style="font-family: monospace; font-weight:bold; color: var(--dark);">${u.nationalId} <span style="color:#6C5CE7; font-size:10px;">[Rx: ${u.rxNumber}]</span></div>
-                                        ${isDateChanged ? `
-                                            <div style="display: flex; align-items: center; gap: 6px; margin-top: 4px; font-size: 11px;">
-                                                <span style="color: #999; text-decoration: line-through;">${u.oldDate}</span>
-                                                <span style="color: #1565C0; font-weight: bold;">➞</span>
-                                                <span style="background: #E8F5E9; color: #2E7D32; padding: 2px 6px; border-radius: 4px; font-weight: 900;">${u.newDate}</span>
-                                            </div>
-                                        ` : `<div style="color:#666; font-size:11px;">Date: ${u.oldDate}</div>`}
+                                    <td style="padding: 12px;">
+                                        <div style="font-family: monospace; font-weight: 800; font-size: 14px;">${p.nationalId}</div>
+                                        <div style="margin-top: 4px;">
+                                            <span style="background: ${badgeColor}; color: white; padding: 2px 6px; border-radius: 4px; font-size: 9px; font-weight: bold; text-transform: uppercase;">
+                                                FROM ${p.oldStatus} ➔ IMPORTED
+                                            </span>
+                                        </div>
                                     </td>
-                                    <td style="padding: 10px; text-align: right;">
-                                        ${u.changes.map(c => `<span style="background:#E1F5FE; color:#0277BD; padding:2px 8px; border-radius:10px; font-size:10px; font-weight:bold; margin-left:2px;">${c}</span>`).join('')}
+                                    <td style="padding: 12px; text-align: right;">
+                                        <span style="background: #f1f2f6; padding: 4px 8px; border-radius: 6px; font-weight: bold; font-family: monospace;">Rx: ${p.prescriptions[0].number}</span>
                                     </td>
                                 </tr>`;
                             }).join('')}
                         </tbody>
                     </table>
                 </div>
-            </div>
-        `;
+            </div>`;
     }
 
-    // --- قسم الجديد ---
-    if (result.valid.length > 0) {
+    // 2. بوكس الكروت الجديدة تماماً (Brand New)
+    if (brandNewEntries.length > 0) {
         html += `
-            <div style="background: #E8F5E9; border: 1px solid #A5D6A7; padding: 15px; border-radius: 12px; margin-bottom: 20px;">
-                <h3 style="color: #2E7D32; margin-top: 0; display: flex; align-items: center; gap: 10px; font-size: 16px;">
-                    <span>➕</span> Found ${result.valid.length} New Cards
-                </h3>
-                ${renderSelectAll('New', 'New Cards')}
-                <div style="max-height: 200px; overflow-y: auto; background: white; border: 1px solid #C8E6C9; border-radius: 8px;">
-                    <table style="width: 100%; border-collapse: collapse; font-size: 12px;">
+            <div style="border: 2px solid #A5D6A7; border-radius: 14px; margin-bottom: 20px; overflow: hidden;">
+                ${renderHeader('#E8F5E9', '✨', 'Brand New Records', brandNewEntries.length)}
+                <div style="max-height: 250px; overflow-y: auto;">
+                    <table style="width: 100%; border-collapse: collapse; font-size: 12px; background: white;">
                         <tbody>
-                            ${result.valid.map((p, i) => `
+                            ${brandNewEntries.map((p, i) => `
                                 <tr style="border-bottom: 1px solid #eee;">
-                                    <td style="padding: 10px; width: 40px; text-align: center;">
-                                        <input type="checkbox" class="import-check-new" data-idx="${i}" checked>
+                                    <td style="padding: 12px; width: 40px; text-align: center;">
+                                        <input type="checkbox" class="import-check-new" data-type="brand_new" data-id="${p.nationalId}" data-rx="${p.prescriptions[0].number}" checked>
                                     </td>
-                                    <td style="padding: 10px;">
-                                        <div style="font-family: monospace; font-weight: bold; color: #2D3436;">${p.nationalId}</div>
-                                        <div style="font-size:11px; color:#666;">Refill: ${p.nextRefillDate}</div>
+                                    <td style="padding: 12px;">
+                                        <div style="font-family: monospace; font-weight: 800; font-size: 14px; color: var(--primary);">${p.nationalId}</div>
+                                        <div style="font-size: 10px; color: #27ae60; font-weight: bold;">NEW PATIENT</div>
                                     </td>
-                                    <td style="padding: 10px; text-align: right;">
-                                        ${p.prescriptions.map(rx => `<span style="display:inline-block; border:1px solid #ddd; padding:2px 5px; border-radius:4px; margin-left:3px; font-size:10px; font-weight:bold; background:#f8f9fa;">${rx.number}</span>`).join('')}
+                                    <td style="padding: 12px; text-align: right;">
+                                        <span style="background: #f1f2f6; padding: 4px 8px; border-radius: 6px; font-weight: bold; font-family: monospace;">Rx: ${p.prescriptions[0].number}</span>
                                     </td>
                                 </tr>
                             `).join('')}
                         </tbody>
                     </table>
                 </div>
-            </div>
-        `;
+            </div>`;
     }
 
-    if (result.skipped.length > 0) {
-        html += `<div style="border-top: 2px dashed #ddd; margin-top: 15px; padding-top: 15px;">
-            <details><summary style="cursor: pointer; color: #636E72; font-size: 13px; font-weight: 700;">⚠️ Skipped ${result.skipped.length} Records (Details)</summary>
-            <div style="margin-top: 10px; max-height: 100px; overflow-y: auto; background: #F8F9FE; border-radius: 8px; padding: 10px; font-size: 11px;">
-            ${result.skipped.map(s => `<div>• Row ${s.row}: ${s.reason}</div>`).join('')}
-            </div></details></div>`;
+    // 3. بوكس تحديثات البيانات (Date/Phone Only for Active Cards)
+    if (result.updates && result.updates.length > 0) {
+        html += `
+            <div style="border: 2px solid #90CAF9; border-radius: 14px; margin-bottom: 20px; overflow: hidden;">
+                ${renderHeader('#E3F2FD', '🔄', 'Minor Data Updates', result.updates.length)}
+                <div style="max-height: 200px; overflow-y: auto;">
+                    <table style="width: 100%; border-collapse: collapse; font-size: 11px; background: white;">
+                        <tbody>
+                            ${result.updates.map((u, i) => `
+                                <tr style="border-bottom: 1px solid #eee;">
+                                    <td style="padding: 10px; width: 40px; text-align: center;"><input type="checkbox" class="import-check-update" data-idx="${i}" checked></td>
+                                    <td style="padding: 10px;"><b>${u.nationalId}</b></td>
+                                    <td style="padding: 10px; color: #0984e3; font-weight: bold;">${u.changes.join(', ')}</td>
+                                </tr>
+                            `).join('')}
+                        </tbody>
+                    </table>
+                </div>
+            </div>`;
     }
 
     html += `<div style="display: grid; grid-template-columns: 2fr 1fr; gap: 15px; margin-top: 20px;">
-        <button class="btn-primary" onclick="confirmSmartImport()" style="height: 50px; font-weight:bold;">EXECUTE SELECTED</button>
+        <button class="btn-primary" onclick="confirmSmartImport()" style="height: 50px; font-weight: 900;">EXECUTE SELECTED SYNC</button>
         <button class="btn-secondary" onclick="cancelImport()" style="height: 50px;">CANCEL</button>
     </div></div>`;
 
     container.innerHTML = html;
 }
-// ============================================================
-// 2. دالة التنفيذ (Execute) المحدثة لربط التواريخ ومنع الـ null
-// ============================================================
-async function confirmSmartImport() {
-    // جلب العناصر المختارة فقط
-    const updateChecks = document.querySelectorAll('.import-check-update:checked');
-    const newChecks = document.querySelectorAll('.import-check-new:checked');
 
-    if (updateChecks.length === 0 && newChecks.length === 0) {
-        showToast('⚠️ Please select at least one record!');
+async function confirmSmartImport() {
+    const brandNewChecks = Array.from(document.querySelectorAll('.import-check-new[data-type="brand_new"]:checked'));
+    const reimportChecks = Array.from(document.querySelectorAll('.import-check-new[data-type="reimport"]:checked'));
+    const updateChecks = Array.from(document.querySelectorAll('.import-check-update:checked'));
+
+    if (brandNewChecks.length === 0 && reimportChecks.length === 0 && updateChecks.length === 0) {
+        showToast('⚠️ Please select records to sync');
         return;
     }
 
     const container = document.getElementById('importPreview');
     container.innerHTML = `
         <div style="text-align:center; padding:40px;">
-            <div class="loading" style="width:40px; height:40px; border-width:4px; border-color: var(--primary) transparent var(--primary) transparent;"></div>
-            <h3 style="margin-top:20px; color: var(--primary);">Syncing Selected Data...</h3>
-            <p style="color: #666;">Processing ${updateChecks.length + newChecks.length} operations</p>
-        </div>
-    `;
+            <div class="loading" style="width:50px; height:50px; border-width:5px; border-color: var(--primary) transparent var(--primary) transparent;"></div>
+            <h3 style="margin-top:20px; color: var(--primary); font-weight: 800;">SYNCING DATABASE...</h3>
+            <p style="color: #666;">Applying changes and validating dates, please wait.</p>
+        </div>`;
 
-    let updateCount = 0;
-    let addCount = 0;
+    let counters = { new: 0, moved: 0, updated: 0 };
+    const todayStr = new Date().toISOString().split('T')[0]; // تاريخ احتياطي لمنع الـ null
 
     try {
-        // 1. تنفيذ التحديثات المختارة (تحديث الجوال + التواريخ في جدول المريض)
+        // 1. التحديثات البسيطة (للكروت النشطة)
         for (let check of updateChecks) {
-            const idx = check.dataset.idx;
-            const updateData = pendingUpdates[idx];
+            const u = pendingUpdates[check.dataset.idx];
+            // حماية: لو التاريخ الجديد فاضي نستخدم القديم أو النهاردة
+            const safeDate = (u.newDate && String(u.newDate).trim() !== "") ? u.newDate : (u.oldDate || todayStr);
             
-            // تحديث جدول المريض (بما فيها التواريخ لضمان دقة البحث والعدادات)
-            const { error } = await supabaseClient
-                .from('patients')
-                .update({ 
-                    phone_number: updateData.newPhone,
-                    next_refill_date: updateData.newDate // تحديث التاريخ في الكرت الرئيسي برضه
-                })
-                .eq('id', updateData.dbId);
-            
-            if (!error) updateCount++;
+            await supabaseClient.from('patients').update({ 
+                phone_number: u.newPhone, 
+                next_refill_date: safeDate 
+            }).eq('id', u.dbId);
+            counters.updated++;
         }
 
-        // 2. تنفيذ الإضافات الجديدة المختارة (توزيع على جدولين)
-        for (let check of newChecks) {
-            const idx = check.dataset.idx;
-            const patient = pendingImportData[idx];
+        // 2. معالجة الكروت (الجديدة أو المسحوبة من Overdue)
+        const allCardActions = [...brandNewChecks, ...reimportChecks];
+        for (let check of allCardActions) {
+            const id = check.dataset.id;
+            const rx = check.dataset.rx;
+            const data = pendingImportData.find(p => p.nationalId === id && p.prescriptions[0].number === rx);
+            
+            if (!data) continue;
 
-            // أ- حفظ المريض في الجدول الرئيسي (مع التواريخ)
-            const { data: newPatient, error: pError } = await supabaseClient
-                .from('patients')
-                .insert([{
-                    pharmacy_id: currentUser.id,
-                    national_id: patient.nationalId,
-                    patient_name: patient.patientName || '',
-                    phone_number: patient.phoneNumber || '',
-                    general_note: patient.generalNote || '',
-                    dispensing_date: patient.dispensingDate, // حفظ التاريخ هنا لمنع الـ null
-                    next_refill_date: patient.nextRefillDate, // حفظ التاريخ هنا لمنع الـ null
+            // حماية التواريخ: التأكد من وجود قيمة نصية صالحة قبل الإرسال للسيرفر
+            const finalDispDate = (data.dispensingDate && String(data.dispensingDate).trim() !== "") ? data.dispensingDate : todayStr;
+            const finalNextDate = (data.nextRefillDate && String(data.nextRefillDate).trim() !== "") ? data.nextRefillDate : todayStr;
+
+            const existing = patients.find(p => 
+                p.nationalId === data.nationalId && 
+                p.prescriptions.some(r => r.number.toLowerCase() === rx.toLowerCase())
+            );
+
+            if (existing) {
+                // الكارت موجود مسبقاً -> نقله لـ Imported وتحديث بياناته (Status Pull)
+                await supabaseClient.from('patients').update({
+                    dispensing_date: finalDispDate,
+                    next_refill_date: finalNextDate,
                     imported: true,
-                    import_date: patient.importDate
-                }])
-                .select().single();
+                    import_date: data.importDate,
+                    general_note: 'Imported (Status Reset)'
+                }).eq('id', existing.id);
+                counters.moved++;
+            } else {
+                // إضافة سجل مريض جديد تماماً
+                const { data: newP, error: pError } = await supabaseClient.from('patients').insert([{
+                    pharmacy_id: currentUser.id,
+                    national_id: data.nationalId,
+                    phone_number: data.phoneNumber || '',
+                    dispensing_date: finalDispDate,
+                    next_refill_date: finalNextDate,
+                    imported: true,
+                    import_date: data.importDate,
+                    general_note: 'Auto-Imported'
+                }]).select().single();
 
-            if (!pError && patient.prescriptions.length > 0) {
-                // ب- حفظ الوصفات والتواريخ في جدول prescriptions (عشان تظهر جوه الكارت)
-                const prescRows = patient.prescriptions.map(rx => ({
-                    patient_id: newPatient.id,
-                    prescription_number: rx.number,
-                    dispensing_date: patient.dispensingDate, 
-                    next_refill_date: patient.nextRefillDate,
-                    refill_period: patient.refillPeriod || 24,
-                    note: rx.note || ''
-                }));
-                
-                await supabaseClient.from('prescriptions').insert(prescRows);
+                if (pError) throw pError;
+
+                // ربط الوصفة بالمريض الجديد مع حماية تواريخها أيضاً
+                if (newP && newP.id) {
+                    await supabaseClient.from('prescriptions').insert([{
+                        patient_id: newP.id,
+                        prescription_number: rx,
+                        dispensing_date: finalDispDate,
+                        next_refill_date: finalNextDate
+                    }]);
+                    counters.new++;
+                }
             }
-            addCount++;
         }
 
-        // 3. إنهاء العملية وتحديث المحرك (Reload & Re-index)
-        await loadPatientsFromSupabase(); // دي هتحدث المصفوفة وتعمل updateStats للبحث
+        // تحديث البيانات محلياً وإظهار التقرير
+        await loadPatientsFromSupabase();
+        showModal('✅ Sync Successful', `
+            <div style="text-align:center; padding:15px;">
+                <div style="font-size: 40px; margin-bottom: 10px;">🎯</div>
+                <div style="font-weight: 800; color: #27ae60;">Brand New: ${counters.new}</div>
+                <div style="font-weight: 800; color: #e67e22;">Pulled to Imported: ${counters.moved}</div>
+                <div style="font-weight: 800; color: #2980b9;">Minor Updates: ${counters.updated}</div>
+            </div>
+        `, '<button class="btn-primary" onclick="closeModal(); switchTab(\'patients\')">Open Patients List</button>');
         
-        showModal(
-            '<span style="color: var(--secondary);">✅ Import Complete</span>',
-            `<div style="text-align: center; padding: 20px;">
-                <div style="font-size: 40px; margin-bottom: 15px;">🚀</div>
-                <p style="font-weight:bold;">Successfully processed ${updateCount + addCount} records.</p>
-                <div style="margin-top:10px; font-size:13px; color:#666; background:#f8f9fa; padding:10px; border-radius:8px;">
-                    Updated: ${updateCount} | Added: ${addCount}
-                </div>
-                <p style="font-size:11px; color:#2ecc71; margin-top:10px;">Dates linked to prescriptions & main records.</p>
-            </div>`,
-            '<button class="btn-primary" onclick="closeModal(); switchTab(\'patients\')">View Patients List</button>'
-        );
-
-        // تنظيف الواجهة والمصفوفات المعلقة
-        document.getElementById('importPreview').innerHTML = '';
+        container.innerHTML = '';
         pendingImportData = null;
         pendingUpdates = null;
 
     } catch (error) {
-        console.error('Import Error:', error);
-        showModal('<span style="color:red">❌ Error during process</span>', `<p>${error.message}</p>`, '<button class="btn-primary" onclick="closeModal()">OK</button>');
+        console.error('Final Sync Error:', error);
+        showModal('❌ Sync Failed', `
+            <div style="text-align:center; padding:10px;">
+                <p style="color:#e74c3c; font-weight:bold;">Database Rejection</p>
+                <p style="font-size:12px;">${error.message}</p>
+                <p style="font-size:11px; margin-top:10px; color:#666;">Check if your excel has invalid date formats or missing required fields.</p>
+            </div>`, '<button class="btn-primary" onclick="closeModal()">Try Again</button>');
     }
 }
 function handleImportFile(e) {
@@ -27812,7 +27862,6 @@ async function loadPatientsFromSupabase() {
         showToast('Sync partially failed');
     }
 }
-
 // دالة توحيد البيانات (لضمان الدقة)
 function mapPatientData(p) {
     return {
@@ -27830,8 +27879,13 @@ function mapPatientData(p) {
         importDate: p.import_date,
         inQueue: p.in_queue,
         cardColor: p.cardcolor || 'none',
+        
+        // --- الإضافات الجديدة لربط المنبه والمنطق الذكي ---
+        sensor_reminder: p.sensor_reminder || null, // لجلب وقت المنبه من السيرفر
+        oldStatus: p.old_status || null,           // مهم لعملية الـ Re-import
+        
         createdAt: p.created_at,
-        prescriptions: p.prescriptions.map(pr => ({
+        prescriptions: (p.prescriptions || []).map(pr => ({
             number: String(pr.prescription_number || ''),
             note: pr.note
         }))
@@ -30350,6 +30404,205 @@ function toggleImportType(type, isChecked) {
     });
 
     console.log(`✅ Toggled ${type} checkboxes to: ${isChecked}`);
+}
+// 1. دالة حفظ المنبه مع منع اختفاء الكارت
+async function saveSensorReminder(patientId) {
+    const timeInput = document.getElementById(`rem-time-${patientId}`);
+    const timeVal = timeInput.value;
+    
+    if (!timeVal) return showToast('⚠️ اختر التاريخ والوقت أولاً');
+
+    // تغيير شكل الزرار مؤقتاً لحالة التحميل
+    const btn = event.target;
+    const originalText = btn.textContent;
+    btn.disabled = true;
+    btn.textContent = '...';
+
+    try {
+        const { error } = await supabaseClient
+            .from('patients')
+            .update({ sensor_reminder: timeVal })
+            .eq('id', patientId);
+
+        if (error) throw error;
+
+        // تحديث محلي فوري في المصفوفة عشان المراقب يشوفها
+        const p = patients.find(pat => String(pat.id) === String(patientId));
+        if (p) p.sensor_reminder = timeVal;
+
+        showToast('🚀 تم ضبط التنبيه بنجاح');
+        
+        // تحديث الواجهة بدون Reload كامل عشان الكارت ميختفيش
+        // بنغير لون البوكس بس عشان اليوزر يعرف إنه اتسيف
+        timeInput.parentElement.style.border = '2px solid #2ecc71';
+        timeInput.parentElement.style.background = '#e8f5e9';
+
+    } catch (err) {
+        console.error(err);
+        showToast('❌ فشل في حفظ البيانات');
+    } finally {
+        btn.disabled = false;
+        btn.textContent = originalText;
+    }
+}
+
+// 2. إعداد الصوت والمراقب (The Watcher)
+const alertAudio = new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3');
+
+function initReminderWatcher() {
+    // تقليل زمن الفحص لـ 10 ثواني عشان نضمن الدقة أول ما الدقيقة تيجي
+    setInterval(() => {
+        const now = new Date();
+        const year = now.getFullYear();
+        const month = String(now.getMonth() + 1).padStart(2, '0');
+        const day = String(now.getDate()).padStart(2, '0');
+        const hours = String(now.getHours()).padStart(2, '0');
+        const minutes = String(now.getMinutes()).padStart(2, '0');
+        
+        const currentTimeStr = `${year}-${month}-${day}T${hours}:${minutes}`;
+
+        patients.forEach(p => {
+            if (p.sensor_reminder === currentTimeStr) {
+                // منع تكرار التنبيه في نفس الدقيقة
+                if (window.lastAlarmedId !== p.id + currentTimeStr) {
+                    window.lastAlarmedId = p.id + currentTimeStr;
+                    playSensorAlert(p);
+                }
+            }
+        });
+    }, 10000); 
+}
+function playSensorAlert(patient) {
+    window.currentlyRingingId = patient.id; 
+    displayPatients(); 
+    
+    // تشغيل الصوت
+    alertAudio.loop = true; // هيفضل يكرر النغمة
+    alertAudio.play().catch(e => console.log("Audio blocked"));
+
+    // --- التعديل السحري هنا: إيقاف الصوت أوتوماتيك بعد 10 ثواني ---
+    setTimeout(() => {
+        if (window.currentlyRingingId === patient.id) {
+            alertAudio.pause();
+            alertAudio.currentTime = 0;
+            // اختياري: لو عايزه يفضل لونه أحمر في الكارت بس من غير صوت، سيب السطر الجاي
+            // لو عايزه يرجع لونه الطبيعي أول ما الصوت يسكت، فك الكومنت عن السطر اللي تحت:
+            // window.currentlyRingingId = null; displayPatients();
+            showToast("🔔 التنبيه الصوتي توقف بعد 10 ثواني");
+        }
+    }, 10000); // 10000 مللي ثانية = 10 ثواني
+    // ---------------------------------------------------------
+
+    showModal(
+        '<span style="color: #d63031; font-weight: 900;">⚠️ SENSOR TIME!</span>',
+        `<div style="text-align:center; padding: 10px 0;">
+            <div style="font-size: 50px; margin-bottom: 10px;">🔔</div>
+            <h2 style="color: #2d3436; font-family: monospace; font-size: 26px;">${patient.nationalId}</h2>
+            <p style="color: #636e72; font-weight: bold;">حان الآن موعد صرف السنسور</p>
+         </div>`,
+        `<div style="display: flex; flex-direction: column; gap: 10px; width: 100%;">
+            <button class="btn-primary" onclick="clearReminder('${patient.id}')" style="background: #00b894; height: 50px; font-weight: 900;">✅ MARK DONE (DELETE ALARM)</button>
+            <button class="btn-secondary" onclick="snoozeReminder('${patient.id}')" style="border: 2px solid #6c5ce7; color: #6c5ce7; font-weight: 800; height: 45px;">💤 SNOOZE 10 MINS</button>
+            <button class="btn-secondary" onclick="stopAlarmSound(); closeModal();" style="background: #eee; border:none; height: 40px; color: #666;">🔇 STOP SOUND & CLOSE</button>
+        </div>`
+    );
+}
+// دالة الـ Dismiss (تم الصرف)
+async function clearReminder(patientId) {
+    alertAudio.pause();
+    alertAudio.currentTime = 0;
+    // تم الصرف يعني بنشيل التايمر من سوبابيز خالص
+    await supabaseClient.from('patients').update({ sensor_reminder: null }).eq('id', patientId);
+    const p = patients.find(pat => String(pat.id) === String(patientId));
+    if (p) p.sensor_reminder = null;
+    closeModal();
+    displayPatients();
+    showToast('✅ Dismissed & Removed');
+}
+
+// 4. إيقاف المنبه ومسحه من السيرفر
+async function clearReminder(patientId) {
+    alertAudio.pause();
+    alertAudio.currentTime = 0;
+
+    try {
+        await supabaseClient
+            .from('patients')
+            .update({ sensor_reminder: null })
+            .eq('id', patientId);
+
+        const p = patients.find(pat => String(pat.id) === String(patientId));
+        if (p) p.sensor_reminder = null;
+
+        closeModal();
+        displayPatients(); // هنا بنحدث القائمة عشان يشيل اللون الأخضر ويرجع الكارت لوضعه الطبيعي
+        showToast('تم إيقاف المنبه بنجاح ✅');
+    } catch (err) {
+        console.error(err);
+        showToast('❌ حدث خطأ أثناء مسح المنبه');
+    }
+}
+
+// تشغيل نظام المراقبة
+initReminderWatcher();
+// دالة إيقاف الصوت فقط (Stop) - المنبه هيفضل موجود في الداتابيز
+// دالة إيقاف الصوت وتحديث شكل الكارت
+function stopAlarmSound() {
+    if (alertAudio) {
+        alertAudio.pause();
+        alertAudio.currentTime = 0;
+    }
+    window.currentlyRingingId = null; // إنهاء حالة الضرب
+    displayPatients(); // تحديث القائمة لإخفاء زرار STOP من الكارت
+    showToast('🔊 Sound Muted');
+}
+
+// دالة السحب من المنبه (تعديل مدة الـ Snooze هنا)
+async function snoozeReminder(patientId) {
+    stopAlarmSound();
+    
+    const snoozeMinutes = 10; // <--- يا Mo غير الرقم ده (10) لأي عدد دقائق تحبه (مثلاً 5 أو 15)
+    
+    const now = new Date();
+    now.setMinutes(now.getMinutes() + snoozeMinutes);
+    
+    // تنسيق التاريخ الجديد
+    const tzOffset = now.getTimezoneOffset() * 60000;
+    const localISOTime = (new Date(now - tzOffset)).toISOString().slice(0, 16);
+
+    try {
+        await supabaseClient.from('patients').update({ sensor_reminder: localISOTime }).eq('id', patientId);
+        const p = patients.find(pat => String(pat.id) === String(patientId));
+        if (p) p.sensor_reminder = localISOTime;
+        
+        closeModal();
+        displayPatients();
+        showToast(`💤 Snoozed for ${snoozeMinutes} mins`);
+    } catch (e) { showToast('❌ Error'); }
+}
+
+function playSensorAlert(patient) {
+    window.currentlyRingingId = patient.id; // تسجيل المريض اللي بيضرب
+    displayPatients(); // تحديث الكارت فوراً لإظهار زرار الـ STOP الثابت
+    
+    alertAudio.loop = true;
+    alertAudio.play().catch(e => console.log("Audio blocked"));
+
+    // تعديل المودال عشان ميتأثرش بالضغط برا (Static Backdrop)
+    // ملاحظة: لو بتستخدم نظام Modal مخصص، تأكد إنه مبيقبلش الـ Close من الـ Overlay
+    showModal(
+        '<span style="color: #d63031; font-weight: 900;">⚠️ SENSOR TIME!</span>',
+        `<div style="text-align:center; padding: 10px 0;">
+            <div style="font-size: 50px; margin-bottom: 10px;">🔔</div>
+            <h2 style="color: #2d3436; font-family: monospace; font-size: 26px;">${patient.nationalId}</h2>
+            <p style="color: #636e72; font-weight: bold;">حان الآن موعد صرف السنسور</p>
+         </div>`,
+        `<div style="display: flex; flex-direction: column; gap: 10px; width: 100%;">
+            <button class="btn-primary" onclick="clearReminder('${patient.id}')" style="background: #00b894; height: 50px; font-weight: 900;">✅ MARK DONE (DELETE ALARM)</button>
+            <button class="btn-secondary" onclick="snoozeReminder('${patient.id}')" style="border: 2px solid #6c5ce7; color: #6c5ce7; font-weight: 800; height: 45px;">💤 SNOOZE 10 MINS</button>
+            <button class="btn-secondary" onclick="stopAlarmSound(); closeModal();" style="background: #eee; border:none; height: 40px; color: #666;">🔇 STOP SOUND & CLOSE</button>
+        </div>`
+    );
 }
     </script>
 </body>
