@@ -26366,41 +26366,38 @@ function createPatientCard(patient, searchTerm = '') {
         return badgesHtml;
     };
 
-    // --- منطقة المنبه بتصميم Modern (Pull System) ---
-    let sensorReminderHtml = '';
-    if (patient.generalNote && patient.generalNote.toUpperCase().includes('SENSOR')) {
-        const hasAlarm = patient.sensor_reminder;
-        const isRinging = window.currentlyRingingId === patient.id;
+    // --- منطقة المنبه بتصميم Modern (تظهر للجميع الآن) ---
+    const hasAlarm = patient.sensor_reminder;
+    const isRinging = window.currentlyRingingId === patient.id;
 
-        sensorReminderHtml = `
-            <div id="alarm-box-${patient.id}" style="margin-top: 15px; padding: 15px; background: ${isRinging ? '#fff5f5' : (hasAlarm ? '#f0f9ff' : '#fffcf5')}; border-radius: 15px; border: 2px solid ${isRinging ? '#d63031' : (hasAlarm ? '#74b9ff' : '#ffeaa7')}; transition: all 0.3s ease; box-shadow: inset 0 1px 3px rgba(0,0,0,0.05);">
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
-                    <div style="display: flex; align-items: center; gap: 8px; font-size: 12px; font-weight: 800; color: ${isRinging ? '#d63031' : (hasAlarm ? '#0984e3' : '#e67e22')};">
-                        <span style="font-size: 16px;">${isRinging ? '🚨' : (hasAlarm ? '🔔' : '🔕')}</span> SENSOR ALERT
-                    </div>
-                    ${isRinging ? `
-                        <button onclick="stopAlarmSound()" style="background:#d63031; color:white; border:none; padding:5px 12px; border-radius:8px; font-size:10px; font-weight:bold; cursor:pointer; animation: blink 0.5s infinite;">STOP SOUND</button>
-                    ` : (hasAlarm ? '<span style="background:#0984e3; color:white; padding:3px 10px; border-radius:12px; font-size:9px; font-weight:bold;">ACTIVE</span>' : '')}
+    let sensorReminderHtml = `
+        <div id="alarm-box-${patient.id}" style="margin-top: 15px; padding: 15px; background: ${isRinging ? '#fff5f5' : (hasAlarm ? '#f0f9ff' : '#fffcf5')}; border-radius: 15px; border: 2px solid ${isRinging ? '#d63031' : (hasAlarm ? '#74b9ff' : '#ffeaa7')}; transition: all 0.3s ease; box-shadow: inset 0 1px 3px rgba(0,0,0,0.05);">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                <div style="display: flex; align-items: center; gap: 8px; font-size: 12px; font-weight: 800; color: ${isRinging ? '#d63031' : (hasAlarm ? '#0984e3' : '#e67e22')};">
+                    <span style="font-size: 16px;">${isRinging ? '🚨' : (hasAlarm ? '🔔' : '🔕')}</span> ALARM
                 </div>
-                <div style="display: flex; gap: 8px; align-items: center;">
-                    <input type="datetime-local" id="rem-time-${patient.id}" 
-                           value="${patient.sensor_reminder || ''}" 
-                           style="flex: 1; padding: 10px; border: 1.5px solid #dfe6e9; border-radius: 10px; font-size: 12px; outline: none; background: white; color: #2d3436;">
-                    <button onclick="saveSensorReminder('${patient.id}')" 
-                            style="background: #00b894; color: white; border: none; padding: 10px 15px; border-radius: 10px; cursor: pointer; font-weight: 900; font-size: 11px; box-shadow: 0 4px 6px rgba(0,184,148,0.2);">
-                        SET
-                    </button>
-                    ${hasAlarm ? `
-                        <button onclick="deleteReminder('${patient.id}')" 
-                                style="background: #fab1a0; color: #d63031; border: none; padding: 10px; border-radius: 10px; cursor: pointer; font-weight: 900;" title="Delete Alarm">
-                            🗑️
-                        </button>
-                    ` : ''}
-                </div>
-                ${hasAlarm && !isRinging ? `<div style="font-size: 10px; color: #636e72; margin-top: 8px; font-weight: 600; display: flex; align-items: center; gap: 5px;"><span>🕒</span> Next: ${patient.sensor_reminder.replace('T', ' at ')}</div>` : ''}
+                ${isRinging ? `
+                    <button onclick="stopAlarmSound()" style="background:#d63031; color:white; border:none; padding:5px 12px; border-radius:8px; font-size:10px; font-weight:bold; cursor:pointer; animation: blink 0.5s infinite;">STOP SOUND</button>
+                ` : (hasAlarm ? '<span style="background:#0984e3; color:white; padding:3px 10px; border-radius:12px; font-size:9px; font-weight:bold;">ACTIVE</span>' : '')}
             </div>
-        `;
-    }
+            <div style="display: flex; gap: 8px; align-items: center;">
+                <input type="datetime-local" id="rem-time-${patient.id}" 
+                       value="${patient.sensor_reminder || ''}" 
+                       style="flex: 1; padding: 10px; border: 1.5px solid #dfe6e9; border-radius: 10px; font-size: 12px; outline: none; background: white; color: #2d3436;">
+                <button onclick="saveSensorReminder('${patient.id}')" 
+                        style="background: #00b894; color: white; border: none; padding: 10px 15px; border-radius: 10px; cursor: pointer; font-weight: 900; font-size: 11px; box-shadow: 0 4px 6px rgba(0,184,148,0.2);">
+                    SET
+                </button>
+                ${hasAlarm ? `
+                    <button onclick="deleteReminder('${patient.id}')" 
+                            style="background: #fab1a0; color: #d63031; border: none; padding: 10px; border-radius: 10px; cursor: pointer; font-weight: 900;" title="Delete Alarm">
+                        🗑️
+                    </button>
+                ` : ''}
+            </div>
+            ${hasAlarm && !isRinging ? `<div style="font-size: 10px; color: #636e72; margin-top: 8px; font-weight: 600; display: flex; align-items: center; gap: 5px;"><span>🕒</span> Next: ${patient.sensor_reminder.replace('T', ' at ')}</div>` : ''}
+        </div>
+    `;
 
     card.innerHTML = `
         <div class="patient-header">
@@ -30471,7 +30468,7 @@ function initReminderWatcher() {
             
             // 2. نظام الـ Auto-Snooze: لو المنبه شغال بقاله 7 ثواني واليوزر متفاعلش
             // بنحسب لو فات 7 ثواني على بداية الدقيقة الحالية والمنبه لسه شغال
-            if (window.currentlyRingingId === p.id && now.getSeconds() >= 7) {
+            if (window.currentlyRingingId === p.id && now.getSeconds() >= 10) {
                 console.log("🕒 Auto-Snoozing after 7 seconds of no response...");
                 window.lastAutoSnooze = p.id + currentTimeStr; // منع التكرار في نفس الدقيقة
                 autoSnoozeProcess(p.id, 2); // تأجيل تلقائي دقيقتين
@@ -30624,6 +30621,34 @@ function playSensorAlert(patient) {
             <button class="btn-secondary" onclick="stopAlarmSound(); closeModal();" style="background: #eee; border:none; height: 40px; color: #666;">🔇 STOP SOUND & CLOSE</button>
         </div>`
     );
+}
+// دالة مسح المنبه نهائياً من الداتا بيز ومن الكارت
+async function deleteReminder(patientId) {
+    // تأكيد المسح أولاً
+    confirmAction('هل أنت متأكد من رغبتك في مسح المنبه نهائياً؟', async () => {
+        try {
+            // 1. تحديث في سوبابيز (مسح القيمة)
+            const { error } = await supabaseClient
+                .from('patients')
+                .update({ sensor_reminder: null })
+                .eq('id', patientId);
+
+            if (error) throw error;
+
+            // 2. تحديث محلي في المصفوفة عشان الواجهة تتغير فوراً
+            const p = patients.find(pat => String(pat.id) === String(patientId));
+            if (p) p.sensor_reminder = null;
+
+            // 3. إعادة رسم الكروت لتحديث الشكل وإخفاء التنبيه
+            displayPatients();
+            
+            showToast('🗑️ تم مسح المنبه بنجاح');
+            
+        } catch (err) {
+            console.error('Delete Alarm Error:', err);
+            showToast('❌ فشل في مسح المنبه');
+        }
+    });
 }
     </script>
 </body>
