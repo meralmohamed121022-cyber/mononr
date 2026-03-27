@@ -30403,13 +30403,19 @@ function toggleImportType(type, isChecked) {
     console.log(`✅ Toggled ${type} checkboxes to: ${isChecked}`);
 }
 // 1. دالة حفظ المنبه مع منع اختفاء الكارت
+// ==========================================
+// 🔔 نظام منبه السنسور (Sensor Alarm System) - النسخة النهائية الموحدة
+// ==========================================
+
+const alertAudio = new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3');
+
+// 1. دالة حفظ المنبه الجديد
 async function saveSensorReminder(patientId) {
     const timeInput = document.getElementById(`rem-time-${patientId}`);
     const timeVal = timeInput.value;
     
     if (!timeVal) return showToast('⚠️ اختر التاريخ والوقت أولاً');
 
-    // تغيير شكل الزرار مؤقتاً لحالة التحميل
     const btn = event.target;
     const originalText = btn.textContent;
     btn.disabled = true;
@@ -30423,14 +30429,10 @@ async function saveSensorReminder(patientId) {
 
         if (error) throw error;
 
-        // تحديث محلي فوري في المصفوفة عشان المراقب يشوفها
         const p = patients.find(pat => String(pat.id) === String(patientId));
         if (p) p.sensor_reminder = timeVal;
 
         showToast('🚀 تم ضبط التنبيه بنجاح');
-        
-        // تحديث الواجهة بدون Reload كامل عشان الكارت ميختفيش
-        // بنغير لون البوكس بس عشان اليوزر يعرف إنه اتسيف
         timeInput.parentElement.style.border = '2px solid #2ecc71';
         timeInput.parentElement.style.background = '#e8f5e9';
 
@@ -30443,9 +30445,7 @@ async function saveSensorReminder(patientId) {
     }
 }
 
-// 2. إعداد الصوت والمراقب (The Watcher)
-const alertAudio = new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3');
-
+// 2. المراقب الذكي (يحسب 7 ثواني بالضبط)
 function initReminderWatcher() {
     console.log("🟢 Sensor Watcher Active (7s Ring / 2m Auto-Snooze)");
     
@@ -30459,31 +30459,36 @@ function initReminderWatcher() {
         const currentTimeStr = `${year}-${month}-${day}T${hours}:${minutes}`;
 
         patients.forEach(p => {
+            // أ. تشغيل التنبيه إذا حان الوقت
             if (p.sensor_reminder === currentTimeStr) {
-                // 1. تشغيل التنبيه لو لسه مبدأش
-                if (window.currentlyRingingId !== p.id && window.lastAutoSnooze !== p.id + currentTimeStr) {
+                if (window.currentlyRingingId !== p.id && window.lastAutoSnooze !== (p.id + currentTimeStr)) {
                     playSensorAlert(p);
                 }
             }
             
-            // 2. نظام الـ Auto-Snooze: لو المنبه شغال بقاله 7 ثواني واليوزر متفاعلش
-            // بنحسب لو فات 7 ثواني على بداية الدقيقة الحالية والمنبه لسه شغال
-            if (window.currentlyRingingId === p.id && now.getSeconds() >= 10) {
-                console.log("🕒 Auto-Snoozing after 7 seconds of no response...");
-                window.lastAutoSnooze = p.id + currentTimeStr; // منع التكرار في نفس الدقيقة
-                autoSnoozeProcess(p.id, 2); // تأجيل تلقائي دقيقتين
+            // ب. السنوز التلقائي (لو عدى 7 ثواني من بداية الرنين بدون تدخل)
+            if (window.currentlyRingingId === p.id && window.alarmStartTime) {
+                const elapsedSeconds = (Date.now() - window.alarmStartTime) / 1000;
+                
+                if (elapsedSeconds >= 7) {
+                    console.log("🕒 Auto-Snoozing after 7 full seconds of no response...");
+                    window.lastAutoSnooze = p.id + currentTimeStr; 
+                    autoSnoozeProcess(p.id, 2); // سنوز تلقائي لمدة دقيقتين
+                }
             }
         });
-    }, 1000); // فحص كل ثانية لضمان دقة الـ 7 ثواني
+    }, 1000); 
 }
+
+// 3. تشغيل التنبيه وعرض المودال
 function playSensorAlert(patient) {
     window.currentlyRingingId = patient.id;
+    window.alarmStartTime = Date.now(); // ⏰ تسجيل لحظة الرنين بالمللي ثانية
     displayPatients(); 
     
     alertAudio.loop = true;
     alertAudio.play().catch(e => console.log("Interaction needed for sound"));
 
-    // المودال الجديد بتصميم Mo المفضل
     showModal(
         '<span style="color: #d63031; font-weight: 900;">🚨 SENSOR TIME ALERT</span>',
         `<div style="text-align:center; padding: 20px;">
@@ -30496,65 +30501,54 @@ function playSensorAlert(patient) {
             @keyframes ring-shake { 0% {transform:rotate(0)} 25% {transform:rotate(10deg)} 75% {transform:rotate(-10deg)} 100% {transform:rotate(0)} }
          </style>`,
         `<div style="display: flex; flex-direction: column; gap: 10px; width: 100%;">
-            <button class="btn-primary" onclick="clearReminder('${patient.id}')" style="background: #00b894; height: 50px; font-weight: 900; border:none; border-radius:12px;">✅ MARK AS DONE (STOP ALARM)</button>
+            <button class="btn-primary" onclick="clearReminder('${patient.id}')" style="background: #00b894; height: 50px; font-weight: 900; border:none; border-radius:12px;">✅ MARK AS DONE (DELETE ALARM)</button>
             <button class="btn-secondary" onclick="snoozeReminder('${patient.id}', 10)" style="border: 2px solid #6c5ce7; color: #6c5ce7; font-weight: 800; height: 45px; border-radius:12px;">💤 SNOOZE 10 MINS</button>
-            <button class="btn-secondary" onclick="stopAlarmSound(); closeModal();" style="background: #f1f2f6; border:none; height: 40px; color: #666; border-radius:12px; margin-top: 5px; font-weight: bold;">🔇 STOP SOUND & CLOSE</button>
+            <button class="btn-secondary" onclick="stopAlarmSound('${patient.id}'); closeModal();" style="background: #f1f2f6; border:none; height: 40px; color: #666; border-radius:12px; margin-top: 5px; font-weight: bold;">🔇 STOP SOUND & CLOSE</button>
         </div>`
     );
 }
-// دالة الـ Dismiss (تم الصرف)
-async function clearReminder(patientId) {
-    alertAudio.pause();
-    alertAudio.currentTime = 0;
-    // تم الصرف يعني بنشيل التايمر من سوبابيز خالص
-    await supabaseClient.from('patients').update({ sensor_reminder: null }).eq('id', patientId);
-    const p = patients.find(pat => String(pat.id) === String(patientId));
-    if (p) p.sensor_reminder = null;
-    closeModal();
-    displayPatients();
-    showToast('✅ Dismissed & Removed');
-}
 
-// 4. إيقاف المنبه ومسحه من السيرفر
-async function clearReminder(patientId) {
-    alertAudio.pause();
-    alertAudio.currentTime = 0;
-
-    try {
-        await supabaseClient
-            .from('patients')
-            .update({ sensor_reminder: null })
-            .eq('id', patientId);
-
-        const p = patients.find(pat => String(pat.id) === String(patientId));
-        if (p) p.sensor_reminder = null;
-
-        closeModal();
-        displayPatients(); // هنا بنحدث القائمة عشان يشيل اللون الأخضر ويرجع الكارت لوضعه الطبيعي
-        showToast('تم إيقاف المنبه بنجاح ✅');
-    } catch (err) {
-        console.error(err);
-        showToast('❌ حدث خطأ أثناء مسح المنبه');
-    }
-}
-
-// تشغيل نظام المراقبة
-initReminderWatcher();
-// دالة إيقاف الصوت فقط (Stop) - المنبه هيفضل موجود في الداتابيز
-// دالة إيقاف الصوت وتحديث شكل الكارت
-// دالة إيقاف الصوت (ثابتة ومعتمدة)
-function stopAlarmSound() {
+// 4. إيقاف الصوت وتصفير العداد (الدرع الواقي لمنع التداخل)
+function stopAlarmSound(patientId = null) {
     if (alertAudio) {
         alertAudio.pause();
         alertAudio.currentTime = 0;
     }
     window.currentlyRingingId = null;
+    window.alarmStartTime = null; 
+    
+    // لو إنت قفلت المودال بس، بنسجل إنك قفلته عشان ما يضربش تاني في نفس الدقيقة
+    if (patientId) {
+        const now = new Date();
+        const year = now.getFullYear();
+        const month = String(now.getMonth() + 1).padStart(2, '0');
+        const day = String(now.getDate()).padStart(2, '0');
+        const hours = String(now.getHours()).padStart(2, '0');
+        const minutes = String(now.getMinutes()).padStart(2, '0');
+        window.lastAutoSnooze = patientId + `${year}-${month}-${day}T${hours}:${minutes}`;
+    }
     displayPatients(); 
 }
 
-// دالة الـ Snooze اليدوي (عبر الأزرار)
+// 5. زر (MARK DONE)
+async function clearReminder(patientId) {
+    stopAlarmSound(patientId); 
+    closeModal();
+
+    try {
+        await supabaseClient.from('patients').update({ sensor_reminder: null }).eq('id', patientId);
+        const p = patients.find(pat => String(pat.id) === String(patientId));
+        if (p) p.sensor_reminder = null;
+        displayPatients();
+        showToast('✅ Alarm Dismissed & Cleared');
+    } catch (err) { showToast('❌ Database Error'); }
+}
+
+// 6. زر (SNOOZE 10 MINS)
 async function snoozeReminder(patientId, mins = 10) {
-    stopAlarmSound();
+    stopAlarmSound(patientId);
+    closeModal();
+    
     const nextTime = new Date(new Date().getTime() + mins * 60000);
     const tzOffset = nextTime.getTimezoneOffset() * 60000;
     const formattedTime = (new Date(nextTime - tzOffset)).toISOString().slice(0, 16);
@@ -30563,16 +30557,15 @@ async function snoozeReminder(patientId, mins = 10) {
         await supabaseClient.from('patients').update({ sensor_reminder: formattedTime }).eq('id', patientId);
         const p = patients.find(pat => String(pat.id) === String(patientId));
         if (p) p.sensor_reminder = formattedTime;
-        closeModal();
         displayPatients();
         showToast(`💤 Snoozed for ${mins} mins`);
     } catch (e) { showToast('❌ Error'); }
 }
 
-// دالة الـ Auto Snooze التلقائي (لو مردتش في 7 ثواني)
+// 7. التأجيل التلقائي (Auto Snooze بعد 7 ثواني)
 async function autoSnoozeProcess(patientId, minutes) {
-    stopAlarmSound(); 
-    closeModal();     
+    stopAlarmSound(patientId); 
+    closeModal();      
     
     const nextTime = new Date(new Date().getTime() + minutes * 60000);
     const tzOffset = nextTime.getTimezoneOffset() * 60000;
@@ -30583,73 +30576,26 @@ async function autoSnoozeProcess(patientId, minutes) {
         const p = patients.find(pat => String(pat.id) === String(patientId));
         if (p) p.sensor_reminder = formattedTime;
         displayPatients();
-        showToast(`💤 Auto-Snoozed: Done for ${minutes} mins`);
+        showToast(`🕒 Auto-Snoozed: Done for ${minutes} mins`);
     } catch (e) { console.error("AutoSnooze Error", e); }
 }
 
-// دالة إنهاء المنبه (تم الصرف)
-async function clearReminder(patientId) {
-    stopAlarmSound();
-    try {
-        await supabaseClient.from('patients').update({ sensor_reminder: null }).eq('id', patientId);
-        const p = patients.find(pat => String(pat.id) === String(patientId));
-        if (p) p.sensor_reminder = null;
-        closeModal();
-        displayPatients();
-        showToast('✅ Alarm Dismissed & Cleared');
-    } catch (err) { showToast('❌ Database Error'); }
-}
-function playSensorAlert(patient) {
-    window.currentlyRingingId = patient.id; // تسجيل المريض اللي بيضرب
-    displayPatients(); // تحديث الكارت فوراً لإظهار زرار الـ STOP الثابت
-    
-    alertAudio.loop = true;
-    alertAudio.play().catch(e => console.log("Audio blocked"));
-
-    // تعديل المودال عشان ميتأثرش بالضغط برا (Static Backdrop)
-    // ملاحظة: لو بتستخدم نظام Modal مخصص، تأكد إنه مبيقبلش الـ Close من الـ Overlay
-    showModal(
-        '<span style="color: #d63031; font-weight: 900;">⚠️ SENSOR TIME!</span>',
-        `<div style="text-align:center; padding: 10px 0;">
-            <div style="font-size: 50px; margin-bottom: 10px;">🔔</div>
-            <h2 style="color: #2d3436; font-family: monospace; font-size: 26px;">${patient.nationalId}</h2>
-            <p style="color: #636e72; font-weight: bold;">حان الآن موعد صرف السنسور</p>
-         </div>`,
-        `<div style="display: flex; flex-direction: column; gap: 10px; width: 100%;">
-            <button class="btn-primary" onclick="clearReminder('${patient.id}')" style="background: #00b894; height: 50px; font-weight: 900;">✅ MARK DONE (DELETE ALARM)</button>
-            <button class="btn-secondary" onclick="snoozeReminder('${patient.id}')" style="border: 2px solid #6c5ce7; color: #6c5ce7; font-weight: 800; height: 45px;">💤 SNOOZE 10 MINS</button>
-            <button class="btn-secondary" onclick="stopAlarmSound(); closeModal();" style="background: #eee; border:none; height: 40px; color: #666;">🔇 STOP SOUND & CLOSE</button>
-        </div>`
-    );
-}
-// دالة مسح المنبه نهائياً من الداتا بيز ومن الكارت
+// 8. زر مسح المنبه من الكارت (سلة المهملات)
 async function deleteReminder(patientId) {
-    // تأكيد المسح أولاً
     confirmAction('هل أنت متأكد من رغبتك في مسح المنبه نهائياً؟', async () => {
         try {
-            // 1. تحديث في سوبابيز (مسح القيمة)
-            const { error } = await supabaseClient
-                .from('patients')
-                .update({ sensor_reminder: null })
-                .eq('id', patientId);
-
+            const { error } = await supabaseClient.from('patients').update({ sensor_reminder: null }).eq('id', patientId);
             if (error) throw error;
-
-            // 2. تحديث محلي في المصفوفة عشان الواجهة تتغير فوراً
             const p = patients.find(pat => String(pat.id) === String(patientId));
             if (p) p.sensor_reminder = null;
-
-            // 3. إعادة رسم الكروت لتحديث الشكل وإخفاء التنبيه
             displayPatients();
-            
             showToast('🗑️ تم مسح المنبه بنجاح');
-            
-        } catch (err) {
-            console.error('Delete Alarm Error:', err);
-            showToast('❌ فشل في مسح المنبه');
-        }
+        } catch (err) { showToast('❌ فشل في مسح المنبه'); }
     });
 }
+
+// تشغيل نظام المراقبة
+initReminderWatcher();
     </script>
 </body>
 </html>
