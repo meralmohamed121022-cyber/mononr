@@ -5324,17 +5324,34 @@ function createPatientCard(patient, searchTerm = '') {
         return badgesHtml;
     };
 
-    // --- التعديل الجوهري: التاريخ تفاعلي مع زر تحديث في كل أنواع الكروت ---
-    const btnColor = patient.imported ? '#EF6C00' : 'var(--primary)';
-    let nextRefillDisplay = `
-        <div style="display: flex; align-items: center; gap: 5px;">
-            <input type="date" id="quick-date-${patient.id}" value="${patient.nextRefillDate}" 
-                   style="flex: 1; border: 1.5px solid ${btnColor}; border-radius: 8px; padding: 4px; font-weight: 800; color: #0984e3; background: #fff; cursor: pointer; font-size: 12px; outline: none;">
-            <button onclick="quickUpdateRefill('${patient.id}', document.getElementById('quick-date-${patient.id}').value)"
-                    style="background: ${btnColor}; color: white; border: none; border-radius: 6px; width: 28px; height: 28px; cursor: pointer; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 4px rgba(0,0,0,0.1);"
-                    title="Update and Sync">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
-            </button>
+    // --- [ لوحة التحكم السريع في التواريخ - Inline Fast Processing ] ---
+    let quickDatePanel = `
+        <div style="background: #f8f9fa; padding: 12px; border-radius: 12px; border: 1px solid #eee; margin-top: 10px; box-shadow: inset 0 1px 3px rgba(0,0,0,0.05);">
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 8px;">
+                <div>
+                    <span style="font-size: 9px; font-weight: 800; color: #95a5a6; display: block; margin-bottom: 3px; text-transform: uppercase;">Dispensing Date</span>
+                    <input type="date" id="q-dispense-${patient.id}" value="${patient.dispensingDate || new Date().toISOString().split('T')[0]}" 
+                           style="width: 100%; border: 1px solid #ddd; border-radius: 6px; padding: 4px; font-size: 11px; font-weight: 700; outline: none; background: #fff;">
+                </div>
+                <div>
+                    <span style="font-size: 9px; font-weight: 800; color: #95a5a6; display: block; margin-bottom: 3px; text-transform: uppercase;">Next Refill</span>
+                    <input type="date" id="q-next-${patient.id}" value="${patient.nextRefillDate}" 
+                           style="width: 100%; border: 1.5px solid var(--primary); border-radius: 6px; padding: 4px; font-weight: 800; color: #0984e3; outline: none; background: #fff;">
+                </div>
+            </div>
+            
+            <div style="display: flex; gap: 6px; align-items: center;">
+                <div style="display: flex; gap: 4px; flex: 1;">
+                    <button onclick="setQuickDuration('${patient.id}', 24)" style="flex:1; font-size:9px; padding:6px 0; border:1px solid #dcdde1; border-radius:6px; cursor:pointer; background:white; font-weight:800; color: #2f3640; transition: 0.2s;">1M (24d)</button>
+                    <button onclick="setQuickDuration('${patient.id}', 48)" style="flex:1; font-size:9px; padding:6px 0; border:1px solid #dcdde1; border-radius:6px; cursor:pointer; background:white; font-weight:800; color: #2f3640; transition: 0.2s;">2M (48d)</button>
+                    <button onclick="setQuickDuration('${patient.id}', 72)" style="flex:1; font-size:9px; padding:6px 0; border:1px solid #dcdde1; border-radius:6px; cursor:pointer; background:white; font-weight:800; color: #2f3640; transition: 0.2s;">3M (72d)</button>
+                </div>
+                <button onclick="executeQuickSync('${patient.id}')" 
+                        style="background: var(--primary); color: white; border: none; border-radius: 8px; width: 36px; height: 32px; cursor: pointer; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 6px rgba(13,71,161,0.2); transition: 0.3s;"
+                        title="Save Changes">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                </button>
+            </div>
         </div>
     `;
 
@@ -5380,28 +5397,13 @@ function createPatientCard(patient, searchTerm = '') {
                     CHECK
                 </button>
             </div>
-
-            ${patient.phoneNumber ? `
-            <div style="display: flex; align-items: center; gap: 8px; margin-top: 5px;">
-                <div class="patient-phone" style="color: #636E72; font-weight: 600;">📱 ${hl_phone}</div>
-                <a href="tel:${patient.phoneNumber}" class="btn-icon-small" style="background:#E3F2FD; color:#0984e3; width:22px; height:22px; border-radius:50%; display:flex; align-items:center; justify-content:center; text-decoration:none;">📞</a>
-            </div>
-            ` : ''}
+            ${patient.phoneNumber ? `<div style="display: flex; align-items: center; gap: 8px; margin-top: 5px;"><div class="patient-phone" style="color: #636E72; font-weight: 600;">📱 ${hl_phone}</div><a href="tel:${patient.phoneNumber}" class="btn-icon-small" style="background:#E3F2FD; color:#0984e3; width:22px; height:22px; border-radius:50%; display:flex; align-items:center; justify-content:center; text-decoration:none;">📞</a></div>` : ''}
         </div>
         <div class="patient-badge" style="font-size:10px;">${badgeText}</div>
     </div>
     
     <div class="card-section-info">
-        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
-            <div>
-                <span class="box-label">Dispensing Date</span>
-                <div style="font-weight: 700; color: #2D3436; font-size: 13px;">${patient.dispensingDate}</div>
-            </div>
-            <div>
-                <span class="box-label">Next Refill</span>
-                ${nextRefillDisplay}
-            </div>
-        </div>
+        ${quickDatePanel}
         <div style="margin-top: 8px; border-top: 1px dashed #ced6e0; padding-top: 5px;">
             <span class="date-badge ${status}" style="width: 100%; display: block; text-align: center;">${getDaysUntilRefill(patient.nextRefillDate)}</span>
         </div>
@@ -5426,25 +5428,13 @@ function createPatientCard(patient, searchTerm = '') {
         </div>
     </div>
     
-    ${patient.generalNote ? `
-        <div class="section-notes">
-            <span class="info-label" style="color:#F39C12;">📝 Notes</span>
-            ${processNotes(patient.generalNote)}
-        </div>
-    ` : ''}
-
+    ${patient.generalNote ? `<div class="section-notes"><span class="info-label" style="color:#F39C12;">📝 Notes</span>${processNotes(patient.generalNote)}</div>` : ''}
     ${sensorReminderHtml}
 
     <div class="card-footer" style="grid-template-columns: repeat(3, 1fr); margin-top: 15px;">
-        <button class="btn-action btn-edit" onclick="editPatient('${patient.id}')">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg> Edit
-        </button>
-        <button class="btn-action btn-delete" onclick="deletePatient('${patient.id}')">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg> Delete
-        </button>
-        <button class="btn-action btn-whatsapp" onclick="shareWhatsApp('${patient.id}')">
-           <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z"/></svg> Share
-        </button>
+        <button class="btn-action btn-edit" onclick="editPatient('${patient.id}')"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg> Edit</button>
+        <button class="btn-action btn-delete" onclick="deletePatient('${patient.id}')"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg> Delete</button>
+        <button class="btn-action btn-whatsapp" onclick="shareWhatsApp('${patient.id}')"><svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z"/></svg> Share</button>
     </div>
     `;
 
@@ -9431,41 +9421,37 @@ SMART IMPORT SYSTEM (Dr. Mo Edition)
             btn.textContent = originalText;
         }
     }
+function initReminderWatcher() {
+    console.log("🟢 Sensor Watcher Active (Smart Protection Mode)");
 
-    // 2. المراقب الذكي (يحسب 7 ثواني بالضبط)
-    function initReminderWatcher() {
-        console.log("🟢 Sensor Watcher Active (7s Ring / 2m Auto-Snooze)");
+    setInterval(() => {
+        const now = new Date();
+        // تنسيق الوقت الحالي بالظبط (YYYY-MM-DDTHH:mm)
+        const currentTimeStr = now.toISOString().slice(0, 16);
 
-        setInterval(() => {
-            const now = new Date();
-            const year = now.getFullYear();
-            const month = String(now.getMonth() + 1).padStart(2, '0');
-            const day = String(now.getDate()).padStart(2, '0');
-            const hours = String(now.getHours()).padStart(2, '0');
-            const minutes = String(now.getMinutes()).padStart(2, '0');
-            const currentTimeStr = `${year}-${month}-${day}T${hours}:${minutes}`;
+        patients.forEach(p => {
+            if (!p.sensor_reminder) return;
 
-            patients.forEach(p => {
-                // أ. تشغيل التنبيه إذا حان الوقت
-                if (p.sensor_reminder === currentTimeStr) {
-                    if (window.currentlyRingingId !== p.id && window.lastAutoSnooze !== (p.id + currentTimeStr)) {
-                        playSensorAlert(p);
-                    }
+            // شرط الرنين: الميعاد جه + مش بيرن حالياً + مرنش قبل كدة في نفس الدقيقة
+            if (p.sensor_reminder === currentTimeStr) {
+                if (window.currentlyRingingId !== p.id && window.lastRungTime !== (p.id + currentTimeStr)) {
+                    console.log("🔔 Time to ring for:", p.nationalId);
+                    window.lastRungTime = p.id + currentTimeStr; // حماية من التكرار
+                    playSensorAlert(p);
                 }
+            }
 
-                // ب. السنوز التلقائي (لو عدى 7 ثواني من بداية الرنين بدون تدخل)
-                if (window.currentlyRingingId === p.id && window.alarmStartTime) {
-                    const elapsedSeconds = (Date.now() - window.alarmStartTime) / 1000;
-
-                    if (elapsedSeconds >= 7) {
-                        console.log("🕒 Auto-Snoozing after 7 full seconds of no response...");
-                        window.lastAutoSnooze = p.id + currentTimeStr;
-                        autoSnoozeProcess(p.id, 2); // سنوز تلقائي لمدة دقيقتين
-                    }
+            // السنوز التلقائي (لو عدى 7 ثواني بدون رد)
+            if (window.currentlyRingingId === p.id && window.alarmStartTime) {
+                const elapsedSeconds = (Date.now() - window.alarmStartTime) / 1000;
+                if (elapsedSeconds >= 7) {
+                    console.log("🕒 Auto-Snoozing...");
+                    autoSnoozeProcess(p.id, 2); 
                 }
-            });
-        }, 1000);
-    }
+            }
+        });
+    }, 1000);
+}
 
     // 3. تشغيل التنبيه وعرض المودال
     function playSensorAlert(patient) {
@@ -9494,28 +9480,16 @@ SMART IMPORT SYSTEM (Dr. Mo Edition)
         </div>`
         );
     }
-
-    // 4. إيقاف الصوت وتصفير العداد (الدرع الواقي لمنع التداخل)
-    function stopAlarmSound(patientId = null) {
-        if (alertAudio) {
-            alertAudio.pause();
-            alertAudio.currentTime = 0;
-        }
-        window.currentlyRingingId = null;
-        window.alarmStartTime = null;
-
-        // لو إنت قفلت المودال بس، بنسجل إنك قفلته عشان ما يضربش تاني في نفس الدقيقة
-        if (patientId) {
-            const now = new Date();
-            const year = now.getFullYear();
-            const month = String(now.getMonth() + 1).padStart(2, '0');
-            const day = String(now.getDate()).padStart(2, '0');
-            const hours = String(now.getHours()).padStart(2, '0');
-            const minutes = String(now.getMinutes()).padStart(2, '0');
-            window.lastAutoSnooze = patientId + `${year}-${month}-${day}T${hours}:${minutes}`;
-        }
-        displayPatients();
+function stopAlarmSound() {
+    if (alertAudio) {
+        alertAudio.pause();
+        alertAudio.currentTime = 0;
     }
+    window.currentlyRingingId = null;
+    window.alarmStartTime = null;
+    // لا نمسح window.lastRungTime عشان يفضل حامينا لنهاية الدقيقة الحالية
+    displayPatients();
+}
 
     // 5. زر (MARK DONE)
     async function clearReminder(patientId) {
@@ -9580,7 +9554,26 @@ SMART IMPORT SYSTEM (Dr. Mo Edition)
             } catch (err) { showToast('❌ فشل في مسح المنبه'); }
         });
     }
+async function deleteReminder(patientId) {
+    confirmAction('هل أنت متأكد من مسح المنبه نهائياً؟', async () => {
+        try {
+            // مسح محلي فوري (Optimistic Update)
+            const p = patients.find(pat => String(pat.id) === String(patientId));
+            if (p) p.sensor_reminder = null;
+            
+            stopAlarmSound(); // وقف الصوت لو كان شغال
+            displayPatients();
 
+            const { error } = await supabaseClient.from('patients').update({ sensor_reminder: null }).eq('id', patientId);
+            if (error) throw error;
+            
+            showToast('🗑️ تم مسح المنبه');
+        } catch (err) { 
+            showToast('❌ فشل المسح');
+            loadPatientsFromSupabase(); // استرجاع الداتا لو فشل السيرفر
+        }
+    });
+}
     // تشغيل نظام المراقبة
     initReminderWatcher();
 async function quickUpdateRefill(patientId, newDate) {
@@ -9621,6 +9614,61 @@ async function quickUpdateRefill(patientId, newDate) {
         console.error('Update failed:', err);
         showToast('❌ Sync Error');
         loadPatientsFromSupabase(); // لضمان صحة البيانات
+    }
+}
+// 1. دالة لحساب التاريخ بناءً على المدة المختار (1, 2, 3 شهر)
+function setQuickDuration(patientId, days) {
+    const dispenseInput = document.getElementById(`q-dispense-${patientId}`);
+    const nextInput = document.getElementById(`q-next-${patientId}`);
+    
+    if (dispenseInput && nextInput) {
+        let date = new Date(dispenseInput.value);
+        date.setDate(date.getDate() + days);
+        nextInput.value = date.toISOString().split('T')[0];
+        
+        // فلاش بسيط عشان اليوزر يحس إن القيمة اتغيرت
+        nextInput.style.backgroundColor = '#e3f2fd';
+        setTimeout(() => nextInput.style.backgroundColor = '#fff', 300);
+    }
+}
+
+// 2. دالة التنفيذ النهائي وحفظ التواريخ الجديدة في سوبابيز
+async function executeQuickSync(patientId) {
+    const dispDate = document.getElementById(`q-dispense-${patientId}`).value;
+    const nextDate = document.getElementById(`q-next-${patientId}`).value;
+
+    if (!dispDate || !nextDate) return;
+
+    showToast('Saving dates... 💾');
+
+    try {
+        const { error } = await supabaseClient
+            .from('patients')
+            .update({ 
+                dispensing_date: dispDate,
+                next_refill_date: nextDate,
+                imported: false, // تحويله لكارت نشط فوراً
+                updated_at: new Date().toISOString()
+            })
+            .eq('id', patientId);
+
+        if (error) throw error;
+
+        // تحديث محلي
+        const p = patients.find(p => String(p.id) === String(patientId));
+        if (p) {
+            p.dispensing_date = dispDate;
+            p.next_refill_date = nextDate;
+            p.imported = false;
+        }
+
+        updateStats();
+        displayPatients();
+        showToast('✅ Updated & Synced Successfully');
+
+    } catch (err) {
+        console.error(err);
+        showToast('❌ Sync Error');
     }
 }
 </script>
