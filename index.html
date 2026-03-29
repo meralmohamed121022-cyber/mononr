@@ -5287,7 +5287,7 @@
         }
         return box;
     }
- function createPatientCard(patient, searchTerm = '') {
+function createPatientCard(patient, searchTerm = '') {
     let card = document.createElement('div');
     card.className = 'patient-card';
 
@@ -5324,23 +5324,19 @@
         return badgesHtml;
     };
 
-    // --- تعديل التاريخ: إضافة زرار Update سريع للكروت المستوردة ---
-    let nextRefillDisplay = '';
-    if (patient.imported) {
-        nextRefillDisplay = `
-            <div style="display: flex; align-items: center; gap: 5px;">
-                <input type="date" id="quick-date-${patient.id}" value="${patient.nextRefillDate}" 
-                       style="flex: 1; border: 1.5px solid var(--primary); border-radius: 8px; padding: 4px; font-weight: 800; color: #0984e3; background: #fff; cursor: pointer; font-size: 12px; outline: none;">
-                <button onclick="quickUpdateRefill('${patient.id}', document.getElementById('quick-date-${patient.id}').value)"
-                        style="background: var(--primary); color: white; border: none; border-radius: 6px; width: 28px; height: 28px; cursor: pointer; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 4px rgba(0,0,0,0.1);"
-                        title="Confirm and Move">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
-                </button>
-            </div>
-        `;
-    } else {
-        nextRefillDisplay = `<div style="font-weight: 700; color: ${status === 'overdue' ? '#d63031' : '#0984e3'}; font-size: 13px;">${patient.nextRefillDate}</div>`;
-    }
+    // --- التعديل الجوهري: التاريخ تفاعلي مع زر تحديث في كل أنواع الكروت ---
+    const btnColor = patient.imported ? '#EF6C00' : 'var(--primary)';
+    let nextRefillDisplay = `
+        <div style="display: flex; align-items: center; gap: 5px;">
+            <input type="date" id="quick-date-${patient.id}" value="${patient.nextRefillDate}" 
+                   style="flex: 1; border: 1.5px solid ${btnColor}; border-radius: 8px; padding: 4px; font-weight: 800; color: #0984e3; background: #fff; cursor: pointer; font-size: 12px; outline: none;">
+            <button onclick="quickUpdateRefill('${patient.id}', document.getElementById('quick-date-${patient.id}').value)"
+                    style="background: ${btnColor}; color: white; border: none; border-radius: 6px; width: 28px; height: 28px; cursor: pointer; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 4px rgba(0,0,0,0.1);"
+                    title="Update and Sync">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+            </button>
+        </div>
+    `;
 
     const hasAlarm = patient.sensor_reminder;
     const isRinging = window.currentlyRingingId === patient.id;
@@ -9587,43 +9583,44 @@ SMART IMPORT SYSTEM (Dr. Mo Edition)
 
     // تشغيل نظام المراقبة
     initReminderWatcher();
- async function quickUpdateRefill(patientId, newDate) {
-    if (!newDate) {
-        showToast('⚠️ Please select a date');
-        return;
-    }
+async function quickUpdateRefill(patientId, newDate) {
+    if (!newDate) return;
 
-    showToast('Updating & Moving... 🚀');
+    showToast('Syncing changes... 🚀');
 
     try {
-        // 1. التحديث في Supabase (إلغاء imported إجبارياً)
+        // 1. تحديد المريض في القائمة المحلية
+        const pIndex = patients.findIndex(p => String(p.id) === String(patientId));
+        if (pIndex === -1) return;
+
+        const isCurrentlyImported = patients[pIndex].imported;
+
+        // 2. تحديث سوبابيز
         const { error } = await supabaseClient
             .from('patients')
             .update({ 
                 next_refill_date: newDate,
-                imported: false, // تحويله لكارت نشط فوراً
-                general_note: 'Checked & Verified' 
+                imported: false, // دائماً اجعلها false عند التحديث اليدوي للنقل
+                general_note: isCurrentlyImported ? 'Checked & Verified' : patients[pIndex].generalNote 
             })
             .eq('id', patientId);
 
         if (error) throw error;
 
-        // 2. تحديث الداتا محلياً
-        const pIndex = patients.findIndex(p => String(p.id) === String(patientId));
-        if (pIndex !== -1) {
-            patients[pIndex].nextRefillDate = newDate;
-            patients[pIndex].imported = false;
-        }
+        // 3. تحديث المصفوفة المحلية
+        patients[pIndex].nextRefillDate = newDate;
+        patients[pIndex].imported = false; // يتحول لكارت نشط في كل الأحوال
 
-        // 3. تحديث الواجهة
+        // 4. إعادة رسم الواجهة والعدادات
         updateStats();
         displayPatients(); 
         
-        showToast('✅ Moved to active list');
+        showToast('✅ Date updated & record synced');
 
     } catch (err) {
         console.error('Update failed:', err);
         showToast('❌ Sync Error');
+        loadPatientsFromSupabase(); // لضمان صحة البيانات
     }
 }
 </script>
