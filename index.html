@@ -3718,22 +3718,26 @@
     </div>
 
     <div id="mainApp" style="display:none;">
-        <div class="header">
-            <img src="https://raw.githubusercontent.com/meralmohamed121022-cyber/Drug-Monograph/refs/heads/main/M%20(512%20x%20512%20px)_20251114_182650_0000.gif"
-                alt="MONO Logo"
-                style="width: 80px; height: auto; border-radius: 50%; margin-bottom: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.2);">
-            <p id="pharmacyInfo">Mono Wasfaty SYSTEM</p>
-            <button class="logout-btn" onclick="handleLogout()">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-                    stroke-linecap="round" stroke-linejoin="round">
-                    <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
-                    <polyline points="16 17 21 12 16 7"></polyline>
-                    <line x1="21" y1="12" x2="9" y2="12"></line>
-                </svg>
-                Logout
-            </button>
-        </div>
+      <div class="header" style="position: relative;">
+    <img src="https://raw.githubusercontent.com/meralmohamed121022-cyber/Drug-Monograph/refs/heads/main/6_20251129_184528_0005.png"
+         alt="Ph Mohamed Kholeif"
+         style="width: 70px; height: 70px; border-radius: 50%; border: 3px solid white; box-shadow: 0 4px 12px rgba(0,0,0,0.3); object-fit: cover; margin-bottom: 10px; transition: transform 0.3s ease;">
+    
+    <p id="pharmacyInfo" style="font-size: 20px; font-weight: 800; color: white; margin: 0; text-shadow: 0 2px 4px rgba(0,0,0,0.2);">
+        Mono Wasfaty SYSTEM
+    </p>
 
+    <button class="logout-btn" onclick="handleLogout()" 
+            style="position: absolute; top: 20px; right: 20px; background: rgba(255,255,255,0.2); color: white; border: 1px solid rgba(255,255,255,0.4); border-radius: 12px; padding: 10px 18px; font-size: 13px; font-weight: 700; cursor: pointer; display: flex; align-items: center; gap: 8px; backdrop-filter: blur(5px); transition: all 0.3s ease;">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
+             stroke-linecap="round" stroke-linejoin="round">
+            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+            <polyline points="16 17 21 12 16 7"></polyline>
+            <line x1="21" y1="12" x2="9" y2="12"></line>
+        </svg>
+        Logout
+    </button>
+</div>
         <div class="container">
             <div class="nav-tabs">
                 <button class="nav-tab active" onclick="switchTab('add')">
@@ -4027,10 +4031,7 @@
         </div>
     </div>
 </body>
-<img src="https://raw.githubusercontent.com/meralmohamed121022-cyber/Drug-Monograph/refs/heads/main/6_20251129_184528_0005.png"
-    alt="Ph Mohamed Kholeif"
-    style="position: fixed; bottom: 10px; right: 10px; width: 100px; height: 100px; border-radius: 50%; border: 3px solid white; box-shadow: 0 3px 10px rgba(0,0,0,0.4); background: white; padding: 2px; animation: float 4s ease-in-out infinite; z-index: 1000; cursor: pointer;"
-    id="profileImage" />
+
 
 <script src="https://unpkg.com/jspdf@latest/dist/jspdf.umd.min.js"></script>
 <script src="https://unpkg.com/html2canvas@latest/dist/html2canvas.min.js"></script>
