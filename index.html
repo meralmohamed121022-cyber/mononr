@@ -5324,7 +5324,7 @@ function createPatientCard(patient, searchTerm = '') {
         return badgesHtml;
     };
 
-    // --- [ لوحة التحكم السريع في التواريخ - Inline Fast Processing ] ---
+    // --- [ لوحة التحكم السريع في التواريخ مع تأثير الاختيار النشط ] ---
     let quickDatePanel = `
         <div style="background: #f8f9fa; padding: 12px; border-radius: 12px; border: 1px solid #eee; margin-top: 10px; box-shadow: inset 0 1px 3px rgba(0,0,0,0.05);">
             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 8px;">
@@ -5342,9 +5342,12 @@ function createPatientCard(patient, searchTerm = '') {
             
             <div style="display: flex; gap: 6px; align-items: center;">
                 <div style="display: flex; gap: 4px; flex: 1;">
-                    <button onclick="setQuickDuration('${patient.id}', 24)" style="flex:1; font-size:9px; padding:6px 0; border:1px solid #dcdde1; border-radius:6px; cursor:pointer; background:white; font-weight:800; color: #2f3640; transition: 0.2s;">1M (24d)</button>
-                    <button onclick="setQuickDuration('${patient.id}', 48)" style="flex:1; font-size:9px; padding:6px 0; border:1px solid #dcdde1; border-radius:6px; cursor:pointer; background:white; font-weight:800; color: #2f3640; transition: 0.2s;">2M (48d)</button>
-                    <button onclick="setQuickDuration('${patient.id}', 72)" style="flex:1; font-size:9px; padding:6px 0; border:1px solid #dcdde1; border-radius:6px; cursor:pointer; background:white; font-weight:800; color: #2f3640; transition: 0.2s;">3M (72d)</button>
+                    <button onclick="setQuickDuration('${patient.id}', 24, this)" 
+                            style="flex:1; font-size:9px; padding:6px 0; border:1px solid #dcdde1; border-radius:6px; cursor:pointer; background:white; font-weight:800; color: #2f3640; transition: all 0.2s ease;">1M</button>
+                    <button onclick="setQuickDuration('${patient.id}', 48, this)" 
+                            style="flex:1; font-size:9px; padding:6px 0; border:1px solid #dcdde1; border-radius:6px; cursor:pointer; background:white; font-weight:800; color: #2f3640; transition: all 0.2s ease;">2M</button>
+                    <button onclick="setQuickDuration('${patient.id}', 72, this)" 
+                            style="flex:1; font-size:9px; padding:6px 0; border:1px solid #dcdde1; border-radius:6px; cursor:pointer; background:white; font-weight:800; color: #2f3640; transition: all 0.2s ease;">3M</button>
                 </div>
                 <button onclick="executeQuickSync('${patient.id}')" 
                         style="background: var(--primary); color: white; border: none; border-radius: 8px; width: 36px; height: 32px; cursor: pointer; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 6px rgba(13,71,161,0.2); transition: 0.3s;"
@@ -5439,6 +5442,34 @@ function createPatientCard(patient, searchTerm = '') {
     `;
 
     return card;
+}
+
+// دالة الحساب السريع المعدلة لتغيير لون الزرار المختار
+function setQuickDuration(patientId, days, btnElement) {
+    const dispenseInput = document.getElementById(`q-dispense-${patientId}`);
+    const nextInput = document.getElementById(`q-next-${patientId}`);
+    
+    if (dispenseInput && nextInput) {
+        let date = new Date(dispenseInput.value);
+        date.setDate(date.getDate() + days); // الحساب بنظام 24 يوم للشهر
+        nextInput.value = date.toISOString().split('T')[0];
+        
+        // --- تأثير تغيير لون الزرار النشط ---
+        const btnGroup = btnElement.parentElement;
+        btnGroup.querySelectorAll('button').forEach(btn => {
+            btn.style.background = 'white';
+            btn.style.color = '#2f3640';
+            btn.style.borderColor = '#dcdde1';
+        });
+        
+        btnElement.style.background = 'var(--primary)';
+        btnElement.style.color = 'white';
+        btnElement.style.borderColor = 'var(--primary)';
+
+        // فلاش بصري بسيط للتأكيد
+        nextInput.style.backgroundColor = '#e3f2fd';
+        setTimeout(() => nextInput.style.backgroundColor = '#fff', 300);
+    }
 }
     function getRefillStatus(nextRefillDate) {
         let today = new Date();
@@ -9617,7 +9648,7 @@ async function quickUpdateRefill(patientId, newDate) {
     }
 }
 // 1. دالة لحساب التاريخ بناءً على المدة المختار (1, 2, 3 شهر)
-function setQuickDuration(patientId, days) {
+function setQuickDuration(patientId, days, btnElement) {
     const dispenseInput = document.getElementById(`q-dispense-${patientId}`);
     const nextInput = document.getElementById(`q-next-${patientId}`);
     
@@ -9626,12 +9657,25 @@ function setQuickDuration(patientId, days) {
         date.setDate(date.getDate() + days);
         nextInput.value = date.toISOString().split('T')[0];
         
-        // فلاش بسيط عشان اليوزر يحس إن القيمة اتغيرت
+        // --- إضافة تأثير اللون ---
+        // 1. نجيب الحاوية اللي فيها الزراير دي بس
+        const btnGroup = btnElement.parentElement;
+        // 2. نشيل اللون من كل الزراير اللي جوه المجموعة دي
+        btnGroup.querySelectorAll('button').forEach(btn => {
+            btn.style.background = 'white';
+            btn.style.color = '#2f3640';
+            btn.style.borderColor = '#dcdde1';
+        });
+        // 3. نلون الزرار اللي اتداس عليه دلوقتي
+        btnElement.style.background = 'var(--primary)';
+        btnElement.style.color = 'white';
+        btnElement.style.borderColor = 'var(--primary)';
+
+        // فلاش صغير على حقل التاريخ للتأكيد
         nextInput.style.backgroundColor = '#e3f2fd';
         setTimeout(() => nextInput.style.backgroundColor = '#fff', 300);
     }
 }
-
 // 2. دالة التنفيذ النهائي وحفظ التواريخ الجديدة في سوبابيز
 async function executeQuickSync(patientId) {
     const dispDate = document.getElementById(`q-dispense-${patientId}`).value;
