@@ -9453,37 +9453,46 @@ SMART IMPORT SYSTEM (Dr. Mo Edition)
         }
     }
 function initReminderWatcher() {
-    console.log("🟢 Sensor Watcher Active (Smart Protection Mode)");
+    console.log("🟢 Sensor Watcher Active (Local Time Mode)");
 
     setInterval(() => {
         const now = new Date();
-        // تنسيق الوقت الحالي بالظبط (YYYY-MM-DDTHH:mm)
-        const currentTimeStr = now.toISOString().slice(0, 16);
+        
+        // 1. استخراج الوقت المحلي بتنسيق يطابق (YYYY-MM-DDTHH:mm)
+        const year = now.getFullYear();
+        const month = String(now.getMonth() + 1).padStart(2, '0');
+        const day = String(now.getDate()).padStart(2, '0');
+        const hours = String(now.getHours()).padStart(2, '0');
+        const minutes = String(now.getMinutes()).padStart(2, '0');
+        
+        // ده الوقت الفعلي اللي الكمبيوتر شايفه قدامه دلوقتي
+        const currentTimeStr = `${year}-${month}-${day}T${hours}:${minutes}`;
 
         patients.forEach(p => {
             if (!p.sensor_reminder) return;
 
-            // شرط الرنين: الميعاد جه + مش بيرن حالياً + مرنش قبل كدة في نفس الدقيقة
+            // 2. مقارنة وقت المنبه بالوقت المحلي
             if (p.sensor_reminder === currentTimeStr) {
+                // التأكد إنه ميرنش أكتر من مرة في نفس الدقيقة + ميكونش شغال فعلاً
                 if (window.currentlyRingingId !== p.id && window.lastRungTime !== (p.id + currentTimeStr)) {
                     console.log("🔔 Time to ring for:", p.nationalId);
                     window.lastRungTime = p.id + currentTimeStr; // حماية من التكرار
+                    window.alarmStartTime = Date.now(); // تسجيل لحظة البداية لعد الـ 7 ثواني
                     playSensorAlert(p);
                 }
             }
 
-            // السنوز التلقائي (لو عدى 7 ثواني بدون رد)
+            // 3. السنوز التلقائي (لو عدى 7 ثواني بدون رد)
             if (window.currentlyRingingId === p.id && window.alarmStartTime) {
                 const elapsedSeconds = (Date.now() - window.alarmStartTime) / 1000;
                 if (elapsedSeconds >= 7) {
-                    console.log("🕒 Auto-Snoozing...");
+                    console.log("🕒 Auto-Snoozing after 7 seconds...");
                     autoSnoozeProcess(p.id, 2); 
                 }
             }
         });
-    }, 1000);
+    }, 1000); // الفحص كل ثانية
 }
-
     // 3. تشغيل التنبيه وعرض المودال
     function playSensorAlert(patient) {
         window.currentlyRingingId = patient.id;
@@ -9535,43 +9544,72 @@ function stopAlarmSound() {
             showToast('✅ Alarm Dismissed & Cleared');
         } catch (err) { showToast('❌ Database Error'); }
     }
+// 6. زر (SNOOZE 10 MINS) - النسخة المحسنة بالتوقيت المحلي
+async function snoozeReminder(patientId, mins = 10) {
+    stopAlarmSound(patientId);
+    closeModal();
 
-    // 6. زر (SNOOZE 10 MINS)
-    async function snoozeReminder(patientId, mins = 10) {
-        stopAlarmSound(patientId);
-        closeModal();
+    // حساب الوقت المستقبلي بناءً على الوقت المحلي
+    const now = new Date();
+    const future = new Date(now.getTime() + mins * 60000);
+    
+    // تنسيق الوقت المحلي يدوياً لضمان التطابق مع نظام المراقبة (Watcher)
+    const year = future.getFullYear();
+    const month = String(future.getMonth() + 1).padStart(2, '0');
+    const day = String(future.getDate()).padStart(2, '0');
+    const hours = String(future.getHours()).padStart(2, '0');
+    const minutes = String(future.getMinutes()).padStart(2, '0');
+    
+    const formattedTime = `${year}-${month}-${day}T${hours}:${minutes}`;
 
-        const nextTime = new Date(new Date().getTime() + mins * 60000);
-        const tzOffset = nextTime.getTimezoneOffset() * 60000;
-        const formattedTime = (new Date(nextTime - tzOffset)).toISOString().slice(0, 16);
-
-        try {
-            await supabaseClient.from('patients').update({ sensor_reminder: formattedTime }).eq('id', patientId);
-            const p = patients.find(pat => String(pat.id) === String(patientId));
-            if (p) p.sensor_reminder = formattedTime;
-            displayPatients();
-            showToast(`💤 Snoozed for ${mins} mins`);
-        } catch (e) { showToast('❌ Error'); }
+    try {
+        // تحديث قاعدة البيانات بالوقت المحلي المنسق
+        await supabaseClient.from('patients').update({ sensor_reminder: formattedTime }).eq('id', patientId);
+        
+        // تحديث محلي للمصفوفة
+        const p = patients.find(pat => String(pat.id) === String(patientId));
+        if (p) p.sensor_reminder = formattedTime;
+        
+        displayPatients();
+        showToast(`💤 Snoozed for ${mins} mins`);
+    } catch (e) { 
+        console.error("Snooze Error:", e);
+        showToast('❌ Error'); 
     }
+}
 
-    // 7. التأجيل التلقائي (Auto Snooze بعد 7 ثواني)
-    async function autoSnoozeProcess(patientId, minutes) {
-        stopAlarmSound(patientId);
-        closeModal();
+// 7. التأجيل التلقائي (Auto Snooze بعد 7 ثواني) - النسخة المحسنة بالتوقيت المحلي
+async function autoSnoozeProcess(patientId, minutes) {
+    stopAlarmSound(patientId);
+    closeModal();
 
-        const nextTime = new Date(new Date().getTime() + minutes * 60000);
-        const tzOffset = nextTime.getTimezoneOffset() * 60000;
-        const formattedTime = (new Date(nextTime - tzOffset)).toISOString().slice(0, 16);
+    // حساب الوقت المستقبلي بناءً على الوقت المحلي
+    const now = new Date();
+    const future = new Date(now.getTime() + minutes * 60000);
+    
+    // تنسيق الوقت المحلي يدوياً
+    const year = future.getFullYear();
+    const month = String(future.getMonth() + 1).padStart(2, '0');
+    const day = String(future.getDate()).padStart(2, '0');
+    const hours = String(future.getHours()).padStart(2, '0');
+    const mins = String(future.getMinutes()).padStart(2, '0');
+    
+    const formattedTime = `${year}-${month}-${day}T${hours}:${mins}`;
 
-        try {
-            await supabaseClient.from('patients').update({ sensor_reminder: formattedTime }).eq('id', patientId);
-            const p = patients.find(pat => String(pat.id) === String(patientId));
-            if (p) p.sensor_reminder = formattedTime;
-            displayPatients();
-            showToast(`🕒 Auto-Snoozed: Done for ${minutes} mins`);
-        } catch (e) { console.error("AutoSnooze Error", e); }
+    try {
+        // تحديث قاعدة البيانات
+        await supabaseClient.from('patients').update({ sensor_reminder: formattedTime }).eq('id', patientId);
+        
+        // تحديث محلي للمصفوفة
+        const p = patients.find(pat => String(pat.id) === String(patientId));
+        if (p) p.sensor_reminder = formattedTime;
+        
+        displayPatients();
+        showToast(`🕒 Auto-Snoozed: Done for ${minutes} mins`);
+    } catch (e) { 
+        console.error("AutoSnooze Error", e); 
     }
-
+}
     // 8. زر مسح المنبه من الكارت (سلة المهملات)
     async function deleteReminder(patientId) {
         confirmAction('هل أنت متأكد من رغبتك في مسح المنبه نهائياً؟', async () => {
