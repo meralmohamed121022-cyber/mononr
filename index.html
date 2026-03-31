@@ -5353,7 +5353,19 @@ function createPatientCard(patient, searchTerm = '') {
         return badgesHtml;
     };
 
-    // --- [ لوحة التحكم السريع في التواريخ مع تأثير الاختيار النشط ] ---
+    // --- [ زر إضافة ملاحظة محتاج روشتة للكروت المستوردة ] ---
+    let quickNeedRxBtn = "";
+    if (patient.imported) {
+        quickNeedRxBtn = `
+            <button onclick="addNeedRxNote('${patient.id}'); event.stopPropagation();" 
+                    style="margin-top: 10px; width: 100%; background: linear-gradient(135deg, #ff9f43, #e67e22); color: white; border: none; padding: 8px; border-radius: 8px; font-size: 11px; font-weight: 800; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 5px; box-shadow: 0 4px 6px rgba(230, 126, 34, 0.2); transition: 0.2s;"
+                    onmouseover="this.style.transform='scale(1.02)'" onmouseout="this.style.transform='scale(1)'">
+                <span>⚠️</span> ADD "NEED NEW RX" NOTE
+            </button>
+        `;
+    }
+
+    // --- [ لوحة التحكم السريع في التواريخ ] ---
     let quickDatePanel = `
         <div style="background: #f8f9fa; padding: 12px; border-radius: 12px; border: 1px solid #eee; margin-top: 10px; box-shadow: inset 0 1px 3px rgba(0,0,0,0.05);">
             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 8px;">
@@ -5436,6 +5448,7 @@ function createPatientCard(patient, searchTerm = '') {
     
     <div class="card-section-info">
         ${quickDatePanel}
+        ${quickNeedRxBtn}
         <div style="margin-top: 8px; border-top: 1px dashed #ced6e0; padding-top: 5px;">
             <span class="date-badge ${status}" style="width: 100%; display: block; text-align: center;">${getDaysUntilRefill(patient.nextRefillDate)}</span>
         </div>
@@ -5472,7 +5485,6 @@ function createPatientCard(patient, searchTerm = '') {
 
     return card;
 }
-
 // دالة الحساب السريع المعدلة لتغيير لون الزرار المختار
 function setQuickDuration(patientId, days, btnElement) {
     const dispenseInput = document.getElementById(`q-dispense-${patientId}`);
@@ -9670,6 +9682,43 @@ async function executeQuickSync(patientId) {
     } catch (err) {
         console.error(err);
         showToast('❌ Sync Error');
+    }
+}
+async function addNeedRxNote(patientId) {
+    const noteText = "⚠️ NEED NEW RX NO";
+    
+    // 1. العثور على المريض محلياً
+    const patient = patients.find(p => String(p.id) === String(patientId));
+    if (!patient) return;
+
+    // 2. تجهيز الملاحظة الجديدة (تجنب التكرار)
+    let currentNote = patient.generalNote || "";
+    if (currentNote.includes(noteText)) {
+        showToast("Already has this note! ✅");
+        return;
+    }
+    
+    const newNote = currentNote ? `${currentNote}, ${noteText}` : noteText;
+
+    showToast("Updating note... 📝");
+
+    try {
+        // 3. التحديث في Supabase
+        const { error } = await supabaseClient
+            .from('patients')
+            .update({ general_note: newNote })
+            .eq('id', patientId);
+
+        if (error) throw error;
+
+        // 4. التحديث محلياً وإعادة الرسم
+        patient.generalNote = newNote;
+        displayPatients(); // إعادة عرض الكروت لتظهر النوت الجديدة باللون البرتقالي
+        showToast("Note Added Successfully! 🚀");
+
+    } catch (err) {
+        console.error("Failed to add note:", err);
+        showToast("❌ Failed to update note");
     }
 }
 </script>
