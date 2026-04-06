@@ -3857,17 +3857,33 @@
                     </div>
                 </div>
 
-                <div class="form-group">
-                    <label class="form-label">Dispensing Date</label>
-                    <input type="date" class="form-input" id="dispensingDate">
-                </div>
+           <div class="form-group">
+    <label class="form-label">
+        <span style="font-size: 18px; margin-right: 8px;">📅</span> Dispensing Date
+    </label>
+    <div style="display: flex; gap: 8px;">
+        <input type="date" class="form-input" id="dispensingDate" style="flex: 1;">
+        <button type="button" onclick="setDateToToday('dispensingDate')" 
+                style="background: var(--primary); color: white; border: none; border-radius: 12px; padding: 0 15px; font-size: 11px; font-weight: 800; cursor: pointer; transition: 0.3s; white-space: nowrap; box-shadow: 0 4px 12px var(--shadow);"
+                onmouseover="this.style.opacity='0.9'" onmouseout="this.style.opacity='1'">
+            TODAY
+        </button>
+    </div>
+</div>
 
-                <div class="form-group">
-                    <label class="form-label"><span style="font-size: 18px; margin-right: 8px;">🔄</span> Next Refill
-                        Date</label>
-                    <input type="date" class="form-input" id="nextRefillDate" onclick="this.showPicker()">
-                </div>
-
+<div class="form-group">
+    <label class="form-label">
+        <span style="font-size: 18px; margin-right: 8px;">🔄</span> Next Refill Date
+    </label>
+    <div style="display: flex; gap: 8px;">
+        <input type="date" class="form-input" id="nextRefillDate" onclick="this.showPicker()" style="flex: 1;">
+        <button type="button" onclick="setDateToToday('nextRefillDate')" 
+                style="background: var(--secondary); color: white; border: none; border-radius: 12px; padding: 0 15px; font-size: 11px; font-weight: 800; cursor: pointer; transition: 0.3s; white-space: nowrap; box-shadow: 0 4px 12px rgba(0, 184, 148, 0.3);"
+                onmouseover="this.style.opacity='0.9'" onmouseout="this.style.opacity='1'">
+            TODAY
+        </button>
+    </div>
+</div>
                 <div class="section-title"><span style="font-size: 18px;">📝</span> Additional Notes</div>
                 <div class="quick-notes-grid">
                     <button class="quick-note-btn" onclick="addQuickNote('👑 VVIP')">👑 VVIP</button>
@@ -5365,19 +5381,27 @@ function createPatientCard(patient, searchTerm = '') {
         `;
     }
 
-    // --- [ لوحة التحكم السريع في التواريخ ] ---
+    // --- [ لوحة التحكم السريع في التواريخ - مع أزرار TODAY ] ---
     let quickDatePanel = `
         <div style="background: #f8f9fa; padding: 12px; border-radius: 12px; border: 1px solid #eee; margin-top: 10px; box-shadow: inset 0 1px 3px rgba(0,0,0,0.05);">
             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 8px;">
                 <div>
                     <span style="font-size: 9px; font-weight: 800; color: #95a5a6; display: block; margin-bottom: 3px; text-transform: uppercase;">Dispensing Date</span>
-                    <input type="date" id="q-dispense-${patient.id}" value="${patient.dispensingDate || new Date().toISOString().split('T')[0]}" 
-                           style="width: 100%; border: 1px solid #ddd; border-radius: 6px; padding: 4px; font-size: 11px; font-weight: 700; outline: none; background: #fff;">
+                    <div style="display: flex; gap: 4px;">
+                        <input type="date" id="q-dispense-${patient.id}" value="${patient.dispensingDate || new Date().toISOString().split('T')[0]}" 
+                               style="width: 100%; border: 1px solid #ddd; border-radius: 6px; padding: 4px; font-size: 11px; font-weight: 700; outline: none; background: #fff;">
+                        <button onclick="setDateToToday('q-dispense-${patient.id}')" 
+                                style="background: var(--primary); color: white; border: none; border-radius: 4px; padding: 0 6px; font-size: 9px; font-weight: 900; cursor: pointer;" title="Set to Today">T</button>
+                    </div>
                 </div>
                 <div>
                     <span style="font-size: 9px; font-weight: 800; color: #95a5a6; display: block; margin-bottom: 3px; text-transform: uppercase;">Next Refill</span>
-                    <input type="date" id="q-next-${patient.id}" value="${patient.nextRefillDate}" 
-                           style="width: 100%; border: 1.5px solid var(--primary); border-radius: 6px; padding: 4px; font-weight: 800; color: #0984e3; outline: none; background: #fff;">
+                    <div style="display: flex; gap: 4px;">
+                        <input type="date" id="q-next-${patient.id}" value="${patient.nextRefillDate}" 
+                               style="width: 100%; border: 1.5px solid var(--primary); border-radius: 6px; padding: 4px; font-weight: 800; color: #0984e3; outline: none; background: #fff;">
+                        <button onclick="setDateToToday('q-next-${patient.id}')" 
+                                style="background: var(--secondary); color: white; border: none; border-radius: 4px; padding: 0 6px; font-size: 9px; font-weight: 900; cursor: pointer;" title="Set to Today">T</button>
+                    </div>
                 </div>
             </div>
             
@@ -5540,75 +5564,75 @@ function setQuickDuration(patientId, days, btnElement) {
     // ============================================================
     // 1. دالة تحديث الإحصائيات (تعديل دقة تاريخ اليوم)
     // ============================================================
-    function updateStats() {
-        console.log('📊 Updating Stats (Precise Logic: Overdue + Note = Need RX)...');
+  function updateStats() {
+    console.log('📊 Updating Stats & Smart Search (Precision Mode)...');
 
-        const now = new Date();
-        // تصفير الوقت للحصول على بداية اليوم المحلي (00:00:00)
-        const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+    const now = new Date();
+    // تصفير الوقت للحصول على بداية اليوم المحلي (00:00:00)
+    const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
 
-        // حساب نهاية أسبوع من الآن (7 أيام)
-        const nextWeekEnd = todayStart + (7 * 24 * 60 * 60 * 1000);
+    // حساب نهاية أسبوع من الآن (7 أيام)
+    const nextWeekEnd = todayStart + (7 * 24 * 60 * 60 * 1000);
 
-        // 1. تصفية المرضى (الحصول على الكروت الحقيقية فقط)
-        const validPatients = patients.filter(p => {
-            return p.inQueue !== true &&
-                p.nextRefillDate &&
-                p.prescriptions &&
-                p.prescriptions.length > 0 &&
-                p.prescriptions[0].number &&
-                p.prescriptions[0].number.trim() !== "";
-        });
+    // 1. تصفية المرضى (الحصول على الكروت الحقيقية فقط)
+    const validPatients = patients.filter(p => {
+        return p.inQueue !== true &&
+            p.nextRefillDate &&
+            p.prescriptions &&
+            p.prescriptions.length > 0 &&
+            p.prescriptions[0].number &&
+            p.prescriptions[0].number.trim() !== "";
+    });
 
-        let todayCount = 0;
-        let upcomingCount = 0;
-        let overdueCount = 0;
-        let needRxCount = 0;
+    let todayCount = 0;
+    let upcomingCount = 0;
+    let overdueCount = 0;
+    let needRxCount = 0;
 
-        validPatients.forEach(p => {
-            const refillDate = new Date(p.nextRefillDate);
-            const refillTime = new Date(refillDate.getFullYear(), refillDate.getMonth(), refillDate.getDate()).getTime();
+    validPatients.forEach(p => {
+        const refillDate = new Date(p.nextRefillDate);
+        const refillTime = new Date(refillDate.getFullYear(), refillDate.getMonth(), refillDate.getDate()).getTime();
 
-            // فحص النوت
-            const hasRxNote = p.generalNote && p.generalNote.toUpperCase().includes('NEED NEW RX NO');
-            // فحص هل التاريخ فات (أصغر من بداية النهاردة)
-            const isDateOverdue = refillTime < todayStart;
+        // فحص النوت
+        const hasRxNote = p.generalNote && p.generalNote.toUpperCase().includes('NEED NEW RX NO');
+        // فحص هل التاريخ فات (أصغر من بداية النهاردة)
+        const isDateOverdue = refillTime < todayStart;
 
-            // 🎯 الشرط المعدل: لو التاريخ فات "و" فيه النوت -> يروح لبوكس Need RX
-            if (isDateOverdue && hasRxNote) {
-                needRxCount++;
-            } else {
-                // لو الشرطين مع بعض متحققهوش، يكمل في مساره الزمني الطبيعي
-                if (refillTime === todayStart) {
-                    todayCount++; // هيفضل هنا حتى لو فيه النوت بس ميعاده النهاردة
-                } else if (refillTime > todayStart && refillTime <= nextWeekEnd) {
-                    upcomingCount++; // هيفضل هنا حتى لو فيه النوت بس لسه ميعاده قدام
-                } else if (isDateOverdue) {
-                    // هيفضل في الأوفر دو لو تاريخه فات بس "مفهوش" النوت
-                    overdueCount++;
-                }
+        // 🎯 الشرط المعدل: لو التاريخ فات "و" فيه النوت -> يروح لبوكس Need RX
+        if (isDateOverdue && hasRxNote) {
+            needRxCount++;
+        } else {
+            // لو الشرطين مع بعض متحققهوش، يكمل في مساره الزمني الطبيعي
+            if (refillTime === todayStart) {
+                todayCount++; // هيفضل هنا حتى لو فيه النوت بس ميعاده النهاردة
+            } else if (refillTime > todayStart && refillTime <= nextWeekEnd) {
+                upcomingCount++; // هيفضل هنا حتى لو فيه النوت بس لسه ميعاده قدام
+            } else if (isDateOverdue) {
+                // هيفضل في الأوفر دو لو تاريخه فات بس "مفهوش" النوت
+                overdueCount++;
             }
-        });
+        }
+    });
 
-        const totalCount = validPatients.length;
+    const totalCount = validPatients.length;
 
-        // 2. تحديث الواجهة (البوكسات)
-        const statsGrid = document.getElementById('statsGrid');
-        if (statsGrid) {
-            const elTotal = document.getElementById('val-total');
-            const elToday = document.getElementById('val-today');
-            const elUpcoming = document.getElementById('val-upcoming');
-            const elOverdue = document.getElementById('val-overdue');
-            const elNeedRx = document.getElementById('val-need-rx');
+    // 2. تحديث الواجهة (البوكسات)
+    const statsGrid = document.getElementById('statsGrid');
+    if (statsGrid) {
+        const elTotal = document.getElementById('val-total');
+        const elToday = document.getElementById('val-today');
+        const elUpcoming = document.getElementById('val-upcoming');
+        const elOverdue = document.getElementById('val-overdue');
+        const elNeedRx = document.getElementById('val-need-rx');
 
-            if (elTotal && elToday && elUpcoming && elOverdue && elNeedRx) {
-                elTotal.innerText = totalCount;
-                elToday.innerText = todayCount;
-                elUpcoming.innerText = upcomingCount;
-                elOverdue.innerText = overdueCount;
-                elNeedRx.innerText = needRxCount;
-            } else {
-                statsGrid.innerHTML = `
+        if (elTotal && elToday && elUpcoming && elOverdue && elNeedRx) {
+            elTotal.innerText = totalCount;
+            elToday.innerText = todayCount;
+            elUpcoming.innerText = upcomingCount;
+            elOverdue.innerText = overdueCount;
+            elNeedRx.innerText = needRxCount;
+        } else {
+            statsGrid.innerHTML = `
                 <div class="stat-card total" onclick="filterPatients('all')">
                     <div class="number" id="val-total">${totalCount}</div>
                     <div class="label">Total Patients</div>
@@ -5630,19 +5654,29 @@ function setQuickDuration(patientId, days, btnElement) {
                     <div class="label">Need New RX</div>
                 </div>
             `;
-            }
-        }
-
-        // 3. تحديث محرك البحث
-        if (window.Fuse) {
-            fuse = new Fuse(validPatients, {
-                keys: ['nationalId', 'phoneNumber', 'generalNote', 'prescriptions.number', 'prescriptions.note'],
-                threshold: 0.2,
-                ignoreLocation: true,
-                useExtendedSearch: true
-            });
         }
     }
+
+    // 3. تحديث محرك البحث (إعدادات صارمة لمنع تداخل الأرقام)
+    if (window.Fuse) {
+        fuse = new Fuse(validPatients, {
+            keys: [
+                'nationalId',           // بحث بالهوية
+                'phoneNumber',          // بحث بالجوال
+                'generalNote',          // بحث في الكلام المكتوب
+                'prescriptions.number', // بحث برقم الوصفة
+                'prescriptions.note'    // بحث في نوت الوصفة
+            ],
+            // threshold: 0.1 تعني دقة عالية جداً (قريب من التطابق التام)
+            threshold: 0.1, 
+            // distance: 0 يعني الحروف أو الأرقام لازم تكون في مكانها بالظبط عشان تتحسب
+            distance: 0,
+            ignoreLocation: true,
+            useExtendedSearch: true,
+            findAllMatches: true
+        });
+    }
+}
     // ============================================================
     // 2. دالة فلترة المرضى (الربط مع التوقيت الجديد)
     // ============================================================
@@ -6847,100 +6881,103 @@ async function confirmSmartImport() {
     }
     // نادي الدالة فوراً بعد تعريف DRUGS_DB
     initDrugsSearch();
-    function searchForDispensing() {
-        const input = document.getElementById('dispenseSearchInput');
-        const dropdown = document.getElementById('dispenseSearchResults');
-        const term = input.value.trim();
+ function searchForDispensing() {
+    const input = document.getElementById('dispenseSearchInput');
+    const dropdown = document.getElementById('dispenseSearchResults');
+    const term = input.value.trim();
 
-        if (term.length < 2) {
-            dropdown.style.display = 'none';
-            return;
-        }
+    // إخفاء القائمة لو البحث أقل من رقمين
+    if (term.length < 2) {
+        dropdown.style.display = 'none';
+        return;
+    }
 
-        let results = [];
-        if (fuse) {
-            results = fuse.search(term).slice(0, 5).map(r => r.item);
-        } else {
-            results = patients.filter(p =>
-                p.nationalId.includes(term) ||
-                (p.phoneNumber && p.phoneNumber.includes(term))
-            ).slice(0, 5);
-        }
+    let results = [];
 
-        // 1. حالة الهوية غير موجودة (إضافة مريض جديد للطابور)
-        if (results.length === 0) {
-            dropdown.innerHTML = `
-            <div style="padding: 20px; text-align: center; background: #ffffff; border-radius: 12px; border: 2px dashed var(--primary); box-shadow: 0 4px 15px rgba(0,0,0,0.05);">
-                <div style="font-size: 28px; margin-bottom: 12px;">🔍</div>
-                <p style="font-size: 15px; color: var(--primary); margin-bottom: 15px; font-weight: bold; border-bottom: 2px solid #e3f2fd; padding-bottom: 10px;">ID: ${term} Not Found</p>
-                
-                <div style="display: flex; justify-content: center; margin-bottom: 15px;">
-                    <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; background: #E8F5E9; padding: 10px 20px; border-radius: 10px; border: 1px solid #c8e6c9; user-select: none; transition: background 0.2s;">
-                        <input type="checkbox" id="quick-fridge-check" style="width: 18px; height: 18px; cursor: pointer;">
-                        <span style="font-size: 13px; font-weight: bold; color: #2E7D32;">❄️ Fridge RX</span>
-                    </label>
-                </div>
+    // 🎯 التعديل السحري هنا:
+    // بدل ما ننتظر الرقم يكمل، بنخليه يدور على أي هوية أو جوال "يبدأ" بالأرقام اللي بتكتبها
+    results = patients.filter(p => {
+        const searchId = String(p.nationalId || "").trim();
+        const searchPhone = String(p.phoneNumber || "").trim();
+        
+        // استخدام startsWith بيخلي الاقتراحات تظهر فوراً مع الكتابة
+        return searchId.startsWith(term) || searchPhone.startsWith(term);
+    }).slice(0, 5);
 
-                <button onclick="quickAddAndQueue('${term}')" 
-                        style="background:var(--primary); color:white; border:none; padding:15px 20px; border-radius:10px; cursor:pointer; width:100%; font-weight:bold; font-size:14px; box-shadow: 0 4px 12px rgba(13,71,161,0.2);">
-                    + Create New Card & Queue
-                </button>
-            </div>
-        `;
-            dropdown.style.display = 'block';
-            return;
-        }
-
-        // 2. حالة الهوية موجودة (عرض النتائج مع زر الثلاجة)
-        dropdown.innerHTML = results.map(p => {
-            const rxNumbers = (p.prescriptions && p.prescriptions.length > 0)
-                ? p.prescriptions.map(rx => rx.number).join(' - ')
-                : 'No Rx';
-            const hasPhone = p.phoneNumber && p.phoneNumber.trim() !== '';
-
-            return `
-        <div class="dispense-result-item">
-            <div style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
-                <div class="res-id">${p.nationalId}</div>
-                
-                <div style="display: flex; align-items: center; gap: 10px;">
-                    <label style="display: flex; align-items: center; gap: 5px; cursor: pointer; background: #E8F5E9; padding: 6px 12px; border-radius: 8px; border: 1px solid #c8e6c9; user-select: none;">
-                        <input type="checkbox" id="fridge-check-${p.id}" style="width: 16px; height: 16px; cursor: pointer;">
-                        <span style="font-size: 11px; font-weight: bold; color: #2E7D32;">❄️ Fridge</span>
-                    </label>
-
-                    <button onclick="addToQueue('${String(p.id)}')" 
-                            style="background:var(--secondary); color:white; border:none; padding:8px 15px; border-radius:8px; cursor:pointer; font-size:11px; font-weight:bold; box-shadow: 0 4px 10px rgba(0,184,148,0.2);">
-                        Add to Queue
-                    </button>
-                </div>
+    // 1. حالة الهوية غير موجودة (إضافة مريض جديد للطابور)
+    if (results.length === 0) {
+        dropdown.innerHTML = `
+        <div style="padding: 20px; text-align: center; background: #ffffff; border-radius: 12px; border: 2px dashed var(--primary); box-shadow: 0 4px 15px rgba(0,0,0,0.05);">
+            <div style="font-size: 28px; margin-bottom: 12px;">🔍</div>
+            <p style="font-size: 15px; color: var(--primary); margin-bottom: 15px; font-weight: bold; border-bottom: 2px solid #e3f2fd; padding-bottom: 10px;">ID: ${term} Not Found</p>
+            
+            <div style="display: flex; justify-content: center; margin-bottom: 15px;">
+                <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; background: #E8F5E9; padding: 10px 20px; border-radius: 10px; border: 1px solid #c8e6c9; user-select: none; transition: background 0.2s;">
+                    <input type="checkbox" id="quick-fridge-check" style="width: 18px; height: 18px; cursor: pointer;">
+                    <span style="font-size: 13px; font-weight: bold; color: #2E7D32;">❄️ Fridge RX</span>
+                </label>
             </div>
 
-            <div style="display: flex; gap: 8px; flex-wrap: wrap; margin-top: 8px; align-items: center;">
-                <div class="res-name-input-wrapper" style="flex: 1; min-width: 200px;">
-                    <span style="font-size: 14px; margin-right: 5px;">👤</span>
-                    <input type="text" id="name-input-${p.id}" value="${p.patientName || ''}" 
-                           placeholder="Enter or Edit Name..."
-                           style="border: none; background: transparent; font-size: 13px; font-weight: 700; color: #2d3436; width: 100%; outline: none;">
-                </div>
-                <span class="res-rx-badge">💊 Rx: ${rxNumbers}</span>
-            </div>
+            <button onclick="quickAddAndQueue('${term}')" 
+                    style="background:var(--primary); color:white; border:none; padding:15px 20px; border-radius:10px; cursor:pointer; width:100%; font-weight:bold; font-size:14px; box-shadow: 0 4px 12px rgba(13,71,161,0.2);">
+                + Create New Card & Queue
+            </button>
+        </div>
+    `;
+        dropdown.style.display = 'block';
+        return;
+    }
 
-            <div style="margin-top: 8px; background: #fcfcfc; padding: 10px; border-radius: 8px; border: 1px solid #f0f0f0; display: flex; align-items: center; gap: 8px;">
-                <span style="font-size: 11px; color: #e67e22; font-weight: bold; white-space: nowrap;">📱 Phone:</span>
-                <input type="text" id="search-phone-${p.id}" value="${p.phoneNumber || ''}" placeholder="05xxxxxxxx" maxlength="10"
-                       style="flex: 1; padding: 6px 10px; border: 1px solid #ddd; border-radius: 6px; font-size: 12px; outline: none; font-weight: bold;">
-                <button onclick="savePhoneFromSearch('${String(p.id)}')" 
-                        style="background:#0984e3; color:white; border:none; padding:6px 12px; border-radius:6px; cursor:pointer; font-size:11px; font-weight:bold;">
-                    ${hasPhone ? 'Update' : 'Save'}
+    // 2. حالة الهوية موجودة (عرض النتائج مع زر الثلاجة)
+    dropdown.innerHTML = results.map(p => {
+        const rxNumbers = (p.prescriptions && p.prescriptions.length > 0)
+            ? p.prescriptions.map(rx => rx.number).join(' - ')
+            : 'No Rx';
+        const hasPhone = p.phoneNumber && p.phoneNumber.trim() !== '';
+
+        return `
+    <div class="dispense-result-item">
+        <div style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
+            <div class="res-id">${p.nationalId}</div>
+            
+            <div style="display: flex; align-items: center; gap: 10px;">
+                <label style="display: flex; align-items: center; gap: 5px; cursor: pointer; background: #E8F5E9; padding: 6px 12px; border-radius: 8px; border: 1px solid #c8e6c9; user-select: none;">
+                    <input type="checkbox" id="fridge-check-${p.id}" style="width: 16px; height: 16px; cursor: pointer;">
+                    <span style="font-size: 11px; font-weight: bold; color: #2E7D32;">❄️ Fridge</span>
+                </label>
+
+                <button onclick="addToQueue('${String(p.id)}')" 
+                        style="background:var(--secondary); color:white; border:none; padding:8px 15px; border-radius:8px; cursor:pointer; font-size:11px; font-weight:bold; box-shadow: 0 4px 10px rgba(0,184,148,0.2);">
+                    Add to Queue
                 </button>
             </div>
         </div>
-        `;
-        }).join('');
 
-        dropdown.style.display = 'block';
-    }
+        <div style="display: flex; gap: 8px; flex-wrap: wrap; margin-top: 8px; align-items: center;">
+            <div class="res-name-input-wrapper" style="flex: 1; min-width: 200px;">
+                <span style="font-size: 14px; margin-right: 5px;">👤</span>
+                <input type="text" id="name-input-${p.id}" value="${p.patientName || ''}" 
+                       placeholder="Enter or Edit Name..."
+                       style="border: none; background: transparent; font-size: 13px; font-weight: 700; color: #2d3436; width: 100%; outline: none;">
+            </div>
+            <span class="res-rx-badge">💊 Rx: ${rxNumbers}</span>
+        </div>
+
+        <div style="margin-top: 8px; background: #fcfcfc; padding: 10px; border-radius: 8px; border: 1px solid #f0f0f0; display: flex; align-items: center; gap: 8px;">
+            <span style="font-size: 11px; color: #e67e22; font-weight: bold; white-space: nowrap;">📱 Phone:</span>
+            <input type="text" id="search-phone-${p.id}" value="${p.phoneNumber || ''}" placeholder="05xxxxxxxx" maxlength="10"
+                   style="flex: 1; padding: 6px 10px; border: 1px solid #ddd; border-radius: 6px; font-size: 12px; outline: none; font-weight: bold;">
+            <button onclick="savePhoneFromSearch('${String(p.id)}')" 
+                    style="background:#0984e3; color:white; border:none; padding:6px 12px; border-radius:6px; cursor:pointer; font-size:11px; font-weight:bold;">
+                ${hasPhone ? 'Update' : 'Save'}
+            </button>
+        </div>
+    </div>
+    `;
+    }).join('');
+
+    dropdown.style.display = 'block';
+}
     async function savePhoneFromSearch(patientId) {
         const inputEl = document.getElementById(`search-phone-${patientId}`);
         if (!inputEl) return;
@@ -9719,6 +9756,22 @@ async function addNeedRxNote(patientId) {
     } catch (err) {
         console.error("Failed to add note:", err);
         showToast("❌ Failed to update note");
+    }
+}
+function setDateToToday(inputId) {
+    const input = document.getElementById(inputId);
+    if (input) {
+        const today = new Date().toISOString().split('T')[0];
+        input.value = today;
+        
+        // فلاش بصري بسيط للتأكيد
+        input.style.backgroundColor = '#e3f2fd';
+        setTimeout(() => input.style.backgroundColor = '#fff', 300);
+        
+        // لو كان التغيير في حقل الصرف في تاب الإضافة، نحسب الريفيل القادم تلقائياً
+        if (inputId === 'dispensingDate') {
+            calculateNextRefill();
+        }
     }
 }
 </script>
