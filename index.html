@@ -9383,141 +9383,121 @@ async function confirmSmartImport() {
     // 🔔 نظام منبه السنسور (Sensor Alarm System) - النسخة النهائية الموحدة
     // ==========================================
 // ==========================================
-// 🔔 نظام منبه السنسور الاحترافي (Background-Ready)
+// 🔔 نظام منبه السنسور (نسخة المزامنة + عداد التكرار + مركز الإشعارات)
 // ==========================================
 
 const alertAudio = new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3');
 alertAudio.loop = true;
 
-// 1. فك حظر الصوت وإذن الإشعارات (عند أول لمسة للمستخدم للصفحة)
-document.addEventListener('click', () => {
-    // تشغيل صامت للحظة عشان المتصفح يسمح لنا نطلع صوت بعدين
-    alertAudio.play().then(() => {
-        alertAudio.pause();
-        alertAudio.currentTime = 0;
-    }).catch(() => {});
-
-    // طلب إذن الإشعارات (Windows/Android Notifications)
-    if (Notification.permission !== "granted" && Notification.permission !== "denied") {
-        Notification.requestPermission();
-    }
-}, { once: true });
-
-// 2. دالة حفظ المنبه الجديد في السيرفر
-async function saveSensorReminder(patientId) {
-    const timeInput = document.getElementById(`rem-time-${patientId}`);
-    const timeVal = timeInput.value;
-
-    if (!timeVal) return showToast('⚠️ اختر التاريخ والوقت أولاً');
-
-    const btn = event.target;
-    const originalText = btn.textContent;
-    btn.disabled = true;
-    btn.textContent = '...';
-
-    try {
-        const { error } = await supabaseClient
-            .from('patients')
-            .update({ sensor_reminder: timeVal })
-            .eq('id', patientId);
-
-        if (error) throw error;
-
-        const p = patients.find(pat => String(pat.id) === String(patientId));
-        if (p) p.sensor_reminder = timeVal;
-
-        showToast('🚀 تم ضبط التنبيه بنجاح');
-        timeInput.parentElement.style.border = '2px solid #2ecc71';
-        timeInput.parentElement.style.background = '#e8f5e9';
-        displayPatients(); 
-
-    } catch (err) {
-        console.error(err);
-        showToast('❌ فشل في حفظ البيانات');
-    } finally {
-        btn.disabled = false;
-        btn.textContent = originalText;
-    }
+// 1. نظام الإشعارات الجانبية المستمرة
+function addPersistentNotification(patient) {
+    const container = document.getElementById('notification-sidebar') || createSidebarContainer();
+    const now = new Date().toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' });
+    
+    const notif = document.createElement('div');
+    notif.className = 'persistent-notif';
+    notif.innerHTML = `
+        <div style="font-weight:900; color:#d63031;">🚨 تنبيه فائت</div>
+        <div style="font-size:13px; margin:5px 0;">المريض: ${patient.nationalId}</div>
+        <div style="font-size:11px; color:#636e72;">الوقت: ${now}</div>
+        <div style="font-size:10px; color:#0984e3; margin-top:5px;">إضغط للمسح ×</div>
+    `;
+    
+    notif.onclick = () => notif.remove();
+    container.appendChild(notif);
 }
 
-// 3. المحرك الرئيسي للمنبه (باستخدام Web Worker لضمان العمل في الخلفية)
-function initReminderWatcher() {
-    console.log("🟢 High-Priority Watcher Active (Web-Worker)");
-
-    // إنشاء كود الـ Worker داخلياً لضمان عدم تأثر المتصفح بالخمول
-    const workerCode = `
-        setInterval(() => {
-            self.postMessage('tick');
-        }, 1000);
+function createSidebarContainer() {
+    const div = document.createElement('div');
+    div.id = 'notification-sidebar';
+    div.style.cssText = 'position:fixed; top:20px; right:20px; width:200px; z-index:9999; display:flex; flex-direction:column; gap:10px;';
+    document.body.appendChild(div);
+    
+    const style = document.createElement('style');
+    style.innerHTML = `
+        .persistent-notif { background:white; border-left:5px solid #d63031; padding:12px; border-radius:8px; box-shadow:0 4px 15px rgba(0,0,0,0.15); cursor:pointer; animation: slideIn 0.3s ease; }
+        @keyframes slideIn { from { transform: translateX(100%); } to { transform: translateX(0); } }
     `;
-    const blob = new Blob([workerCode], { type: 'text/javascript' });
+    document.head.appendChild(style);
+    return div;
+}
+
+// 2. المراقبة اللحظية (Realtime Sync)
+function setupAlarmRealtimeSync() {
+    supabaseClient
+        .channel('public:patients')
+        .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'patients' }, (payload) => {
+            const updatedPatient = payload.new;
+            const index = patients.findIndex(p => p.id === updatedPatient.id);
+            if (index !== -1) {
+                patients[index].sensor_reminder = updatedPatient.sensor_reminder;
+                // تصفير العداد لو المنبه اتغير يدوياً
+                if (updatedPatient.sensor_reminder) patients[index].retry_count = 0;
+
+                if (!updatedPatient.sensor_reminder && window.currentlyRingingId === updatedPatient.id) {
+                    stopAlarmSound();
+                    closeModal();
+                }
+            }
+            displayPatients();
+        }).subscribe();
+}
+
+// 3. المحرك الخلفي مع منطق الـ 3 مرات
+function initReminderWatcher() {
+    const blob = new Blob([`setInterval(() => { self.postMessage('tick'); }, 1000);`], { type: 'text/javascript' });
     const worker = new Worker(URL.createObjectURL(blob));
 
     worker.onmessage = () => {
         const now = new Date();
-        const year = now.getFullYear();
-        const month = String(now.getMonth() + 1).padStart(2, '0');
-        const day = String(now.getDate()).padStart(2, '0');
-        const hours = String(now.getHours()).padStart(2, '0');
-        const minutes = String(now.getMinutes()).padStart(2, '0');
-        
-        const currentTimeStr = `${year}-${month}-${day}T${hours}:${minutes}`;
+        const currentTimeStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}T${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
 
         patients.forEach(p => {
-            if (!p.sensor_reminder) return;
-
-            // التحقق من تطابق الوقت
-            if (p.sensor_reminder === currentTimeStr) {
+            if (p.sensor_reminder && p.sensor_reminder === currentTimeStr) {
                 if (window.currentlyRingingId !== p.id && window.lastRungTime !== (p.id + currentTimeStr)) {
                     window.lastRungTime = p.id + currentTimeStr;
                     window.alarmStartTime = Date.now();
-                    executeHighPriorityAlarm(p);
+                    playSensorAlert(p);
                 }
             }
 
-            // التأجيل التلقائي بعد 7 ثواني لو مفيش رد
+            // منطق التأجيل التلقائي (المرة 1 و 2) أو الإيقاف النهائي (المرة 3)
             if (window.currentlyRingingId === p.id && window.alarmStartTime) {
-                const elapsedSeconds = (Date.now() - window.alarmStartTime) / 1000;
-                if (elapsedSeconds >= 7) {
-                    autoSnoozeProcess(p.id, 2); 
+                if ((Date.now() - window.alarmStartTime) / 1000 >= 7) {
+                    p.retry_count = (p.retry_count || 0) + 1;
+                    
+                    if (p.retry_count < 3) {
+                        console.log(`🕒 Auto-Snooze ${p.retry_count}/3 for patient ${p.id}`);
+                        autoSnoozeProcess(p.id, 2); // تأجيل دقيقتين
+                    } else {
+                        console.log(`🚫 Max retries reached. Stopping alarm for ${p.id}`);
+                        addPersistentNotification(p); // أضفها للقائمة الجانبية قبل المسح
+                        clearReminder(p.id); // مسح نهائي من السيرفر
+                    }
                 }
             }
         });
     };
 }
 
-// 4. إطلاق المنبه (صوت + مودال + إشعار نظام)
-function executeHighPriorityAlarm(patient) {
+// 4. تشغيل التنبيه
+function playSensorAlert(patient) {
     window.currentlyRingingId = patient.id;
-    displayPatients(); // تلوين كارت المريض بالأحمر
-
-    // تشغيل الصوت
+    displayPatients();
     alertAudio.currentTime = 0;
-    let playPromise = alertAudio.play();
-    if (playPromise !== undefined) {
-        playPromise.catch(() => console.warn("🔇 مسموح بالصوت فقط بعد تفاعل المستخدم"));
-    }
-
-    // إرسال إشعار للنظام (يظهر حتى لو أنت في تابة تانية)
-    if (Notification.permission === "granted") {
-        new Notification("🚨 موعد صرف سنسور الآن!", {
-            body: `الهوية: ${patient.nationalId}\nيرجى فتح التطبيق فوراً.`,
-            icon: "https://raw.githubusercontent.com/meralmohamed121022-cyber/Drug-Monograph/858ba78ce2719a0e7069fd4807b725e0002a17d8/6_20251129_184528_0005.png"
-        });
-    }
+    alertAudio.play().catch(() => {});
 
     showModal(
         '<span style="color: #d63031; font-weight: 900;">🚨 SENSOR TIME ALERT</span>',
         `<div style="text-align:center; padding: 20px;">
-            <div style="font-size: 60px; animation: ring-shake 0.5s infinite; margin-bottom: 15px;">🔔</div>
-            <h2 style="color: #2d3436; font-family: monospace;">${patient.nationalId}</h2>
-            <p style="font-weight: bold; color: #636e72; font-size: 18px;">حان الآن موعد صرف السنسور</p>
-            <p style="font-size: 11px; color: #ff7675; margin-top: 15px;">سيتوقف الصوت ويؤجل تلقائياً بعد 7 ثوانٍ</p>
+            <div style="font-size: 60px; animation: ring-shake 0.5s infinite;">🔔</div>
+            <h2 style="color: #2d3436; font-family: monospace; margin-top:15px;">${patient.nationalId}</h2>
+            <p style="font-weight: bold; color: #636e72;">محاولة رقم (${(patient.retry_count || 0) + 1} من 3)</p>
          </div>`,
         `<div style="display: flex; flex-direction: column; gap: 10px; width: 100%;">
-            <button class="btn-primary" onclick="clearReminder('${patient.id}')" style="background: #00b894; height: 50px; font-weight: 900; border:none; border-radius:12px;">✅ تم الصرف (مسح المنبه)</button>
-            <button class="btn-secondary" onclick="snoozeReminder('${patient.id}', 10)" style="border: 2px solid #6c5ce7; color: #6c5ce7; font-weight: 800; height: 45px; border-radius:12px;">💤 تأجيل 10 دقائق</button>
-            <button class="btn-secondary" onclick="stopAlarmSound(); closeModal();" style="background: #f1f2f6; border:none; height: 40px; color: #666; border-radius:12px; margin-top: 5px; font-weight: bold;">🔇 إيقاف الصوت وإغلاق</button>
+            <button class="btn-primary" onclick="clearReminder('${patient.id}')" style="background: #00b894; height: 50px; font-weight:900;">✅ تم الصرف (مسح نهائي)</button>
+            <button class="btn-secondary" onclick="snoozeReminder('${patient.id}', 10)" style="height: 45px; font-weight:800;">💤 تأجيل 10 دقائق</button>
+            <button class="btn-secondary" onclick="stopAlarmSound(); closeModal();" style="background: #f1f2f6; border:none; height: 40px; color: #666;">🔇 صامت حالياً</button>
         </div>`
     );
 }
@@ -9530,71 +9510,57 @@ function stopAlarmSound() {
     displayPatients();
 }
 
-// 5. زر تم الصرف (إلغاء المنبه من السيرفر)
+// 5. مسح المنبه نهائياً
 async function clearReminder(patientId) {
     stopAlarmSound();
     closeModal();
-
     try {
         await supabaseClient.from('patients').update({ sensor_reminder: null }).eq('id', patientId);
         const p = patients.find(pat => String(pat.id) === String(patientId));
-        if (p) p.sensor_reminder = null;
+        if (p) {
+            p.sensor_reminder = null;
+            p.retry_count = 0; // تصفير العداد
+        }
         displayPatients();
-        showToast('✅ تم إلغاء المنبه بنجاح');
-    } catch (err) { showToast('❌ فشل التحديث'); }
+    } catch (err) { console.error('Clear Error'); }
 }
 
-// 6. زر التأجيل اليدوي
-async function snoozeReminder(patientId, mins = 10) {
-    stopAlarmSound();
-    closeModal();
-
-    const future = new Date(new Date().getTime() + mins * 60000);
-    const formattedTime = `${future.getFullYear()}-${String(future.getMonth() + 1).padStart(2, '0')}-${String(future.getDate()).padStart(2, '0')}T${String(future.getHours()).padStart(2, '0')}:${String(future.getMinutes()).padStart(2, '0')}`;
-
-    try {
-        await supabaseClient.from('patients').update({ sensor_reminder: formattedTime }).eq('id', patientId);
-        const p = patients.find(pat => String(pat.id) === String(patientId));
-        if (p) p.sensor_reminder = formattedTime;
-        displayPatients();
-        showToast(`💤 تم التأجيل لمدة ${mins} دقائق`);
-    } catch (e) { showToast('❌ فشل التأجيل'); }
-}
-
-// 7. التأجيل التلقائي (في حالة عدم الرد)
+// 6. تأجيل تلقائي دقيقتين (يُستدعى في المحاولات 1 و 2)
 async function autoSnoozeProcess(patientId, minutes) {
     stopAlarmSound();
     closeModal();
-
     const future = new Date(new Date().getTime() + minutes * 60000);
     const formattedTime = `${future.getFullYear()}-${String(future.getMonth() + 1).padStart(2, '0')}-${String(future.getDate()).padStart(2, '0')}T${String(future.getHours()).padStart(2, '0')}:${String(future.getMinutes()).padStart(2, '0')}`;
-
+    
     try {
         await supabaseClient.from('patients').update({ sensor_reminder: formattedTime }).eq('id', patientId);
+        // التحديث المحلي للمصفوفة يتم عبر الـ Realtime تلقائياً أو يدوياً هنا
         const p = patients.find(pat => String(pat.id) === String(patientId));
         if (p) p.sensor_reminder = formattedTime;
+    } catch (e) { console.log("Snooze Sync Error"); }
+}
+
+// 7. زر حفظ المنبه (تصفير العداد عند الضبط الجديد)
+async function saveSensorReminder(patientId) {
+    const timeInput = document.getElementById(`rem-time-${patientId}`);
+    const timeVal = timeInput.value;
+    if (!timeVal) return;
+
+    try {
+        await supabaseClient.from('patients').update({ sensor_reminder: timeVal }).eq('id', patientId);
+        const p = patients.find(pat => String(pat.id) === String(patientId));
+        if (p) {
+            p.sensor_reminder = timeVal;
+            p.retry_count = 0; // مهم جداً: تصفير العداد مع كل ضبط جديد
+        }
         displayPatients();
-        showToast(`🕒 تأجيل تلقائي لمدة ${minutes} دق`);
-    } catch (e) { console.error("AutoSnooze Error", e); }
+    } catch (err) { console.error('Save Error'); }
 }
 
-// 8. حذف المنبه نهائياً من الكارت
-async function deleteReminder(patientId) {
-    confirmAction('هل أنت متأكد من مسح المنبه نهائياً؟', async () => {
-        try {
-            const p = patients.find(pat => String(pat.id) === String(patientId));
-            if (p) p.sensor_reminder = null;
-            stopAlarmSound();
-            displayPatients();
-            const { error } = await supabaseClient.from('patients').update({ sensor_reminder: null }).eq('id', patientId);
-            if (error) throw error;
-            showToast('🗑️ تم مسح المنبه');
-        } catch (err) { showToast('❌ فشل المسح'); }
-    });
-}
-
-// تشغيل نظام المراقبة الفوري
+// تشغيل
+setupAlarmRealtimeSync();
 initReminderWatcher();
+
 async function quickUpdateRefill(patientId, newDate) {
     if (!newDate) return;
 
