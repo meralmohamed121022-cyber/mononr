@@ -9429,20 +9429,31 @@ function setupAlarmRealtimeSync() {
         .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'patients' }, (payload) => {
             const updatedPatient = payload.new;
             const index = patients.findIndex(p => p.id === updatedPatient.id);
-            if (index !== -1) {
-                patients[index].sensor_reminder = updatedPatient.sensor_reminder;
-                // تصفير العداد لو المنبه اتغير يدوياً
-                if (updatedPatient.sensor_reminder) patients[index].retry_count = 0;
 
-                if (!updatedPatient.sensor_reminder && window.currentlyRingingId === updatedPatient.id) {
-                    stopAlarmSound();
-                    closeModal();
+            if (index !== -1) {
+                // 1. التحقق هل التغيير فعلاً في المنبه؟ عشان ما نحدثش عمال على بطال
+                const isReminderChanged = patients[index].sensor_reminder !== updatedPatient.sensor_reminder;
+
+                if (isReminderChanged) {
+                    // تحديث القيمة في المصفوفة المحلية
+                    patients[index].sensor_reminder = updatedPatient.sensor_reminder;
+
+                    // 2. تصفير العداد فوراً لو المنبه اتغير (ضبط جديد) أو اتحذف
+                    patients[index].retry_count = 0;
+
+                    // 3. لو المنبه اتحذف (بقى null) وهو شغال دلوقتي.. وقفه فوراً
+                    if (!updatedPatient.sensor_reminder && window.currentlyRingingId === updatedPatient.id) {
+                        console.log("🔔 Alarm cleared remotely while ringing.");
+                        stopAlarmSound();
+                        closeModal();
+                    }
+
+                    // 4. تحديث الواجهة فقط لو التغيير يخص المنبه
+                    displayPatients();
                 }
             }
-            displayPatients();
         }).subscribe();
 }
-
 // 3. المحرك الخلفي مع منطق الـ 3 مرات
 function initReminderWatcher() {
     const blob = new Blob([`setInterval(() => { self.postMessage('tick'); }, 1000);`], { type: 'text/javascript' });
@@ -9515,16 +9526,31 @@ async function clearReminder(patientId) {
     stopAlarmSound();
     closeModal();
     try {
-        await supabaseClient.from('patients').update({ sensor_reminder: null }).eq('id', patientId);
+        // تحديث السيرفر أولاً
+        const { error } = await supabaseClient
+            .from('patients')
+            .update({ 
+                sensor_reminder: null,
+                // نأكد إننا بنصفر أي بيانات متعلقة بالمنبه
+            })
+            .eq('id', patientId);
+
+        if (error) throw error;
+
+        // تحديث المصفوفة المحلية فوراً (Optimistic UI)
         const p = patients.find(pat => String(pat.id) === String(patientId));
         if (p) {
             p.sensor_reminder = null;
-            p.retry_count = 0; // تصفير العداد
+            p.retry_count = 0; 
         }
-        displayPatients();
-    } catch (err) { console.error('Clear Error'); }
+        
+        showToast('Alarm Cleared Successfully 🔕');
+        displayPatients(); // إعادة رسم الكروت عشان يختفي بوكس المنبه
+    } catch (err) { 
+        console.error('Clear Error:', err);
+        showToast('❌ Failed to clear alarm from cloud');
+    }
 }
-
 // 6. تأجيل تلقائي دقيقتين (يُستدعى في المحاولات 1 و 2)
 async function autoSnoozeProcess(patientId, minutes) {
     stopAlarmSound();
@@ -9720,6 +9746,24 @@ function setDateToToday(inputId) {
         if (inputId === 'dispensingDate') {
             calculateNextRefill();
         }
+    }
+}
+async function deleteReminder(patientId) {
+    if (!confirm('Delete this alarm?')) return;
+    
+    try {
+        await supabaseClient
+            .from('patients')
+            .update({ sensor_reminder: null })
+            .eq('id', patientId);
+            
+        const p = patients.find(pat => String(pat.id) === String(patientId));
+        if (p) p.sensor_reminder = null;
+        
+        displayPatients();
+        showToast('Alarm Deleted 🗑️');
+    } catch (err) {
+        showToast('Error deleting alarm');
     }
 }
 </script>
