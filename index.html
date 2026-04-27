@@ -4708,70 +4708,93 @@
             });
         }
     });
-    function initializeApp() {
-        // 1. الإعدادات الأولية للعناصر (التاريخ والوصفة الأولى)
-        document.getElementById('dispensingDate').valueAsDate = new Date();
-        addPrescription();
+function initializeApp() {
+    // 1. الإعدادات الأولية للعناصر (التاريخ والوصفة الأولى)
+    document.getElementById('dispensingDate').valueAsDate = new Date();
+    addPrescription();
 
-        // 2. تفعيل المستمعين (Event Listeners) لربط وظائف الواجهة بالكود
-        document.getElementById('dispensingDate').addEventListener('change', calculateNextRefill);
-        document.getElementById('searchInput').addEventListener('input', searchPatients);
-        document.getElementById('filterDateFrom').addEventListener('change', applyDateFilter);
-        document.getElementById('filterDateTo').addEventListener('change', applyDateFilter);
-        document.getElementById('importFileData').addEventListener('change', handleImportFile);
+    // 2. تفعيل المستمعين (Event Listeners) لربط وظائف الواجهة بالكود
+    document.getElementById('dispensingDate').addEventListener('change', calculateNextRefill);
+    document.getElementById('searchInput').addEventListener('input', searchPatients);
+    document.getElementById('filterDateFrom').addEventListener('change', applyDateFilter);
+    document.getElementById('filterDateTo').addEventListener('change', applyDateFilter);
+    document.getElementById('importFileData').addEventListener('change', handleImportFile);
 
-        // التحقق من التكرار عند الخروج من حقل الهوية
-        document.getElementById('nationalId').addEventListener('blur', checkIDDuplicate);
+    // التحقق من التكرار عند الخروج من حقل الهوية
+    document.getElementById('nationalId').addEventListener('blur', checkIDDuplicate);
 
-        // 3. العرض الأولي للبيانات المحملة مسبقاً
-        calculateNextRefill();
-        displayPatients();
+    // 3. العرض الأولي للبيانات المحملة مسبقاً
+    calculateNextRefill();
+    displayPatients();
 
-        // ============================================================
-        // ⚡ تفعيل المزامنة اللحظية (Supabase Realtime Sync)
-        // لتحديث البيانات فوراً لو تم تغييرها من جهاز آخر
-        // ============================================================
-        if (currentUser) {
-            console.log('🟢 Connecting to Realtime updates...');
+    // ============================================================
+    // ⚡ تفعيل المزامنة اللحظية (Supabase Realtime Sync) - نسخة Turbo
+    // ============================================================
+    if (currentUser) {
+        console.log('🟢 Connecting to Realtime updates...');
 
-            const subscription = supabaseClient
-                .channel('public:patients')
-                .on(
-                    'postgres_changes',
-                    { event: '*', schema: 'public', table: 'patients' },
-                    (payload) => {
-                        console.log('🔄 Change detected from cloud:', payload);
+        const subscription = supabaseClient
+            .channel('public:patients')
+            .on(
+                'postgres_changes',
+                { event: '*', schema: 'public', table: 'patients' },
+                async (payload) => {
+                    console.log('🔄 Change detected:', payload.eventType, payload);
 
-                        // إعادة تحميل البيانات وتحديث كل الشاشات لضمان التطابق مع السيرفر
-                        loadPatientsFromSupabase().then(() => {
-                            updateStats();
-                            displayPatients();
-
-                            const queueFilter = document.getElementById('queueFilterInput')?.value || '';
-                            if (typeof renderDispensingQueue === 'function') {
-                                renderDispensingQueue(queueFilter);
-                            }
-
-                            if (typeof showToast === 'function') {
-                                showToast('🔄 Sync Complete');
-                            }
-                        });
+                    // 1. تحديث المصفوفة المحلية فوراً بناءً على نوع التغيير
+                    if (payload.eventType === 'UPDATE') {
+                        const index = patients.findIndex(p => p.id === payload.new.id);
+                        if (index !== -1) {
+                            // نحدث بيانات المريض مع الحفاظ على بنية البيانات (mapping)
+                            patients[index] = mapPatientData(payload.new);
+                        }
+                    } else if (payload.eventType === 'INSERT') {
+                        // إضافة المريض الجديد لأول القائمة
+                        patients.unshift(mapPatientData(payload.new));
+                    } else if (payload.eventType === 'DELETE') {
+                        // حذف المريض من المصفوفة
+                        patients = patients.filter(p => p.id !== payload.old.id);
                     }
-                )
-                .subscribe((status) => {
-                    if (status === 'SUBSCRIBED') {
-                        console.log('✅ Realtime Sync Active');
-                    }
-                });
-        }
 
-        // ============================================================
-        // 💊 تحميل قاعدة بيانات الأدوية من ملف JSON الخارجي
-        // استدعاء دالة التحميل اللي بتملأ DRUGS_DB وتشغل محرك البحث
-        // ============================================================
-        loadDrugs();
+                    // 2. 🚨 إعادة الرسم الفوري (بدون عمل Load كامل)
+                    // ده اللي هيخلي الكارت يختفي فوراً لو تاريخه اتحدث لموعد غير "اليوم"
+                    updateStats();      
+                    displayPatients(); 
+
+                    // 3. تحديث طابور الصرف (Queue) إذا لزم الأمر
+                    if (typeof renderDispensingQueue === 'function') {
+                        // لو التغيير أثر على الطابور، بنعمل تحديث سريع لمصفوفة الطابور
+                        const queueFilter = document.getElementById('queueFilterInput')?.value || '';
+                        
+                        // تحديث حالة الطابور محلياً
+                        if (payload.new && payload.new.in_queue) {
+                            const qIdx = dispensingQueue.findIndex(q => q.id === payload.new.id);
+                            if (qIdx !== -1) dispensingQueue[qIdx] = mapPatientData(payload.new);
+                            else dispensingQueue.push(mapPatientData(payload.new));
+                        } else {
+                            dispensingQueue = dispensingQueue.filter(q => q.id !== payload.old?.id && q.id !== payload.new?.id);
+                        }
+                        
+                        renderDispensingQueue(queueFilter);
+                    }
+
+                    if (typeof showToast === 'function') {
+                        showToast('🔄 UI Updated');
+                    }
+                }
+            )
+            .subscribe((status) => {
+                if (status === 'SUBSCRIBED') {
+                    console.log('✅ Realtime Sync Active');
+                }
+            });
     }
-    async function checkIDDuplicate() {
+
+    // 💊 تحميل قاعدة بيانات الأدوية
+    loadDrugs();
+}
+
+async function checkIDDuplicate() {
         const nationalId = document.getElementById('nationalId').value.trim();
         if (!nationalId || editingPatientId) return;
 
@@ -9658,10 +9681,18 @@ function setQuickDuration(patientId, days, btnElement) {
 }
 // 2. دالة التنفيذ النهائي وحفظ التواريخ الجديدة في سوبابيز
 async function executeQuickSync(patientId) {
-    const dispDate = document.getElementById(`q-dispense-${patientId}`).value;
-    const nextDate = document.getElementById(`q-next-${patientId}`).value;
+    const dispInput = document.getElementById(`q-dispense-${patientId}`);
+    const nextInput = document.getElementById(`q-next-${patientId}`);
+    
+    if (!dispInput || !nextInput) return;
 
-    if (!dispDate || !nextDate) return;
+    const dispDate = dispInput.value;
+    const nextDate = nextInput.value;
+
+    if (!dispDate || !nextDate) {
+        showToast('⚠️ Please select both dates');
+        return;
+    }
 
     showToast('Saving dates... 💾');
 
@@ -9671,30 +9702,40 @@ async function executeQuickSync(patientId) {
             .update({ 
                 dispensing_date: dispDate,
                 next_refill_date: nextDate,
-                imported: false, // تحويله لكارت نشط فوراً
+                imported: false, 
                 updated_at: new Date().toISOString()
             })
             .eq('id', patientId);
 
         if (error) throw error;
 
-        // تحديث محلي
+        // 1. تحديث المصفوفة المحلية فوراً
+        // ملحوظة: لازم نحدث الحقول بنفس الأسماء اللي mapPatientData بيستخدمها
         const p = patients.find(p => String(p.id) === String(patientId));
         if (p) {
-            p.dispensing_date = dispDate;
-            p.next_refill_date = nextDate;
+            p.dispensingDate = dispDate;    // تعديل ليتوافق مع displayPatients
+            p.nextRefillDate = nextDate;    // تعديل ليتوافق مع displayPatients
             p.imported = false;
         }
 
+        // 2. تحديث العدادات (Stats)
         updateStats();
+
+        // 3. 🚨 السطر السحري: إعادة تصفية وعرض الكروت
+        // ده اللي هيخلي الكارت "يختفي" فوراً لو تاريخه الجديد مش النهارده وإنت واقف في فلتر Today
         displayPatients();
+        
         showToast('✅ Updated & Synced Successfully');
 
     } catch (err) {
-        console.error(err);
+        console.error('QuickSync Error:', err);
         showToast('❌ Sync Error');
+        
+        // إعادة تحميل البيانات من السيرفر كخطوة احتياطية في حالة الفشل
+        loadPatientsFromSupabase();
     }
 }
+
 async function addNeedRxNote(patientId) {
     const noteText = "⚠️ NEED NEW RX NO";
     
