@@ -5129,12 +5129,16 @@ async function checkIDDuplicate() {
         // 2. الحصول على القائمة المفلترة حسب الحالة
         let filteredPatients = patients.filter(p => {
             const notInQueue = p.inQueue !== true;
-            const hasValidPrescriptions = p.prescriptions &&
-                p.prescriptions.length > 0 &&
-                p.prescriptions[0].number &&
-                p.prescriptions[0].number.trim() !== "";
+            const hasValidPrescriptions = (p.prescriptions && p.prescriptions.length > 0 && p.prescriptions[0].number && p.prescriptions[0].number.trim() !== "");
 
-            if (!notInQueue || !hasValidPrescriptions) return false;
+            // السماح برؤية الكارت حتى لو معندوش وصفة، بشرط ميكونش في الطابور
+            if (!notInQueue) return false;
+            
+            // لو ملوش وصفة، هنعرضه بس في فلاتر معينة (الكل، المستورد، أو لو فيه بحث)
+            if (!hasValidPrescriptions) {
+                const isSearching = searchTerm !== "";
+                if (!isSearching && currentFilter !== 'all' && currentFilter !== 'imported') return false;
+            }
 
             if (!p.nextRefillDate) return currentFilter === 'all' || currentFilter === 'imported';
 
@@ -5560,9 +5564,11 @@ function setQuickDuration(patientId, days, btnElement) {
     }
 }
     function getRefillStatus(nextRefillDate) {
+        if (!nextRefillDate) return null;
         let today = new Date();
         today.setHours(0, 0, 0, 0);
         let refillDate = new Date(nextRefillDate);
+        if (isNaN(refillDate)) return null;
         refillDate.setHours(0, 0, 0, 0);
         let diff = Math.floor((refillDate - today) / (1000 * 60 * 60 * 24));
 
@@ -5573,9 +5579,11 @@ function setQuickDuration(patientId, days, btnElement) {
     }
 
     function getDaysUntilRefill(nextRefillDate) {
+        if (!nextRefillDate) return "Date Not Set";
         let today = new Date();
         today.setHours(0, 0, 0, 0);
         let refillDate = new Date(nextRefillDate);
+        if (isNaN(refillDate)) return "Invalid Date";
         refillDate.setHours(0, 0, 0, 0);
         let diff = Math.floor((refillDate - today) / (1000 * 60 * 60 * 24));
 
@@ -5599,12 +5607,9 @@ function setQuickDuration(patientId, days, btnElement) {
 
     // 1. تصفية المرضى (الحصول على الكروت الحقيقية فقط)
     const validPatients = patients.filter(p => {
-        return p.inQueue !== true &&
-            p.nextRefillDate &&
-            p.prescriptions &&
-            p.prescriptions.length > 0 &&
-            p.prescriptions[0].number &&
-            p.prescriptions[0].number.trim() !== "";
+        // السماح لكل المرضى الذين ليسوا في الطابور بالظهور في البحث والإحصائيات العامة
+        // ولكن الإحصائيات الزمنية ستعتمد على وجود تاريخ ريفيل
+        return p.inQueue !== true && (p.nationalId || p.patientName || (p.prescriptions && p.prescriptions.length > 0));
     });
 
     let todayCount = 0;
@@ -6369,10 +6374,13 @@ function showImportPreviewUI(result) {
         html += `<div style="border: 2px solid #FFCC80; border-radius: 12px; margin-bottom: 15px; overflow: hidden;">
             ${sectionHeader('🚚 PULL LOG (RESET STATE)', statusPullEntries.length, '#FFF3E0', 'import-check-pull')}
             <div style="max-height: 150px; overflow-y: auto; background: white;">
-                ${statusPullEntries.map(p => `<div style="padding: 8px 15px; border-bottom: 1px solid #eee; display: flex; align-items: center; gap: 10px; font-size: 12px;">
-                    <input type="checkbox" class="import-check-new import-check-pull" data-type="reimport" data-id="${p.nationalId}" data-rx="${p.prescriptions[0].number}" checked>
-                    <b>${p.nationalId}</b> <span style="color:#e67e22; margin-left:auto;">➔ RESET STATE</span>
-                </div>`).join('')}
+                ${statusPullEntries.map(p => {
+                    const rxNum = (p.prescriptions && p.prescriptions.length > 0) ? p.prescriptions[0].number : '';
+                    return `<div style="padding: 8px 15px; border-bottom: 1px solid #eee; display: flex; align-items: center; gap: 10px; font-size: 12px;">
+                        <input type="checkbox" class="import-check-new import-check-pull" data-type="reimport" data-id="${p.nationalId}" data-rx="${rxNum}" checked>
+                        <b>${p.nationalId}</b> <span style="color:#e67e22; margin-left:auto;">➔ RESET STATE</span>
+                    </div>`;
+                }).join('')}
             </div>
         </div>`;
     }
@@ -6382,10 +6390,13 @@ function showImportPreviewUI(result) {
         html += `<div style="border: 2px solid #A5D6A7; border-radius: 12px; margin-bottom: 15px; overflow: hidden;">
             ${sectionHeader('✨ BRAND NEW RECORDS', brandNewEntries.length, '#E8F5E9', 'import-check-brand')}
             <div style="max-height: 150px; overflow-y: auto; background: white;">
-                ${brandNewEntries.map(p => `<div style="padding: 8px 15px; border-bottom: 1px solid #eee; display: flex; align-items: center; gap: 10px; font-size: 12px;">
-                    <input type="checkbox" class="import-check-new import-check-brand" data-type="brand_new" data-id="${p.nationalId}" data-rx="${p.prescriptions[0].number}" checked>
-                    <b>${p.nationalId}</b> <span style="color:#27ae60; margin-left:auto;">+ ADD NEW</span>
-                </div>`).join('')}
+                ${brandNewEntries.map(p => {
+                    const rxNum = (p.prescriptions && p.prescriptions.length > 0) ? p.prescriptions[0].number : '';
+                    return `<div style="padding: 8px 15px; border-bottom: 1px solid #eee; display: flex; align-items: center; gap: 10px; font-size: 12px;">
+                        <input type="checkbox" class="import-check-new import-check-brand" data-type="brand_new" data-id="${p.nationalId}" data-rx="${rxNum}" checked>
+                        <b>${p.nationalId}</b> <span style="color:#27ae60; margin-left:auto;">+ ADD NEW</span>
+                    </div>`;
+                }).join('')}
             </div>
         </div>`;
     }
@@ -6461,7 +6472,10 @@ async function confirmSmartImport() {
         allCardActions.forEach(check => {
             const id = check.dataset.id;
             const rx = check.dataset.rx;
-            const data = pendingImportData.find(p => p.nationalId === id && p.prescriptions[0].number === rx);
+            const data = pendingImportData.find(p => {
+                const rxNum = (p.prescriptions && p.prescriptions.length > 0) ? p.prescriptions[0].number : '';
+                return p.nationalId === id && rxNum === rx;
+            });
 
             if (data) {
                 const existing = patients.find(p => p.nationalId === id && p.prescriptions.some(r => r.number.toLowerCase() === rx.toLowerCase()));
@@ -9146,10 +9160,8 @@ async function confirmSmartImport() {
 
         // فلترة أولية: استبعاد أي كارت ملوش وصفة حقيقية
         const validOnly = patients.filter(p => {
-            return p.prescriptions &&
-                p.prescriptions.length > 0 &&
-                p.prescriptions[0].number &&
-                p.prescriptions[0].number.trim() !== "";
+            // السماح برؤية الكروت حتى لو مفيش وصفة كاملة، المهم يكون فيه بيانات تعريفية
+            return p.nationalId || (p.prescriptions && p.prescriptions.length > 0);
         });
 
         switch (status) {
