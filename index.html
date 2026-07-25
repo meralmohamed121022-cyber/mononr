@@ -7280,8 +7280,13 @@ async function confirmSmartImport() {
                 </button>
             </td>
 
-            <td style="font-family: monospace; color: #0984e3; font-weight: 600; font-size: 12px;">
-                ${p.phoneNumber || '-'}
+            <td style="text-align: center;">
+                <input type="text" value="${p.phoneNumber || ''}" 
+                       onchange="updatePatientMobileInline('${p.id}', this.value)"
+                       placeholder="-"
+                       style="width: 90px; border: none; background: transparent; color: #0984e3; font-weight: 600; font-size: 12px; font-family: monospace; text-align: center; outline: none; border-bottom: 1px dashed transparent; transition: 0.2s;"
+                       onfocus="this.style.borderBottomColor='#ddd'; this.style.background='rgba(255,255,255,0.8)'"
+                       onblur="this.style.borderBottomColor='transparent'; this.style.background='transparent'">
             </td>
 
             <td style="text-align: center;">
@@ -7314,6 +7319,31 @@ async function confirmSmartImport() {
             console.error('Failed to sync name:', err);
         }
     }
+
+    async function updatePatientMobileInline(patientId, newMobile) {
+        const pId = String(patientId);
+
+        // Update local arrays
+        const patient = patients.find(p => String(p.id) === pId);
+        if (patient) patient.phoneNumber = newMobile;
+        
+        const queueItem = dispensingQueue.find(q => String(q.id) === pId);
+        if (queueItem) queueItem.phoneNumber = newMobile;
+
+        try {
+            const { error } = await supabaseClient
+                .from('patients')
+                .update({ phone_number: newMobile })
+                .eq('id', pId);
+
+            if (error) throw error;
+            showToast('Mobile saved to Cloud');
+        } catch (err) {
+            console.error('Failed to sync mobile:', err);
+            showToast('Failed to save mobile');
+        }
+    }
+
     async function updatePatientNameInDB(patientId, newName) {
         try {
             await supabaseClient
