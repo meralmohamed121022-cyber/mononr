@@ -7288,7 +7288,12 @@ async function confirmSmartImport() {
 </td>
 
             <td>
-                <div style="font-weight:800; font-family:monospace; color:var(--dark); font-size:14px;">${p.nationalId}</div>
+                <input type="text" value="${p.nationalId || ''}" 
+                       onchange="updatePatientNationalIdInline('${p.id}', this.value)"
+                       placeholder="Enter ID"
+                       style="width: 100%; border: none; background: transparent; color: var(--dark); font-weight: 800; font-size: 14px; font-family: monospace; outline: none; border-bottom: 1px dashed transparent; transition: 0.2s;"
+                       onfocus="this.style.borderBottomColor='#ddd'; this.style.background='rgba(255,255,255,0.8)'"
+                       onblur="this.style.borderBottomColor='transparent'; this.style.background='transparent'">
                 <input type="text" value="${p.patientName || ''}" 
                        onchange="updatePatientNameInline('${p.id}', this.value)"
                        placeholder="Enter Name"
@@ -7297,7 +7302,14 @@ async function confirmSmartImport() {
                        onblur="this.style.borderBottomColor='transparent'; this.style.background='transparent'">
             </td>
 
-            <td><div class="rx-chips-mini">${rxHtml}</div></td>
+            <td>
+                <input type="text" value="${(p.prescriptions || []).map(rx => rx.number).join(' ')}" 
+                       onchange="updatePatientRxInline('${p.id}', this.value)"
+                       placeholder="Add Rx..."
+                       style="width: 100%; border: none; background: transparent; color: #6C5CE7; font-weight: bold; font-size: 11px; font-family: monospace; text-align: left; outline: none; border-bottom: 1px dashed transparent; transition: 0.2s;"
+                       onfocus="this.style.borderBottomColor='#ddd'; this.style.background='rgba(255,255,255,0.8)'"
+                       onblur="this.style.borderBottomColor='transparent'; this.style.background='transparent'">
+            </td>
 
             <td style="vertical-align: middle; padding: 5px;">
                 <button onclick="openDrugPickerForQueue('${p.id}', '${(p.patientName || '').replace(/'/g, "\\'")}')" 
@@ -7378,6 +7390,60 @@ async function confirmSmartImport() {
         } catch (err) {
             console.error('Failed to sync mobile:', err);
             showToast('Failed to save mobile');
+        }
+    }
+
+    async function updatePatientNationalIdInline(patientId, newId) {
+        const pId = String(patientId);
+        
+        const patient = patients.find(p => String(p.id) === pId);
+        if (patient) patient.nationalId = newId;
+        
+        const queueItem = dispensingQueue.find(q => String(q.id) === pId);
+        if (queueItem) queueItem.nationalId = newId;
+
+        try {
+            const { error } = await supabaseClient
+                .from('patients')
+                .update({ national_id: newId })
+                .eq('id', pId);
+            if (error) throw error;
+            showToast('ID saved to Cloud');
+        } catch (err) {
+            console.error('Failed to sync ID:', err);
+            showToast('Failed to save ID');
+        }
+    }
+
+    async function updatePatientRxInline(patientId, newRxStr) {
+        const pId = String(patientId);
+        // split by space, comma, dash
+        const rxArray = newRxStr.split(/[\s,\-]+/).map(s => s.trim().toLowerCase()).filter(s => s);
+        
+        const newPrescriptions = rxArray.map(rx => ({ number: rx, note: '' }));
+        
+        const patient = patients.find(p => String(p.id) === pId);
+        if (patient) patient.prescriptions = newPrescriptions;
+        
+        const queueItem = dispensingQueue.find(q => String(q.id) === pId);
+        if (queueItem) queueItem.prescriptions = newPrescriptions;
+
+        try {
+            await supabaseClient.from('prescriptions').delete().eq('patient_id', pId);
+            
+            if (newPrescriptions.length > 0) {
+                const prescriptionsToInsert = newPrescriptions.map(p => ({
+                    patient_id: pId,
+                    number: p.number,
+                    note: ''
+                }));
+                const { error } = await supabaseClient.from('prescriptions').insert(prescriptionsToInsert);
+                if (error) throw error;
+            }
+            showToast('Rx saved to Cloud');
+        } catch (err) {
+            console.error('Failed to sync Rx:', err);
+            showToast('Failed to save Rx');
         }
     }
 
