@@ -5398,6 +5398,9 @@ async function checkIDDuplicate() {
         filteredPatients.sort((a, b) => {
             const dateA = a.nextRefillDate ? new Date(a.nextRefillDate).getTime() : Infinity;
             const dateB = b.nextRefillDate ? new Date(b.nextRefillDate).getTime() : Infinity;
+            if (currentFilter === 'overdue') {
+                return dateB - dateA; // الأقل أياماً أولاً (الأقرب لليوم)
+            }
             return dateA - dateB;
         });
 
@@ -5415,7 +5418,11 @@ async function checkIDDuplicate() {
             let fuseResults = fuse.search(searchTerm);
             let searchIds = fuseResults.map(r => r.item.id);
             filteredPatients = filteredPatients.filter(p => searchIds.includes(p.id));
-            filteredPatients.sort((a, b) => new Date(a.nextRefillDate) - new Date(b.nextRefillDate));
+            filteredPatients.sort((a, b) => {
+                const dateA = a.nextRefillDate ? new Date(a.nextRefillDate).getTime() : Infinity;
+                const dateB = b.nextRefillDate ? new Date(b.nextRefillDate).getTime() : Infinity;
+                return currentFilter === 'overdue' ? dateB - dateA : dateA - dateB;
+            });
         }
 
         // 6. عرض رسالة "لا توجد نتائج"
