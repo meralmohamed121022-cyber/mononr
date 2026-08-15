@@ -9902,7 +9902,7 @@ function createSidebarContainer() {
 // 2. المراقبة اللحظية (Realtime Sync)
 function setupAlarmRealtimeSync() {
     supabaseClient
-        .channel('public:patients')
+        .channel('public:patients-alarm')
         .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'patients' }, (payload) => {
             const updatedPatient = payload.new;
             const index = patients.findIndex(p => p.id === updatedPatient.id);
