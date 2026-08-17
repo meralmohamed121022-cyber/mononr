@@ -4974,6 +4974,20 @@ function initializeApp() {
                     if (payload.eventType === 'UPDATE') {
                         const index = patients.findIndex(p => p.id === payload.new.id);
                         if (index !== -1) {
+                            // Preserve prescriptions since realtime payload on 'patients' won't contain joined tables
+                            if (payload.new.prescriptions === undefined) {
+                                payload.new.prescriptions = patients[index].prescriptions.map(pr => ({
+                                    prescription_number: pr.number,
+                                    note: pr.note
+                                }));
+                            }
+                            
+                            // Check if alarm was stopped remotely
+                            if (!payload.new.sensor_reminder && window.currentlyRingingId === payload.new.id) {
+                                stopAlarmSound();
+                                closeModal();
+                            }
+
                             // نحدث بيانات المريض مع الحفاظ على بنية البيانات (mapping)
                             patients[index] = mapPatientData(payload.new);
                         }
@@ -5754,10 +5768,10 @@ function createPatientCard(patient, searchTerm = '') {
                 <span style="font-family:monospace; font-weight:700; font-size:12px; color:#2d3436;">
                     ${highlightMatch(p.number, searchTerm)}
                 </span>
-                <button class="btn-copy-only" onclick="copyRxOnly('${patient.nationalId}', '${p.number}')" title="Copy" style="width:20px; height:20px;">
+                <button class="btn-copy-only" onclick="event.stopPropagation(); copyRxOnly('${patient.nationalId}', '${p.number}')" title="Copy" style="width:20px; height:20px;">
                     <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
                 </button>
-                <button class="btn-check-wasfaty" onclick="checkPrescription('${patient.nationalId}', '${p.number}')" title="Wasfaty" style="width:20px; height:20px;">
+                <button class="btn-check-wasfaty" onclick="event.stopPropagation(); checkPrescription('${patient.nationalId}', '${p.number}')" title="Wasfaty" style="width:20px; height:20px;">
                     <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"></polyline></svg>
                 </button>
             </div>
@@ -9948,22 +9962,7 @@ function initReminderWatcher() {
                     playSensorAlert(p);
                 }
             }
-
-            // منطق التأجيل التلقائي (المرة 1 و 2) أو الإيقاف النهائي (المرة 3)
-            if (window.currentlyRingingId === p.id && window.alarmStartTime) {
-                if ((Date.now() - window.alarmStartTime) / 1000 >= 7) {
-                    p.retry_count = (p.retry_count || 0) + 1;
-                    
-                    if (p.retry_count < 3) {
-                        console.log(`🕒 Auto-Snooze ${p.retry_count}/3 for patient ${p.id}`);
-                        autoSnoozeProcess(p.id, 2); // تأجيل دقيقتين
-                    } else {
-                        console.log(`🚫 Max retries reached. Stopping alarm for ${p.id}`);
-                        addPersistentNotification(p); // أضفها للقائمة الجانبية قبل المسح
-                        clearReminder(p.id); // مسح نهائي من السيرفر
-                    }
-                }
-            }
+            // المنبه يستمر في الرنين حتى يتم إيقافه يدوياً من المستخدم (حذفنا التأجيل التلقائي)
         });
     };
 }
