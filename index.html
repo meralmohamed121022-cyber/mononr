@@ -4846,6 +4846,8 @@
         confirmAction('Are you sure you want to logout?', function () {
             currentUser = null;
             localStorage.removeItem('monoCurrentUser');
+            patients = [];
+            dispensingQueue = [];
             document.getElementById('mainApp').style.display = 'none';
             document.getElementById('authPage').style.display = 'flex';
             document.getElementById('loginForm').reset();
@@ -4989,7 +4991,8 @@
                 const { error } = await supabaseClient
                     .from('patients')
                     .delete()
-                    .in('id', targetIds);
+                    .in('id', targetIds)
+                    .eq('pharmacy_id', currentUser.id);
 
                 if (error) throw error;
 
