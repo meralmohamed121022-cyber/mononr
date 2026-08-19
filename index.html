@@ -10450,6 +10450,31 @@ SMART IMPORT SYSTEM (Dr. Mo Edition)
         }
     }
 </script>
+
+<!-- Anti-Debug Protection -->
+<script>
+    // 1. Disable Right Click
+    document.addEventListener('contextmenu', event => event.preventDefault());
+
+    // 2. Disable F12, Ctrl+Shift+I, Ctrl+Shift+C, Ctrl+Shift+J, Ctrl+U
+    document.addEventListener('keydown', (e) => {
+        if (e.keyCode === 123 || 
+            (e.ctrlKey && e.shiftKey && (e.keyCode === 73 || e.keyCode === 67 || e.keyCode === 74)) || 
+            (e.ctrlKey && e.keyCode === 85)) {
+            e.preventDefault();
+            return false;
+        }
+    });
+
+    // 3. Infinite debugger loop
+    (function() {
+        var devtools = function() {
+            debugger;
+            setTimeout(devtools, 100);
+        };
+        devtools();
+    })();
+</script>
 </body>
 
 </html>
