@@ -5106,7 +5106,10 @@
             });
         }
     });
+    let appInitialized = false;
     function initializeApp() {
+        if (appInitialized) return;
+        appInitialized = true;
         // 1. الإعدادات الأولية للعناصر (التاريخ والوصفة الأولى)
         document.getElementById('dispensingDate').valueAsDate = new Date();
         addPrescription();
@@ -5141,7 +5144,7 @@
 
                         // 1. تحديث المصفوفة المحلية فوراً بناءً على نوع التغيير
                         if (payload.eventType === 'UPDATE') {
-                            const index = patients.findIndex(p => p.id === payload.new.id);
+                            const index = patients.findIndex(p => String(p.id) === String(payload.new.id));
                             if (index !== -1) {
                                 // Preserve prescriptions since realtime payload on 'patients' won't contain joined tables
                                 if (payload.new.prescriptions === undefined) {
@@ -5162,7 +5165,9 @@
                             }
                         } else if (payload.eventType === 'INSERT') {
                             // إضافة المريض الجديد لأول القائمة
-                            patients.unshift(mapPatientData(payload.new));
+                            if (!patients.some(p => String(p.id) === String(payload.new.id))) {
+                                patients.unshift(mapPatientData(payload.new));
+                            }
                         } else if (payload.eventType === 'DELETE') {
                             // حذف المريض من المصفوفة
                             patients = patients.filter(p => p.id !== payload.old.id);
@@ -5180,8 +5185,16 @@
 
                             // تحديث حالة الطابور محلياً
                             if (payload.new && payload.new.in_queue) {
-                                const qIdx = dispensingQueue.findIndex(q => q.id === payload.new.id);
-                                if (qIdx !== -1) dispensingQueue[qIdx] = mapPatientData(payload.new);
+                                const qIdx = dispensingQueue.findIndex(q => String(q.id) === String(payload.new.id));
+                                if (qIdx !== -1) {
+                                    if (payload.new.prescriptions === undefined) {
+                                        payload.new.prescriptions = dispensingQueue[qIdx].prescriptions.map(pr => ({
+                                            prescription_number: pr.number,
+                                            note: pr.note
+                                        }));
+                                    }
+                                    dispensingQueue[qIdx] = mapPatientData(payload.new);
+                                }
                                 else dispensingQueue.push(mapPatientData(payload.new));
                             } else {
                                 dispensingQueue = dispensingQueue.filter(q => q.id !== payload.old?.id && q.id !== payload.new?.id);
@@ -7374,8 +7387,8 @@ SMART IMPORT SYSTEM (Dr. Mo Edition)
             const searchId = String(p.nationalId || "").trim();
             const searchPhone = String(p.phoneNumber || "").trim();
 
-            // استخدام startsWith بيخلي الاقتراحات تظهر فوراً مع الكتابة
-            return searchId.startsWith(term) || searchPhone.startsWith(term);
+            // استخدام includes بيخلي الاقتراحات تظهر لو الرقم في المنتصف
+            return searchId.includes(term) || searchPhone.includes(term);
         }).slice(0, 5);
 
         // 1. حالة الهوية غير موجودة (إضافة مريض جديد للطابور)
@@ -7516,24 +7529,9 @@ SMART IMPORT SYSTEM (Dr. Mo Edition)
         try {
             let assignedNumber;
 
-            if (newName !== '' && newName !== patient.patientName) {
-                window.isContinuingAdding = true;
-                const newPatientData = {
-                    ...patient,
-                    patientName: newName,
-                    id: null,
-                    realDbId: null,
-                    inQueue: true,
-                    cardColor: assignedColor
-                };
-
-                // ننتظر السيرفر يرجع الرقم
-                assignedNumber = await proceedToAddToQueue(null, newPatientData, newName, assignedColor);
-            } else {
-                const updatedPatient = { ...patient, inQueue: true, cardColor: assignedColor };
-                // ننتظر السيرفر يرجع الرقم
-                assignedNumber = await proceedToAddToQueue(pId, updatedPatient, patient.patientName || '', assignedColor);
-            }
+            const finalName = (newName !== '') ? newName : (patient.patientName || '');
+            const updatedPatient = { ...patient, patientName: finalName, inQueue: true, cardColor: assignedColor };
+            assignedNumber = await proceedToAddToQueue(pId, updatedPatient, finalName, assignedColor);
 
             // تنظيف واجهة البحث
             document.getElementById('dispenseSearchResults').style.display = 'none';
@@ -9175,7 +9173,15 @@ SMART IMPORT SYSTEM (Dr. Mo Edition)
                 drugs_list: patient.drugs_list || []
             };
 
-            // 3. الحفظ في السيرفر (الدالة دي بتبعت الـ cardColor لجدول سوبابيز)
+            // 3. الحفظ في السيرفر
+            // إذا كان pId موجوداً، نحدث السجل بدلاً من إنشاء جديد
+            if (pId) {
+                editingPatientId = pId;
+                window.isContinuingAdding = false;
+            } else {
+                editingPatientId = null;
+            }
+
             const savedId = await savePatientToSupabase(dataToSave);
 
             // 4. تجهيز الكائن النهائي للواجهة المحلية
@@ -9186,11 +9192,18 @@ SMART IMPORT SYSTEM (Dr. Mo Edition)
             };
 
             // 5. تحديث المصفوفات المحلية
-            dispensingQueue.push(finalPatientEntry);
+            if (pId) {
+                const qIndex = dispensingQueue.findIndex(q => String(q.id) === String(pId));
+                if (qIndex !== -1) dispensingQueue[qIndex] = finalPatientEntry;
+                else dispensingQueue.push(finalPatientEntry);
 
-            // لو المريض مش موجود في القائمة العامة (حالة سجل جديد) ضيفه
-            if (!patients.find(p => String(p.id) === String(savedId))) {
-                patients.unshift(finalPatientEntry);
+                const pIndex = patients.findIndex(p => String(p.id) === String(pId));
+                if (pIndex !== -1) patients[pIndex] = finalPatientEntry;
+            } else {
+                dispensingQueue.push(finalPatientEntry);
+                if (!patients.find(p => String(p.id) === String(savedId))) {
+                    patients.unshift(finalPatientEntry);
+                }
             }
 
             // 6. ترتيب ورسم الجدول
@@ -9315,10 +9328,25 @@ SMART IMPORT SYSTEM (Dr. Mo Edition)
                 cardColor: assignedColor // 🔥 اللون هنا سيتم حفظه في السيرفر
             };
 
-            const btn = document.querySelector('.modal-actions .btn-primary');
+            const btn = document.getElementById('executeQuickAddBtn');
             if (btn) {
                 btn.innerHTML = '<span class="loading"></span> SAVING...';
                 btn.disabled = true;
+            }
+
+            // تحقق إذا كانت الهوية موجودة بالفعل في السيرفر لتفادي التكرار
+            const { data: existingPatient } = await supabaseClient
+                .from('patients')
+                .select('id')
+                .eq('national_id', id)
+                .single();
+
+            if (existingPatient) {
+                editingPatientId = existingPatient.id;
+                window.isContinuingAdding = false;
+            } else {
+                editingPatientId = null;
+                window.isContinuingAdding = true;
             }
 
             // الحفظ في سوبابيز
@@ -9326,20 +9354,14 @@ SMART IMPORT SYSTEM (Dr. Mo Edition)
             newPatient.id = newDbId;
             newPatient.realDbId = newDbId;
 
-            // تحديث السجل برقم الانتظار واللون
-            await supabaseClient
-                .from('patients')
-                .update({
-                    in_queue: true,
-                    queue_number: nextQueueNum,
-                    patient_name: name,
-                    cardcolor: assignedColor, // 🔥 تأكيد حفظ اللون في الداتابيز
-                    drugs_list: []
-                })
-                .eq('id', newDbId);
-
-            patients.unshift(newPatient);
-            dispensingQueue.push(newPatient);
+            // لا نحتاج لعمل update لأن savePatientToSupabase يقوم بحفظ هذه البيانات مباشرة
+            // منع التكرار في القوائم المحلية
+            if (!patients.some(p => String(p.id) === String(newDbId))) {
+                patients.unshift(newPatient);
+            }
+            if (!dispensingQueue.some(q => String(q.id) === String(newDbId))) {
+                dispensingQueue.push(newPatient);
+            }
 
             dispensingQueue.sort((a, b) => (parseInt(a.queueNumber) || 0) - (parseInt(b.queueNumber) || 0));
 
@@ -10111,7 +10133,7 @@ SMART IMPORT SYSTEM (Dr. Mo Edition)
             .channel('public:patients-alarm')
             .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'patients' }, (payload) => {
                 const updatedPatient = payload.new;
-                const index = patients.findIndex(p => p.id === updatedPatient.id);
+                const index = patients.findIndex(p => String(p.id) === String(updatedPatient.id));
 
                 if (index !== -1) {
                     // 1. التحقق هل التغيير فعلاً في المنبه؟ عشان ما نحدثش عمال على بطال
