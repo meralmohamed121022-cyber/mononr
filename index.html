@@ -5968,24 +5968,35 @@
         </div>
     </div>
     
-    ${patient.prescriptions && patient.prescriptions.length > 0 ? `
     <div class="section-prescriptions" style="padding: 0; margin-top: 8px;">
-        <div style="overflow-x: auto; white-space: nowrap; padding-bottom: 5px;">
-        ${patient.prescriptions.map(p => `
-            <div class="rx-item" style="display: inline-flex; margin-bottom: 0;">
-                <span style="font-family:monospace; font-weight:700; font-size:12px; color:#2d3436;">
-                    ${highlightMatch(p.number, searchTerm)}
-                </span>
-                <button class="btn-copy-only" onclick="event.stopPropagation(); copyRxOnly('${patient.nationalId}', '${p.number}')" title="Copy" style="width:20px; height:20px;">
-                    <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+        <div style="overflow-x: auto; white-space: nowrap; padding-bottom: 5px; display: flex; align-items: center; gap: 10px;">
+        ${(patient.prescriptions || []).map(p => `
+            <div class="rx-item" style="display: inline-flex; margin-bottom: 0; align-items: center; gap: 6px; background: #f8f9fa; padding: 2px 6px; border-radius: 8px; border: 1px solid #e9ecef;">
+                <input type="text" 
+                       value="${p.number}" 
+                       data-original-rx="${p.number}"
+                       onchange="handleRxEdit(this, '${patient.id}', '${p.number}')"
+                       onclick="event.stopPropagation();"
+                       style="font-family:monospace; font-weight:700; font-size:12px; color:#2d3436; border: 1px dashed transparent; background: transparent; outline: none; width: 75px; padding: 0 2px; transition: 0.2s;"
+                       onfocus="this.style.borderBottomColor='#0984e3'; this.style.background='rgba(255,255,255,0.9)'"
+                       onblur="this.style.borderBottomColor='transparent'; this.style.background='transparent'">
+                <button class="btn-copy-only" onclick="event.stopPropagation(); copyRxOnly('${patient.nationalId}', '${p.number}')" title="Copy" style="width:24px; height:24px; display: flex; align-items: center; justify-content: center; background: #e3f2fd; border: none; border-radius: 4px; color: #1976d2; cursor: pointer;">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
                 </button>
-                <button class="btn-check-wasfaty" onclick="event.stopPropagation(); checkPrescription('${patient.nationalId}', '${p.number}')" title="Wasfaty" style="width:20px; height:20px;">
-                    <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                <button class="btn-check-wasfaty" onclick="event.stopPropagation(); checkPrescription('${patient.nationalId}', '${p.number}')" title="Wasfaty" style="width:24px; height:24px; display: flex; align-items: center; justify-content: center; background: #10ac84; border: none; border-radius: 4px; color: white; cursor: pointer; font-weight: 900; font-family: 'Inter', sans-serif; font-size: 13px; box-shadow: 0 2px 4px rgba(16, 172, 132, 0.3);">
+                    W
+                </button>
+                <button class="btn-delete-rx" onclick="event.stopPropagation(); confirmDeleteRx(this, '${patient.id}', '${p.number}')" title="Delete Rx" style="width:24px; height:24px; background: #ffeaa7; border: none; border-radius: 4px; color: #d63031; cursor: pointer; display: flex; align-items: center; justify-content: center;">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
                 </button>
             </div>
         `).join('')}
+            <button onclick="event.stopPropagation(); handleAddNewRx('${patient.id}')" style="background: #e0f7fa; color: #0097a7; border: 1px dashed #00bcd4; border-radius: 8px; height: 32px; padding: 0 12px; cursor: pointer; font-weight: bold; font-size: 12px; display: inline-flex; align-items: center; gap: 6px;">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+                إضافة
+            </button>
         </div>
-    </div>` : ''}
+    </div>
 
     <div class="card-section-info" style="margin-top: 5px;">
         <div class="card-desktop-row" style="margin-top: 0;">
@@ -7894,6 +7905,279 @@ SMART IMPORT SYSTEM (Dr. Mo Edition)
         }
     }
 
+    function showCustomConfirm(title, message, iconType, onConfirm, onCancel) {
+        const modal = document.createElement('div');
+        modal.style.position = 'fixed';
+        modal.style.top = '0';
+        modal.style.left = '0';
+        modal.style.width = '100%';
+        modal.style.height = '100%';
+        modal.style.backgroundColor = 'rgba(0, 0, 0, 0.6)';
+        modal.style.display = 'flex';
+        modal.style.alignItems = 'center';
+        modal.style.justifyContent = 'center';
+        modal.style.zIndex = '999999';
+        modal.style.opacity = '0';
+        modal.style.transition = 'opacity 0.3s ease';
+        
+        let iconHtml = '';
+        let confirmBtnStyle = '';
+        
+        if (iconType === 'delete') {
+            iconHtml = `
+            <div style="width: 60px; height: 60px; border-radius: 50%; background: #ffeaa7; display: flex; align-items: center; justify-content: center; margin: 0 auto 15px; color: #d63031; border: 3px solid #ff7675;">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+            </div>`;
+            confirmBtnStyle = 'background: linear-gradient(135deg, #d63031, #ff7675); color: white;';
+        } else {
+            iconHtml = `
+            <div style="width: 60px; height: 60px; border-radius: 50%; background: #e0f7fa; display: flex; align-items: center; justify-content: center; margin: 0 auto 15px; color: #0097a7; border: 3px solid #00bcd4;">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
+            </div>`;
+            confirmBtnStyle = 'background: linear-gradient(135deg, #0984e3, #74b9ff); color: white;';
+        }
+
+        modal.innerHTML = `
+            <div style="background: white; width: 90%; max-width: 350px; border-radius: 16px; padding: 25px; text-align: center; box-shadow: 0 10px 30px rgba(0,0,0,0.3); transform: translateY(-20px); transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);">
+                ${iconHtml}
+                <h3 style="margin: 0 0 10px; color: #2d3436; font-size: 18px; font-weight: 800; font-family: 'Inter', sans-serif;">${title}</h3>
+                <p style="margin: 0 0 25px; color: #636e72; font-size: 14px; line-height: 1.5; font-family: 'Inter', sans-serif;">${message}</p>
+                <div style="display: flex; gap: 10px; justify-content: center;">
+                    <button id="custom-modal-cancel" style="flex: 1; padding: 12px; border: none; border-radius: 8px; background: #dfe6e9; color: #2d3436; font-weight: bold; cursor: pointer; transition: 0.2s; font-family: 'Inter', sans-serif;">إلغاء</button>
+                    <button id="custom-modal-confirm" style="flex: 1; padding: 12px; border: none; border-radius: 8px; ${confirmBtnStyle} font-weight: bold; cursor: pointer; transition: 0.2s; font-family: 'Inter', sans-serif;">تأكيد</button>
+                </div>
+            </div>
+        `;
+        
+        document.body.appendChild(modal);
+        
+        requestAnimationFrame(() => {
+            modal.style.opacity = '1';
+            modal.children[0].style.transform = 'translateY(0)';
+        });
+        
+        const close = () => {
+            modal.style.opacity = '0';
+            modal.children[0].style.transform = 'translateY(-20px)';
+            setTimeout(() => modal.remove(), 300);
+        };
+        
+        modal.querySelector('#custom-modal-cancel').onclick = () => {
+            close();
+            if (onCancel) onCancel();
+        };
+        
+        modal.querySelector('#custom-modal-confirm').onclick = () => {
+            close();
+            if (onConfirm) onConfirm();
+        };
+    }
+
+    function showCustomPrompt(title, message, placeholder, onConfirm, onCancel) {
+        const modal = document.createElement('div');
+        modal.style.position = 'fixed';
+        modal.style.top = '0';
+        modal.style.left = '0';
+        modal.style.width = '100%';
+        modal.style.height = '100%';
+        modal.style.backgroundColor = 'rgba(0, 0, 0, 0.6)';
+        modal.style.display = 'flex';
+        modal.style.alignItems = 'center';
+        modal.style.justifyContent = 'center';
+        modal.style.zIndex = '999999';
+        modal.style.opacity = '0';
+        modal.style.transition = 'opacity 0.3s ease';
+
+        modal.innerHTML = `
+            <div style="background: white; width: 90%; max-width: 350px; border-radius: 16px; padding: 25px; text-align: center; box-shadow: 0 10px 30px rgba(0,0,0,0.3); transform: translateY(-20px); transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);">
+                <div style="width: 60px; height: 60px; border-radius: 50%; background: #e0f7fa; display: flex; align-items: center; justify-content: center; margin: 0 auto 15px; color: #0097a7; border: 3px solid #00bcd4;">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+                </div>
+                <h3 style="margin: 0 0 10px; color: #2d3436; font-size: 18px; font-weight: 800; font-family: 'Inter', sans-serif;">${title}</h3>
+                <p style="margin: 0 0 15px; color: #636e72; font-size: 14px; line-height: 1.5; font-family: 'Inter', sans-serif;">${message}</p>
+                <input type="text" id="custom-prompt-input" placeholder="${placeholder}" style="width: 100%; padding: 10px; margin-bottom: 20px; border: 2px solid #dfe6e9; border-radius: 8px; outline: none; font-size: 16px; text-align: center; box-sizing: border-box;" onfocus="this.style.borderColor='#00bcd4'" onblur="this.style.borderColor='#dfe6e9'">
+                <div style="display: flex; gap: 10px; justify-content: center;">
+                    <button id="custom-prompt-cancel" style="flex: 1; padding: 12px; border: none; border-radius: 8px; background: #dfe6e9; color: #2d3436; font-weight: bold; cursor: pointer; transition: 0.2s; font-family: 'Inter', sans-serif;">إلغاء</button>
+                    <button id="custom-prompt-confirm" style="flex: 1; padding: 12px; border: none; border-radius: 8px; background: linear-gradient(135deg, #0984e3, #74b9ff); color: white; font-weight: bold; cursor: pointer; transition: 0.2s; font-family: 'Inter', sans-serif;">إضافة</button>
+                </div>
+            </div>
+        `;
+        
+        document.body.appendChild(modal);
+        
+        const input = modal.querySelector('#custom-prompt-input');
+        input.focus();
+        
+        requestAnimationFrame(() => {
+            modal.style.opacity = '1';
+            modal.children[0].style.transform = 'translateY(0)';
+        });
+        
+        const close = () => {
+            modal.style.opacity = '0';
+            modal.children[0].style.transform = 'translateY(-20px)';
+            setTimeout(() => modal.remove(), 300);
+        };
+        
+        modal.querySelector('#custom-prompt-cancel').onclick = () => {
+            close();
+            if (onCancel) onCancel();
+        };
+        
+        modal.querySelector('#custom-prompt-confirm').onclick = () => {
+            const val = input.value;
+            close();
+            if (onConfirm) onConfirm(val);
+        };
+        
+        input.onkeydown = (e) => {
+            if (e.key === 'Enter') {
+                modal.querySelector('#custom-prompt-confirm').click();
+            }
+        };
+    }
+
+    async function handleRxEdit(inputEl, patientId, oldRxNumber) {
+        const newRxNumber = inputEl.value.trim().toLowerCase();
+        if (newRxNumber === oldRxNumber) return;
+        
+        if (newRxNumber === '') {
+            showCustomConfirm('حذف وصفة', 'هل أنت متأكد من حذف الوصفة ' + oldRxNumber + '؟', 'delete', () => {
+                confirmDeleteRx(inputEl, patientId, oldRxNumber, true);
+            }, () => {
+                inputEl.value = oldRxNumber;
+            });
+            return;
+        }
+
+        showCustomConfirm('تعديل رقم الوصفة', 'تأكيد تعديل رقم الوصفة إلى ' + newRxNumber + '؟', 'edit', async () => {
+            const pId = String(patientId);
+            const patient = patients.find(p => String(p.id) === pId);
+            
+            if (patient && patient.prescriptions.some(r => r.number === newRxNumber && r.number !== oldRxNumber)) {
+                showToast('الرقم موجود مسبقاً');
+                inputEl.value = oldRxNumber;
+                return;
+            }
+
+            let newPrescriptions = [];
+            if (patient) {
+                newPrescriptions = patient.prescriptions.map(r => ({
+                    patient_id: pId,
+                    prescription_number: r.number === oldRxNumber ? newRxNumber : r.number,
+                    note: r.note || ''
+                }));
+                patient.prescriptions = patient.prescriptions.map(r => ({
+                    ...r,
+                    number: r.number === oldRxNumber ? newRxNumber : r.number
+                }));
+            }
+            const queueItem = dispensingQueue.find(q => String(q.id) === pId);
+            if (queueItem) {
+                queueItem.prescriptions = queueItem.prescriptions.map(r => ({
+                    ...r,
+                    number: r.number === oldRxNumber ? newRxNumber : r.number
+                }));
+            }
+            
+            try {
+                const { error: delError } = await supabaseClient.from('prescriptions').delete().eq('patient_id', pId);
+                if (delError) throw delError;
+                
+                if (newPrescriptions.length > 0) {
+                    const { error } = await supabaseClient.from('prescriptions').insert(newPrescriptions);
+                    if (error) throw error;
+                }
+                    
+                showToast('تم تعديل الوصفة بنجاح');
+                if (typeof filterPatients === 'function') {
+                    filterPatients(currentFilter || 'all');
+                }
+                if (typeof renderDispensingQueue === 'function') renderDispensingQueue();
+            } catch (err) {
+                console.error('Failed to update Rx:', err);
+                showToast('خطأ في تعديل الوصفة');
+                inputEl.value = oldRxNumber; // revert on fail
+                if (typeof filterPatients === 'function') {
+                    filterPatients(currentFilter || 'all');
+                }
+            }
+        }, () => {
+            inputEl.value = oldRxNumber;
+        });
+    }
+
+    async function confirmDeleteRx(element, patientId, rxNumber, bypassConfirm = false) {
+        if (!bypassConfirm) {
+            showCustomConfirm('حذف وصفة', 'تأكيد حذف الوصفة ' + rxNumber + '؟', 'delete', () => {
+                confirmDeleteRx(element, patientId, rxNumber, true);
+            }, () => {
+                if (element && element.tagName && element.tagName.toLowerCase() === 'input') {
+                    element.value = element.getAttribute('data-original-rx');
+                }
+            });
+            return;
+        }
+
+        const pId = String(patientId);
+        
+        const patient = patients.find(p => String(p.id) === pId);
+        if (patient) {
+            patient.prescriptions = patient.prescriptions.filter(r => r.number !== rxNumber);
+        }
+        const queueItem = dispensingQueue.find(q => String(q.id) === pId);
+        if (queueItem) {
+            queueItem.prescriptions = queueItem.prescriptions.filter(r => r.number !== rxNumber);
+        }
+        
+        try {
+            const { error } = await supabaseClient
+                .from('prescriptions')
+                .delete()
+                .eq('patient_id', pId)
+                .eq('prescription_number', rxNumber);
+                
+            if (error) throw error;
+            showToast('تم حذف الوصفة');
+            
+            if (typeof filterPatients === 'function') {
+                filterPatients(currentFilter || 'all');
+            }
+            
+            if (typeof renderDispensingQueue === 'function') renderDispensingQueue();
+        } catch (err) {
+            console.error('Failed to delete Rx:', err);
+            showToast('خطأ في الحذف');
+        }
+    }
+
+    async function handleAddNewRx(patientId) {
+        const pId = String(patientId);
+        const patient = patients.find(p => String(p.id) === pId);
+        if (!patient) return;
+        
+        showCustomPrompt('إضافة وصفة', 'يرجى إدخال رقم الوصفة الجديدة:', 'مثال: A123456', async (newRx) => {
+            if (!newRx) return;
+            newRx = newRx.trim().toLowerCase();
+            if (newRx === '') return;
+            
+            if (patient.prescriptions && patient.prescriptions.some(r => r.number === newRx)) {
+                showToast('الرقم موجود مسبقاً');
+                return;
+            }
+
+            const allRx = (patient.prescriptions || []).map(r => r.number);
+            allRx.push(newRx);
+            const newRxStr = allRx.join(' ');
+            
+            await updatePatientRxInline(patientId, newRxStr);
+            
+            if (typeof filterPatients === 'function') {
+                filterPatients(currentFilter || 'all');
+            }
+        });
+    }
+
     async function updatePatientRxInline(patientId, newRxStr) {
         const pId = String(patientId);
         // split by space, comma, dash
@@ -7913,7 +8197,7 @@ SMART IMPORT SYSTEM (Dr. Mo Edition)
             if (newPrescriptions.length > 0) {
                 const prescriptionsToInsert = newPrescriptions.map(p => ({
                     patient_id: pId,
-                    number: p.number,
+                    prescription_number: p.number,
                     note: ''
                 }));
                 const { error } = await supabaseClient.from('prescriptions').insert(prescriptionsToInsert);
