@@ -7405,7 +7405,10 @@ SMART IMPORT SYSTEM (Dr. Mo Edition)
     }
     // نادي الدالة فوراً بعد تعريف DRUGS_DB
     initDrugsSearch();
+    let _dispenseSearchTimeout = null;
     function searchForDispensing() {
+        clearTimeout(_dispenseSearchTimeout);
+        _dispenseSearchTimeout = setTimeout(() => {
         const input = document.getElementById('dispenseSearchInput');
         const dropdown = document.getElementById('dispenseSearchResults');
         const term = input.value.trim();
@@ -7501,6 +7504,7 @@ SMART IMPORT SYSTEM (Dr. Mo Edition)
         }).join('');
 
         dropdown.style.display = 'block';
+        }, 300);
     }
     async function savePhoneFromSearch(patientId) {
         const inputEl = document.getElementById(`search-phone-${patientId}`);
@@ -7655,10 +7659,14 @@ SMART IMPORT SYSTEM (Dr. Mo Edition)
         );
     }
     // 3. فلترة الجدول
+    let _queueFilterTimeout = null;
     function filterQueue() {
-        const input = document.getElementById('queueFilterInput');
-        const filterText = input ? input.value.toLowerCase().trim() : '';
-        renderDispensingQueue(filterText);
+        clearTimeout(_queueFilterTimeout);
+        _queueFilterTimeout = setTimeout(() => {
+            const input = document.getElementById('queueFilterInput');
+            const filterText = input ? input.value.toLowerCase().trim() : '';
+            renderDispensingQueue(filterText);
+        }, 300);
     }
     // 4. رسم الجدول (نسخة الـ Turbo - تعديل الاسم المباشر + أداء فائق السرعة)
     function renderDispensingQueue(filterText) {
