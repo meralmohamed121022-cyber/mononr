@@ -8594,7 +8594,8 @@ SMART IMPORT SYSTEM (Dr. Mo Edition)
                             contentType: file.type || 'application/octet-stream',
                             cacheControl: '3600'
                         },
-                        chunkSize: 5 * 1024 * 1024, // 5MB chunks
+                        chunkSize: 6 * 1024 * 1024, // 6MB chunks
+                        parallelUploads: 3, // Upload 3 chunks concurrently
                         onError: function (error) {
                             reject(error);
                         },
