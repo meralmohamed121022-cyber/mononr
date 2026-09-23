@@ -8569,7 +8569,12 @@ SMART IMPORT SYSTEM (Dr. Mo Edition)
                 if (prog > 90) prog = 90;
                 const badge = document.getElementById(`progress-${tf.id}`);
                 if (badge) {
-                    badge.innerHTML = `⬆ Uploading... ${prog}%`;
+                    if (prog >= 90) {
+                        const isLarge = parseFloat(tf.file_size) > 10240; // > 10MB
+                        badge.innerHTML = isLarge ? `⬆ Uploading... Please wait` : `⬆ Uploading... 90%`;
+                    } else {
+                        badge.innerHTML = `⬆ Uploading... ${prog}%`;
+                    }
                     badge.style.background = `linear-gradient(90deg, #dbeafe ${prog}%, transparent ${prog}%)`;
                 }
             }, 300);
