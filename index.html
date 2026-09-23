@@ -8738,7 +8738,7 @@ SMART IMPORT SYSTEM (Dr. Mo Edition)
                         <div class="arrow"></div>
                     </div>
                     <div style="font-weight: 800; font-size: 18px; color: var(--primary); margin-top: 15px;">Drag & Drop or Click to Upload</div>
-                    <div style="font-size: 13px; color: #64748b; margin-top: 5px;">Supports PDF, Excel, TXT, Photos</div>
+                    <div style="font-size: 13px; color: #64748b; margin-top: 5px;">Supports All Files (PDF, Excel, ZIP, EXE, etc.)</div>
                 </div>
             </div>
             
@@ -8801,6 +8801,8 @@ SMART IMPORT SYSTEM (Dr. Mo Edition)
         else if (file.file_type === 'excel') { icon = 'XLS'; typeClass = 'type-excel'; }
         else if (file.file_type === 'img') { icon = 'IMG'; typeClass = 'type-img'; }
         else if (file.file_type === 'txt') { icon = 'TXT'; typeClass = 'type-txt'; }
+        else if (file.file_type === 'zip') { icon = 'ZIP'; }
+        else if (file.file_type === 'exe') { icon = 'EXE'; }
         else { icon = 'DOC'; }
 
         // --- حساب الوقت المتبقي للحذف ---
@@ -8879,6 +8881,8 @@ SMART IMPORT SYSTEM (Dr. Mo Edition)
         if (['pdf'].includes(ext)) return 'pdf';
         if (['xlsx', 'xls', 'csv'].includes(ext)) return 'excel';
         if (['txt'].includes(ext)) return 'txt';
+        if (['zip', 'rar', '7z', 'tar', 'gz'].includes(ext)) return 'zip';
+        if (['exe', 'msi', 'apk', 'bat'].includes(ext)) return 'exe';
         return 'other';
     }
 
