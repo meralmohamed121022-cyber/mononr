@@ -8577,47 +8577,62 @@ SMART IMPORT SYSTEM (Dr. Mo Edition)
                 const cleanName = file.name.replace(/[^a-zA-Z0-9.-]/g, '_');
                 const filePath = `${currentUser.id}/${Date.now()}_${cleanName}`;
 
-                // TUS Resumable Upload
-                await new Promise((resolve, reject) => {
-                    const upload = new tus.Upload(file, {
-                        endpoint: `${window.CONFIG.SUPABASE_URL}/storage/v1/upload/resumable`,
-                        retryDelays: [0, 3000, 5000, 10000, 20000],
-                        headers: {
-                            authorization: `Bearer ${token}`,
-                            'x-upsert': 'true'
-                        },
-                        uploadDataDuringCreation: true,
-                        removeFingerprintOnSuccess: true,
-                        metadata: {
-                            bucketName: 'mono_docs',
-                            objectName: filePath,
-                            contentType: file.type || 'application/octet-stream',
-                            cacheControl: '3600'
-                        },
-                        chunkSize: 1 * 1024 * 1024, // 1MB chunks to ensure stability on slow networks
-                        onError: function (error) {
-                            reject(error);
-                        },
-                        onProgress: function (bytesUploaded, bytesTotal) {
-                            let percentage = Math.floor((bytesUploaded / bytesTotal) * 100);
-                            const badge = document.getElementById(`progress-${tempId}`);
-                            if (badge) {
-                                badge.innerHTML = `⬆ Uploading... ${percentage}%`;
-                                badge.style.background = `linear-gradient(90deg, #dbeafe ${percentage}%, transparent ${percentage}%)`;
-                            }
-                        },
-                        onSuccess: function () {
-                            resolve();
-                        }
-                    });
+                // TUS Resumable Upload with Auto-Reconnect for Firewalls
+                let uploadSuccess = false;
+                let autoRetries = 0;
+                
+                while (!uploadSuccess && autoRetries < 20) {
+                    try {
+                        await new Promise((resolve, reject) => {
+                            const upload = new tus.Upload(file, {
+                                endpoint: `${window.CONFIG.SUPABASE_URL}/storage/v1/upload/resumable`,
+                                retryDelays: [0, 3000, 5000],
+                                headers: {
+                                    authorization: `Bearer ${token}`,
+                                    'x-upsert': 'true'
+                                },
+                                uploadDataDuringCreation: true,
+                                removeFingerprintOnSuccess: true,
+                                metadata: {
+                                    bucketName: 'mono_docs',
+                                    objectName: filePath,
+                                    contentType: file.type || 'application/octet-stream',
+                                    cacheControl: '3600'
+                                },
+                                chunkSize: 1 * 1024 * 1024, // 1MB chunks
+                                onError: function (error) {
+                                    console.warn("TUS chunk error, triggering auto-reconnect...", error);
+                                    reject(error);
+                                },
+                                onProgress: function (bytesUploaded, bytesTotal) {
+                                    let percentage = Math.floor((bytesUploaded / bytesTotal) * 100);
+                                    const badge = document.getElementById(`progress-${tempId}`);
+                                    if (badge) {
+                                        badge.innerHTML = `⬆ Uploading... ${percentage}% (Auto-Resume On)`;
+                                        badge.style.background = `linear-gradient(90deg, #dbeafe ${percentage}%, transparent ${percentage}%)`;
+                                    }
+                                },
+                                onSuccess: function () {
+                                    resolve();
+                                }
+                            });
 
-                    upload.findPreviousUploads().then(function (previousUploads) {
-                        if (previousUploads.length) {
-                            upload.resumeFromPreviousUpload(previousUploads[0]);
-                        }
-                        upload.start();
-                    }).catch(reject);
-                });
+                            upload.findPreviousUploads().then(function (previousUploads) {
+                                if (previousUploads.length) {
+                                    upload.resumeFromPreviousUpload(previousUploads[0]);
+                                }
+                                upload.start();
+                            }).catch(reject);
+                        });
+                        uploadSuccess = true;
+                    } catch (e) {
+                        autoRetries++;
+                        console.log(`Auto-reconnect attempt ${autoRetries}/20...`);
+                        await new Promise(r => setTimeout(r, 2000)); // Wait 2s before creating new instance
+                    }
+                }
+
+                if (!uploadSuccess) throw new Error("Upload blocked by network firewall after multiple auto-reconnect attempts.");
 
                 // Get Public URL
                 const { data: { publicUrl } } = supabaseClient.storage
