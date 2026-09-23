@@ -19,6 +19,7 @@
     <script src="https://cdn.jsdelivr.net/npm/fuse.js@6.6.2"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/tus-js-client@3.1.2/dist/tus.min.js"></script>
     <style>
         * {
             margin: 0;
@@ -8545,7 +8546,7 @@ SMART IMPORT SYSTEM (Dr. Mo Edition)
         const titleEl = document.getElementById('docsModalTitle');
         const nowIso = new Date().toISOString();
 
-        // تجهيز كروت مؤقتة لعرضها فوراً بمؤشر تحميل
+        // 1. Prepare temp cards
         const tempFiles = files.map((file, index) => ({
             id: `temp-${Date.now()}-${index}`,
             file_name: file.name,
@@ -8557,28 +8558,8 @@ SMART IMPORT SYSTEM (Dr. Mo Edition)
             isNew: true
         }));
 
-        // إضافة الكروت المؤقتة للأعلى ورسم القائمة
         storedFiles = [...tempFiles, ...storedFiles];
         renderDocsList();
-
-        const progressIntervals = {};
-        tempFiles.forEach(tf => {
-            let prog = 0;
-            progressIntervals[tf.id] = setInterval(() => {
-                prog += Math.floor(Math.random() * 15) + 5;
-                if (prog > 90) prog = 90;
-                const badge = document.getElementById(`progress-${tf.id}`);
-                if (badge) {
-                    if (prog >= 90) {
-                        const isLarge = parseFloat(tf.file_size) > 10240; // > 10MB
-                        badge.innerHTML = isLarge ? `⬆ Uploading... Please wait` : `⬆ Uploading... 90%`;
-                    } else {
-                        badge.innerHTML = `⬆ Uploading... ${prog}%`;
-                    }
-                    badge.style.background = `linear-gradient(90deg, #dbeafe ${prog}%, transparent ${prog}%)`;
-                }
-            }, 300);
-        });
 
         if (titleEl) {
             const actualCount = storedFiles.filter(f => !f.isUploading).length;
@@ -8586,27 +8567,64 @@ SMART IMPORT SYSTEM (Dr. Mo Edition)
         }
 
         try {
+            const { data: { session } } = await supabaseClient.auth.getSession();
+            const token = session?.access_token || window.CONFIG.SUPABASE_ANON_KEY;
+
             for (let i = 0; i < files.length; i++) {
                 const file = files[i];
                 const tempId = tempFiles[i].id;
 
-                // A. تجهيز اسم فريد للملف
                 const cleanName = file.name.replace(/[^a-zA-Z0-9.-]/g, '_');
                 const filePath = `${currentUser.id}/${Date.now()}_${cleanName}`;
 
-                // B. الرفع إلى Supabase Storage Bucket
-                const { data: storageData, error: storageError } = await supabaseClient.storage
-                    .from('mono_docs')
-                    .upload(filePath, file);
+                // TUS Resumable Upload
+                await new Promise((resolve, reject) => {
+                    const upload = new tus.Upload(file, {
+                        endpoint: `${window.CONFIG.SUPABASE_URL}/storage/v1/upload/resumable`,
+                        retryDelays: [0, 3000, 5000, 10000, 20000],
+                        headers: {
+                            authorization: `Bearer ${token}`,
+                            'x-upsert': 'true'
+                        },
+                        uploadDataDuringCreation: true,
+                        removeFingerprintOnSuccess: true,
+                        metadata: {
+                            bucketName: 'mono_docs',
+                            objectName: filePath,
+                            contentType: file.type || 'application/octet-stream',
+                            cacheControl: '3600'
+                        },
+                        chunkSize: 5 * 1024 * 1024, // 5MB chunks
+                        onError: function (error) {
+                            reject(error);
+                        },
+                        onProgress: function (bytesUploaded, bytesTotal) {
+                            let percentage = Math.floor((bytesUploaded / bytesTotal) * 100);
+                            const badge = document.getElementById(`progress-${tempId}`);
+                            if (badge) {
+                                badge.innerHTML = `⬆ Uploading... ${percentage}%`;
+                                badge.style.background = `linear-gradient(90deg, #dbeafe ${percentage}%, transparent ${percentage}%)`;
+                            }
+                        },
+                        onSuccess: function () {
+                            resolve();
+                        }
+                    });
 
-                if (storageError) throw storageError;
+                    upload.findPreviousUploads().then(function (previousUploads) {
+                        if (previousUploads.length) {
+                            upload.resumeFromPreviousUpload(previousUploads[0]);
+                        }
+                        upload.start();
+                    }).catch(reject);
+                });
 
-                // C. الحصول على الرابط العام المباشر للملف
+                // Get Public URL
                 const { data: { publicUrl } } = supabaseClient.storage
                     .from('mono_docs')
                     .getPublicUrl(filePath);
 
-                // D. حفظ معلومات الملف في قاعدة البيانات (Table)
+                // Insert to DB
                 const { data: insertedFile, error: dbError } = await supabaseClient
                     .from('pharmacy_docs')
                     .insert([{
@@ -8622,14 +8640,13 @@ SMART IMPORT SYSTEM (Dr. Mo Edition)
 
                 if (dbError) throw dbError;
 
-                clearInterval(progressIntervals[tempId]);
                 const badge = document.getElementById(`progress-${tempId}`);
                 if (badge) {
-                    badge.innerHTML = `⬆ Uploading... 100%`;
+                    badge.innerHTML = `✅ Done`;
                     badge.style.background = `#dbeafe`;
                 }
 
-                // E. تحديث الكارت المؤقت بالبيانات الحقيقية في الواجهة فوراً
+                // Update UI
                 storedFiles = storedFiles.map(item => {
                     if (item.id === tempId) {
                         return { ...insertedFile, isUploading: false, isNew: true };
@@ -8644,7 +8661,6 @@ SMART IMPORT SYSTEM (Dr. Mo Edition)
                 titleEl.textContent = `MY FILES (${actualCount})`;
             }
 
-            // إزالة تمييز "الجديد" بعد 10 دقائق
             setTimeout(() => {
                 storedFiles = storedFiles.map(file => ({ ...file, isNew: false }));
                 renderDocsList();
@@ -8652,10 +8668,6 @@ SMART IMPORT SYSTEM (Dr. Mo Edition)
 
         } catch (error) {
             console.error('Upload Error:', error);
-            if (typeof progressIntervals !== 'undefined') {
-                Object.values(progressIntervals).forEach(clearInterval);
-            }
-            // التراجع عن الكروت المؤقتة
             storedFiles = storedFiles.filter(item => !String(item.id).startsWith('temp-'));
             renderDocsList();
 
@@ -8664,7 +8676,7 @@ SMART IMPORT SYSTEM (Dr. Mo Edition)
                 titleEl.textContent = `MY FILES (${actualCount})`;
             }
 
-            showModal('Error', `<p style="text-align:center;">Upload Failed: ${error.message}</p>`, '<button class="btn-primary" onclick="closeModalCustom()">OK</button>');
+            showModal('Error', `<p style="text-align:center;">Upload Failed: ${error.message || error}</p>`, '<button class="btn-primary" onclick="closeModalCustom()">OK</button>');
         }
 
         input.value = ''; // تصفير حقل الإدخال
