@@ -4161,42 +4161,67 @@
             </div>
 
             <div id="add-tab" class="tab-content active">
-                <div class="form-group">
-                    <label class="form-label"><span style="font-size: 18px; margin-right: 8px;">🆔</span> ID Number (10
-                        digits)</label>
-                    <input type="text" class="form-input" id="nationalId" placeholder="1234567890" maxlength="10"
-                        pattern="[1-4][0-9]{9}">
+                <!-- Scanner Section -->
+                <div class="section-title" style="margin-top: 10px;"><span style="font-size: 18px;">📷</span> Add via Scanner</div>
+                <style>
+                    .scanner-container {
+                        display: grid; 
+                        grid-template-columns: 1fr 150px; 
+                        gap: 15px; 
+                        align-items: start; 
+                        margin-bottom: 25px;
+                    }
+                    @media (max-width: 768px) {
+                        .scanner-container {
+                            grid-template-columns: 1fr;
+                        }
+                        #scannerQrCode {
+                            margin: 0 auto;
+                        }
+                    }
+                </style>
+                <div class="scanner-container">
+                    <div class="form-group" style="margin-bottom: 0;">
+                        <input type="text" class="form-input" id="scannerInput" placeholder="Scan Barcode or QR here..." style="font-size: 16px; font-family: monospace;" oninput="handleScannerInput(event)" autofocus>
+                    </div>
+                    <div id="scannerQrCode" style="width: 150px; height: 150px; border: 2px dashed var(--border); border-radius: 12px; display: flex; align-items: center; justify-content: center; background: #fafafa; overflow: hidden;">
+                        <span style="font-size: 12px; color: #aaa; text-align: center;">QR Code</span>
+                    </div>
                 </div>
 
-                <div class="form-group">
-                    <label class="form-label"><span style="font-size: 18px; margin-right: 8px;">📱</span> Phone Number
-                        (Optional)</label>
-                    <input type="text" class="form-input" id="phoneNumber" placeholder="05xxxxxxxx" maxlength="10">
+                <!-- Dates Section -->
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+                    <div class="form-group">
+                        <label class="form-label">
+                            <span style="font-size: 18px; margin-right: 8px;">📅</span> Dispensing Date
+                        </label>
+                        <div style="display: flex; gap: 8px;">
+                            <input type="date" class="form-input" id="dispensingDate" style="flex: 1;">
+                            <button type="button" onclick="setDateToToday('dispensingDate')"
+                                style="background: var(--primary); color: white; border: none; border-radius: 12px; padding: 0 15px; font-size: 11px; font-weight: 800; cursor: pointer; transition: 0.3s; white-space: nowrap; box-shadow: 0 4px 12px var(--shadow);"
+                                onmouseover="this.style.opacity='0.9'" onmouseout="this.style.opacity='1'">
+                                TODAY
+                            </button>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">
+                            <span style="font-size: 18px; margin-right: 8px;">🔄</span> Next Refill Date
+                        </label>
+                        <div style="display: flex; gap: 8px;">
+                            <input type="date" class="form-input" id="nextRefillDate" onclick="this.showPicker()"
+                                style="flex: 1;">
+                            <button type="button" onclick="setDateToToday('nextRefillDate')"
+                                style="background: var(--secondary); color: white; border: none; border-radius: 12px; padding: 0 15px; font-size: 11px; font-weight: 800; cursor: pointer; transition: 0.3s; white-space: nowrap; box-shadow: 0 4px 12px rgba(0, 184, 148, 0.3);"
+                                onmouseover="this.style.opacity='0.9'" onmouseout="this.style.opacity='1'">
+                                TODAY
+                            </button>
+                        </div>
+                    </div>
                 </div>
 
-                <div class="section-title">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--primary)"
-                        stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                        <circle cx="12" cy="12" r="10"></circle>
-                        <line x1="12" y1="8" x2="12" y2="12"></line>
-                        <line x1="12" y1="16" x2="12.01" y2="16"></line>
-                    </svg>
-                    Prescriptions
-                </div>
-
-                <div id="prescriptionsContainer"></div>
-
-                <button class="add-prescription-btn" onclick="addPrescription()">
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
-                        stroke-linecap="round" stroke-linejoin="round">
-                        <line x1="12" y1="5" x2="12" y2="19"></line>
-                        <line x1="5" y1="12" x2="19" y2="12"></line>
-                    </svg>
-                    Add Another Prescription
-                </button>
-
-                <div class="form-group" style="margin-top: 25px;">
-                    <label class="form-label">SELECT REFILL DURATION</label>
+                <!-- Refill Duration Section -->
+                <div class="form-group" style="margin-top: 10px;">
                     <div class="refill-selector">
                         <div class="refill-box active" data-days="24" onclick="selectRefill(24)">
                             <div class="duration">1</div>
@@ -4213,55 +4238,32 @@
                     </div>
                 </div>
 
-                <div class="form-group">
-                    <label class="form-label">
-                        <span style="font-size: 18px; margin-right: 8px;">📅</span> Dispensing Date
-                    </label>
-                    <div style="display: flex; gap: 8px;">
-                        <input type="date" class="form-input" id="dispensingDate" style="flex: 1;">
-                        <button type="button" onclick="setDateToToday('dispensingDate')"
-                            style="background: var(--primary); color: white; border: none; border-radius: 12px; padding: 0 15px; font-size: 11px; font-weight: 800; cursor: pointer; transition: 0.3s; white-space: nowrap; box-shadow: 0 4px 12px var(--shadow);"
-                            onmouseover="this.style.opacity='0.9'" onmouseout="this.style.opacity='1'">
-                            TODAY
-                        </button>
+                <!-- Identity and Phone Section -->
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+                    <div class="form-group">
+                        <label class="form-label"><span style="font-size: 18px; margin-right: 8px;">🆔</span> ID Number (10
+                            digits)</label>
+                        <input type="text" class="form-input" id="nationalId" placeholder="1234567890" maxlength="10"
+                            pattern="[1-4][0-9]{9}">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label"><span style="font-size: 18px; margin-right: 8px;">📱</span> Phone Number
+                            (Optional)</label>
+                        <input type="text" class="form-input" id="phoneNumber" placeholder="05xxxxxxxx" maxlength="10">
                     </div>
                 </div>
 
-                <div class="form-group">
-                    <label class="form-label">
-                        <span style="font-size: 18px; margin-right: 8px;">🔄</span> Next Refill Date
-                    </label>
-                    <div style="display: flex; gap: 8px;">
-                        <input type="date" class="form-input" id="nextRefillDate" onclick="this.showPicker()"
-                            style="flex: 1;">
-                        <button type="button" onclick="setDateToToday('nextRefillDate')"
-                            style="background: var(--secondary); color: white; border: none; border-radius: 12px; padding: 0 15px; font-size: 11px; font-weight: 800; cursor: pointer; transition: 0.3s; white-space: nowrap; box-shadow: 0 4px 12px rgba(0, 184, 148, 0.3);"
-                            onmouseover="this.style.opacity='0.9'" onmouseout="this.style.opacity='1'">
-                            TODAY
-                        </button>
-                    </div>
+                <!-- Prescription Section -->
+                <div class="section-title" style="margin-top: 10px;">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--primary)"
+                        stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 5px;">
+                        <circle cx="12" cy="12" r="10"></circle>
+                        <line x1="12" y1="8" x2="12" y2="12"></line>
+                        <line x1="12" y1="16" x2="12.01" y2="16"></line>
+                    </svg>
+                    Prescription
                 </div>
-                <div class="section-title"><span style="font-size: 18px;">📝</span> Additional Notes</div>
-                <div class="quick-notes-grid">
-                    <button class="quick-note-btn" onclick="addQuickNote('👑 VVIP')">👑 VVIP</button>
-                    <button class="quick-note-btn" onclick="addQuickNote('⭐ VIP')">⭐ VIP</button>
-                    <button class="quick-note-btn" onclick="addQuickNote('⚠️ NEED NEW RX NO')">⚠️ NEED NEW RX
-                        NO</button>
-                    <button class="quick-note-btn" onclick="addQuickNote('📡 SENSOR')">📡 SENSOR</button>
-                    <button class="quick-note-btn" onclick="addQuickNote('💉 INSULIN')">💉 INSULIN</button>
-
-                    <button class="quick-note-btn" onclick="addQuickNote('🧠 KEPPRA')">🧠 KEPPRA</button>
-                    <button class="quick-note-btn" onclick="addQuickNote('💊 HEROX')">💊 HEROX</button>
-                    <button class="quick-note-btn" onclick="addQuickNote('🫀 BRILINTA')">🫀 BRILINTA</button>
-                    <button class="quick-note-btn" onclick="addQuickNote('🩸 ELIQUIS')">🩸 ELIQUIS</button>
-
-                    <button class="quick-note-btn" onclick="addQuickNote('📞 NO ANSWER')">📞 NO ANSWER</button>
-                    <button class="quick-note-btn" onclick="addQuickNote('❌ REJECTED')">❌ REJECTED</button>
-                </div>
-                <div class="form-group">
-                    <textarea class="form-input" id="generalNote" rows="4" placeholder="Add general notes here..."
-                        style="resize: vertical;"></textarea>
-                </div>
+                <div id="prescriptionsContainer"></div>
                 <button class="btn-primary" onclick="savePatient()" id="saveBtn">
                     <span id="saveBtnIcon">
                         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
@@ -4886,7 +4888,8 @@
         try {
             const patientData = {
                 pharmacy_id: currentUser.id,
-                national_id: patient.nationalId,
+                national_id: patient.nationalId || null,
+                scanner_code: patient.scannerCode || null,
                 patient_name: patient.patientName || patient.patient_name || '',
                 phone_number: patient.phoneNumber,
                 dispensing_date: patient.dispensingDate,
@@ -5420,14 +5423,37 @@
         return qrBox;
     }
 
+    function handleScannerInput(event) {
+        const val = event.target.value.trim();
+        const qrContainer = document.getElementById('scannerQrCode');
+        if (val.length > 3) {
+            qrContainer.innerHTML = '';
+            qrContainer.style.border = 'none';
+            try {
+                const qr = qrcode(0, 'L');
+                qr.addData(val);
+                qr.make();
+                qrContainer.innerHTML = qr.createImgTag(5, 0);
+                const img = qrContainer.querySelector('img');
+                if (img) img.style.borderRadius = '8px';
+            } catch (e) {
+                console.error("QR Code Error:", e);
+            }
+        } else {
+            qrContainer.innerHTML = '<span style="font-size: 12px; color: #aaa; text-align: center;">QR Code</span>';
+            qrContainer.style.border = '2px dashed var(--border)';
+        }
+    }
+
     async function savePatient() {
+        let scannerInput = document.getElementById('scannerInput') ? document.getElementById('scannerInput').value.trim() : "";
         let nationalId = document.getElementById('nationalId').value.trim();
         let phoneNumber = document.getElementById('phoneNumber').value.trim();
         let dispensingDate = document.getElementById('dispensingDate').value;
         let nextRefillDate = document.getElementById('nextRefillDate').value;
 
         // 1. التحقق من البيانات الأساسية قبل التحميل
-        if (!/^[1-4][0-9]{9}$/.test(nationalId)) {
+        if (!scannerInput && !/^[1-4][0-9]{9}$/.test(nationalId)) {
             showModal('<span style="color: var(--danger);">❌ Error</span>', '<p style="text-align: center; padding: 20px;">Invalid ID Number!</p>', '<button class="btn-primary" onclick="closeModal()">OK</button>');
             return;
         }
@@ -5453,7 +5479,7 @@
         let prescriptionItems = document.querySelectorAll('.prescription-item');
 
         for (let item of prescriptionItems) {
-            let number = item.querySelector('.prescription-number').value.trim();
+            let number = item.querySelector('.prescription-number') ? item.querySelector('.prescription-number').value.trim() : "";
             if (!number) continue;
 
             if (!/^[a-z][0-9]{7}$/.test(number)) {
@@ -5462,26 +5488,28 @@
                 return;
             }
 
+            let noteField = item.querySelector('.prescription-note');
             prescriptions.push({
                 number: number,
-                note: item.querySelector('.prescription-note').value.trim()
+                note: noteField ? noteField.value.trim() : ""
             });
         }
 
-        if (prescriptions.length === 0) {
+        if (!scannerInput && prescriptions.length === 0) {
             showModal('<span style="color: var(--danger);">❌ Error</span>', '<p style="text-align: center; padding: 20px;">Please add at least one prescription</p>', '<button class="btn-primary" onclick="closeModal()">OK</button>');
             resetSaveBtn();
             return;
         }
 
         let patient = {
+            scannerCode: scannerInput,
             nationalId: nationalId,
             phoneNumber: phoneNumber,
             dispensingDate: dispensingDate,
             refillPeriod: selectedRefillDays,
             nextRefillDate: nextRefillDate,
             prescriptions: prescriptions,
-            generalNote: document.getElementById('generalNote').value.trim(),
+            generalNote: "", // Notes removed from UI
             imported: false,
             createdAt: editingPatientId ? patients.find(p => p.id === editingPatientId).createdAt : new Date().toISOString(),
             updatedAt: new Date().toISOString()
@@ -5529,10 +5557,14 @@
 
     function resetForm() {
         editingPatientId = null;
+        if (document.getElementById('scannerInput')) {
+            document.getElementById('scannerInput').value = '';
+            document.getElementById('scannerQrCode').innerHTML = '<span style="font-size: 12px; color: #aaa; text-align: center;">QR Code</span>';
+            document.getElementById('scannerQrCode').style.border = '2px dashed var(--border)';
+        }
         document.getElementById('nationalId').value = '';
         document.getElementById('phoneNumber').value = '';
         document.getElementById('dispensingDate').valueAsDate = new Date();
-        document.getElementById('generalNote').value = '';
         document.getElementById('prescriptionsContainer').innerHTML = '';
         document.getElementById('saveButtonText').textContent = 'ADD PATIENT';
         selectedRefillDays = 24;
@@ -5587,7 +5619,7 @@
             if (!notInQueue) return false;
 
             // يجب أن يحتوي المريض على بيانات أساسية ليعتبر كارت صحيح
-            const hasBasicInfo = p.nationalId || p.patientName || hasValidPrescriptions;
+            const hasBasicInfo = p.nationalId || p.patientName || p.scannerCode || hasValidPrescriptions;
             if (!hasBasicInfo) return false;
 
             if (!p.nextRefillDate) return currentFilter === 'all' || currentFilter === 'imported';
@@ -5816,6 +5848,30 @@
         }
         return box;
     }
+    function showQrModal(code) {
+        try {
+            const qr = qrcode(0, 'M');
+            qr.addData(code);
+            qr.make();
+            const img = qr.createImgTag(8, 0); // Much Larger size for modal
+            const finalImg = img.replace('<img', '<img style="border-radius:8px;"');
+            
+            const modalContent = `
+                <div style="display: flex; flex-direction: column; align-items: center; gap: 15px; padding: 20px;">
+                    <div style="background: white; padding: 15px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1);">
+                        ${finalImg}
+                    </div>
+                    <div style="font-family: monospace; font-size: 14px; color: #555; word-break: break-all; text-align: center; background: #f8f9fa; padding: 10px; border-radius: 8px; border: 1px dashed #ccc; width: 100%; box-sizing: border-box;">
+                        ${code}
+                    </div>
+                </div>
+            `;
+            showModal('<span style="color: var(--primary);">📱 Scan QR Code</span>', modalContent, '<button class="btn-primary" onclick="closeModal()">Close</button>');
+        } catch(e) {
+            console.error("QR Modal error:", e);
+        }
+    }
+
     function createPatientCard(patient, searchTerm = '') {
         let card = document.createElement('div');
         card.className = 'patient-card';
@@ -5830,6 +5886,26 @@
 
         const hl_nationalId = highlightMatch(patient.nationalId, searchTerm);
         const hl_phone = highlightMatch(patient.phoneNumber, searchTerm);
+
+        let qrThumbHtml = '';
+        if (patient.scannerCode) {
+            try {
+                const qr = qrcode(0, 'L');
+                qr.addData(patient.scannerCode);
+                qr.make();
+                const thumbImg = qr.createImgTag(3, 0); // slightly larger size
+                // we replace style of img to ensure it's tiny and nice
+                const finalImg = thumbImg.replace('<img', '<img style="border-radius:4px; display:block;"');
+                qrThumbHtml = `
+                    <div style="cursor: pointer; background: white; padding: 2px; border-radius: 6px; border: 1px solid #ddd; display: flex; align-items: center; justify-content: center; box-shadow: 0 1px 3px rgba(0,0,0,0.1);"
+                         onclick="showQrModal('${patient.scannerCode}'); event.stopPropagation();" title="View Full QR Code">
+                        ${finalImg}
+                    </div>
+                `;
+            } catch (e) {
+                console.error("QR Code Error:", e);
+            }
+        }
 
         const processNotes = (note) => {
             if (!note) return '';
@@ -5942,13 +6018,21 @@
 
         card.innerHTML = `
     <div class="patient-header" style="border-bottom: none; margin-bottom: 0; padding-bottom: 0;">
-        <div style="display: flex; align-items: flex-start; justify-content: space-between; gap: 8px;">
+        <div style="display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; width: 100%;">
             <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap; flex: 1;">
                 <div class="patient-id" style="margin-bottom: 0;">${hl_nationalId}</div>
                 <button class="btn-check-inline" onclick="checkHistory('${patient.id}'); event.stopPropagation();" title="Check History">
                     <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
                     CHECK
                 </button>
+                
+                ${patient.scannerCode ? `
+                <a href="https://ul.wasfaty.sa/${patient.scannerCode}" target="_blank" onclick="event.stopPropagation();" 
+                   class="btn-check-inline" style="background: linear-gradient(135deg, #00b894, #00cec9); text-decoration: none; padding: 4px 10px; display: inline-flex; align-items: center; gap: 4px; border: 1px solid #00a884; box-shadow: 0 2px 5px rgba(0, 184, 148, 0.3);" title="Open Wasfaty Link">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg>
+                    وصفتي
+                </a>
+                ` : ''}
                 
                 ${patient.phoneNumber ? `
                 <div style="display: flex; align-items: center; background: linear-gradient(135deg, #f1f8e9, #dcedc8); padding: 4px 10px; border-radius: 20px; border: 1px solid #c5e1a5; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
@@ -5965,7 +6049,14 @@
                     </div>
                 </div>` : ''}
             </div>
-            <div class="patient-badge" style="font-size:10px; flex-shrink: 0; margin-top: 5px;">${badgeText}</div>
+            
+            <div style="display: flex; justify-content: center; align-items: center; margin: 0 10px;">
+                ${qrThumbHtml}
+            </div>
+            
+            <div style="display: flex; justify-content: flex-end; flex: 1;">
+                <div class="patient-badge" style="font-size:10px; margin-top: 5px;">${badgeText}</div>
+            </div>
         </div>
     </div>
     
@@ -6097,7 +6188,7 @@
         const validPatients = patients.filter(p => {
             // السماح لكل المرضى الذين ليسوا في الطابور بالظهور في البحث والإحصائيات العامة
             // ولكن الإحصائيات الزمنية ستعتمد على وجود تاريخ ريفيل
-            return p.inQueue !== true && (p.nationalId || p.patientName || (p.prescriptions && p.prescriptions.length > 0));
+            return p.inQueue !== true && (p.nationalId || p.scannerCode || p.patientName || (p.prescriptions && p.prescriptions.length > 0));
         });
 
         let todayCount = 0;
@@ -6177,6 +6268,7 @@
         if (window.Fuse) {
             fuse = new Fuse(validPatients, {
                 keys: [
+                    'scannerCode',          // بحث بالكود المسحوب
                     'nationalId',           // بحث بالهوية
                     'phoneNumber',          // بحث بالجوال
                     'generalNote',          // بحث في الكلام المكتوب
@@ -7361,6 +7453,7 @@ SMART IMPORT SYSTEM (Dr. Mo Edition)
     function mapPatientData(p) {
         return {
             id: p.id,
+            scannerCode: p.scanner_code || '',
             nationalId: String(p.national_id || ''),
             patientName: p.patient_name || '',
             phoneNumber: String(p.phone_number || ''),
