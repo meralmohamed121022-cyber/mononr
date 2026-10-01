@@ -4310,6 +4310,9 @@
                     <div class="chip" onclick="filterPatients('imported')">Imported</div>
                 </div>
 
+                <div style="display: flex; justify-content: flex-end; margin-bottom: 10px;">
+                    <button class="btn-action btn-delete" style="padding: 10px 18px; border-radius: 8px; border: none; font-weight: bold; display: none;" id="btnDeleteDisplayed" onclick="deleteAllDisplayedPatients()">🗑️ Delete All</button>
+                </div>
                 <div id="patientsContainer"></div>
             </div>
             <div id="data-tab" class="tab-content">
@@ -4997,11 +5000,70 @@
                 updateStats();
                 displayPatients();
                 showToast('Deleted Successfully! 🗑️');
-            } catch (error) {
-                console.error(error);
-                showToast('❌ Delete failed');
+            } catch (err) {
+                showToast('Error deleting patient!');
             }
         });
+    }
+
+    async function deleteAllDisplayedPatients() {
+        let container = document.getElementById('patientsContainer');
+        let displayedCards = container.querySelectorAll('.patient-card');
+        if (displayedCards.length === 0) {
+            showToast('⚠️ No patients currently displayed to delete.');
+            return;
+        }
+
+        const deleteArtHtml = `
+        <div style="text-align: center; padding: 10px;">
+            <div class="trash-icon-anim">
+                <div class="trash-lid"></div>
+                <div class="trash-container"></div>
+            </div>
+            <h3 style="color: #d63031; margin: 15px 0 5px 0; font-size: 18px;">Delete ALL Displayed Patients?</h3>
+            <p style="color: #636e72; font-size: 14px; padding:0;">Are you sure you want to delete<br><b>${displayedCards.length}</b> displayed patient(s)?<br>This action cannot be undone.</p>
+        </div>
+        <style>
+            .trash-icon-anim { width: 50px; height: 50px; margin: 0 auto; position: relative; animation: shake-delete 0.5s infinite alternate; }
+            .trash-lid { width: 30px; height: 4px; background: #ff7675; border-radius: 2px; margin: 0 auto; position: relative; }
+            .trash-container { width: 26px; height: 30px; background: #d63031; margin: 2px auto; border-radius: 0 0 5px 5px; }
+            @keyframes shake-delete { from { transform: rotate(-5deg); } to { transform: rotate(5deg); } }
+        </style>
+        `;
+
+        showModal('Delete Displayed', deleteArtHtml, `
+            <button class="btn-secondary" onclick="closeModal()">Cancel</button>
+            <button class="btn-primary" style="background: #d63031; border-color: #d63031;" onclick="executeDeleteAllDisplayed()">Yes, Delete All</button>
+        `);
+    }
+
+    async function executeDeleteAllDisplayed() {
+        closeModal();
+        let container = document.getElementById('patientsContainer');
+        let cards = container.querySelectorAll('.patient-card');
+        let idsToDelete = [];
+        cards.forEach(c => {
+            let id = c.getAttribute('data-patient-id');
+            if (id) idsToDelete.push(id);
+        });
+
+        if (idsToDelete.length === 0) return;
+
+        showToast(`🗑️ Deleting ${idsToDelete.length} patients...`);
+
+        try {
+            for (let id of idsToDelete) {
+                patients = patients.filter(p => String(p.id) !== String(id));
+                await supabaseClient.from('patients').delete().eq('id', id);
+            }
+            showToast('✅ All displayed patients deleted successfully.');
+            displayPatients();
+            updateStats();
+        } catch (error) {
+            console.error('Error bulk deleting:', error);
+            showToast('❌ Error deleting some patients.');
+        }
+
     }
     // دالة حذف مجموعة كاملة بناءً على وقت الاستيراد
     async function deleteImportBatch(importTimestamp) {
@@ -5874,7 +5936,8 @@
 
     function createPatientCard(patient, searchTerm = '') {
         let card = document.createElement('div');
-        card.className = 'patient-card';
+        card.className = 'patient-card fade-in';
+        card.setAttribute('data-patient-id', patient.id);
 
         let status = getRefillStatus(patient.nextRefillDate);
         if (status) card.classList.add(status);
@@ -6310,6 +6373,15 @@
             }
         });
 
+        const btnDeleteDisplayed = document.getElementById('btnDeleteDisplayed');
+        if (btnDeleteDisplayed) {
+            if (['today', 'overdue', 'need_rx'].includes(status)) {
+                btnDeleteDisplayed.style.display = 'inline-block';
+            } else {
+                btnDeleteDisplayed.style.display = 'none';
+            }
+        }
+
         // استدعاء عرض المرضى بالمنطق الجديد
         displayPatients();
     }
@@ -6367,7 +6439,7 @@
     }
 
     function editPatient(patientId) {
-        let patient = patients.find(p => p.id === patientId);
+        let patient = patients.find(p => String(p.id) === String(patientId));
         if (!patient) return;
 
         // 1. تفعيل وضع التعديل وتخزين المعرف
@@ -6377,11 +6449,20 @@
         window.isEditingFromPatients = true;
 
         // 3. ملء البيانات الأساسية في النموذج
-        document.getElementById('nationalId').value = patient.nationalId;
-        document.getElementById('phoneNumber').value = patient.phoneNumber;
-        document.getElementById('dispensingDate').value = patient.dispensingDate;
-        document.getElementById('nextRefillDate').value = patient.nextRefillDate;
-        document.getElementById('generalNote').value = patient.generalNote;
+        const nationalIdEl = document.getElementById('nationalId');
+        if (nationalIdEl) nationalIdEl.value = patient.nationalId || '';
+        
+        const phoneNumberEl = document.getElementById('phoneNumber');
+        if (phoneNumberEl) phoneNumberEl.value = patient.phoneNumber || '';
+        
+        const dispensingDateEl = document.getElementById('dispensingDate');
+        if (dispensingDateEl) dispensingDateEl.value = patient.dispensingDate || '';
+        
+        const nextRefillDateEl = document.getElementById('nextRefillDate');
+        if (nextRefillDateEl) nextRefillDateEl.value = patient.nextRefillDate || '';
+        
+        const generalNoteEl = document.getElementById('generalNote');
+        if (generalNoteEl) generalNoteEl.value = patient.generalNote || '';
 
         // 4. تحديث شكل صناديق الـ Refill
         selectedRefillDays = patient.refillPeriod;
