@@ -9710,10 +9710,28 @@ SMART IMPORT SYSTEM (Dr. Mo Edition)
         );
     }
     async function proceedToAddToQueue(pId, patient, patientName, assignedColor) {
-        // 1. حساب رقم الدور الجديد
-        const nextNumber = dispensingQueue.length > 0
-            ? Math.max(...dispensingQueue.map(p => parseInt(p.queueNumber) || 0)) + 1
-            : 1;
+        // 1. جلب أحدث رقم طابور من قاعدة البيانات مباشرة لتفادي تكرار الأرقام بين الأجهزة
+        let nextNumber = 1;
+        try {
+            const { data: latestQueue, error: fetchErr } = await supabaseClient
+                .from('patients')
+                .select('queueNumber')
+                .eq('pharmacy_id', currentUser.id)
+                .eq('inQueue', true)
+                .order('queueNumber', { ascending: false })
+                .limit(1);
+
+            if (!fetchErr && latestQueue && latestQueue.length > 0) {
+                nextNumber = (parseInt(latestQueue[0].queueNumber) || 0) + 1;
+            } else if (dispensingQueue.length > 0) {
+                nextNumber = Math.max(...dispensingQueue.map(p => parseInt(p.queueNumber) || 0)) + 1;
+            }
+        } catch (err) {
+            console.error('Error fetching live queue number:', err);
+            nextNumber = dispensingQueue.length > 0
+                ? Math.max(...dispensingQueue.map(p => parseInt(p.queueNumber) || 0)) + 1
+                : 1;
+        }
 
         try {
             // 2. تجهيز البيانات الأساسية مع إضافة اللون المختار (لضمان حفظه في Supabase)
