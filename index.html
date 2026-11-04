@@ -6901,6 +6901,111 @@ SMART IMPORT SYSTEM (Dr. Mo Edition)
         }
     }
     // ============================================================
+    // Helpers: Smart Date Parsing & Refill Calculation
+    // ============================================================
+    function parseDateSmart(val) {
+        if (!val && val !== 0) return null;
+        if (val instanceof Date && !isNaN(val.getTime())) {
+            const y = val.getFullYear();
+            const m = String(val.getMonth() + 1).padStart(2, '0');
+            const d = String(val.getDate()).padStart(2, '0');
+            return `${y}-${m}-${d}`;
+        }
+        if (typeof val === 'number' || (typeof val === 'string' && /^\d+(\.\d+)?$/.test(val.trim()))) {
+            const num = parseFloat(val);
+            if (num > 30000 && num < 70000) {
+                const utc_days = Math.floor(num - 25569);
+                const dateObj = new Date(utc_days * 86400 * 1000);
+                const y = dateObj.getUTCFullYear();
+                const m = String(dateObj.getUTCMonth() + 1).padStart(2, '0');
+                const d = String(dateObj.getUTCDate()).padStart(2, '0');
+                return `${y}-${m}-${d}`;
+            }
+        }
+        const str = String(val).trim();
+        if (!str) return null;
+        const datePart = str.split(' ')[0].split('T')[0];
+
+        // Format 1: DD/MM/YYYY or DD-MM-YYYY (الرقم الأول هو رقم اليوم والرقم الثاني هو رقم الشهر)
+        const dmy = datePart.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{2,4})$/);
+        if (dmy) {
+            let day = parseInt(dmy[1], 10);
+            let month = parseInt(dmy[2], 10);
+            let year = parseInt(dmy[3], 10);
+            if (year < 100) year += 2000;
+            if (month >= 1 && month <= 12 && day >= 1 && day <= 31) {
+                return `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+            }
+        }
+
+        // Format 2: YYYY-MM-DD or YYYY/MM/DD
+        const ymd = datePart.match(/^(\d{4})[\/\-](\d{1,2})[\/\-](\d{1,2})$/);
+        if (ymd) {
+            let year = parseInt(ymd[1], 10);
+            let month = parseInt(ymd[2], 10);
+            let day = parseInt(ymd[3], 10);
+            if (month >= 1 && month <= 12 && day >= 1 && day <= 31) {
+                return `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+            }
+        }
+
+        const fallback = new Date(str);
+        if (!isNaN(fallback.getTime())) {
+            const y = fallback.getFullYear();
+            const m = String(fallback.getMonth() + 1).padStart(2, '0');
+            const d = String(fallback.getDate()).padStart(2, '0');
+            return `${y}-${m}-${d}`;
+        }
+        return null;
+    }
+
+    function calculateNextRefillDate(dispenseDateStr, refillDays = 24) {
+        if (!dispenseDateStr) {
+            dispenseDateStr = new Date().toISOString().split('T')[0];
+        }
+        const parts = dispenseDateStr.split('-');
+        let current = new Date(parseInt(parts[0], 10), parseInt(parts[1], 10) - 1, parseInt(parts[2], 10));
+
+        // Today at midnight (تاريخ اليوم وقت الرفع)
+        const now = new Date();
+        const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+
+        // إضافة دورة الشهر الأولى
+        current.setDate(current.getDate() + refillDays);
+
+        // الاستمرار في إضافة الشهور دورة تلو الأخرى (24 يوم للدورة) حتى يتجاوز التاريخ اليوم الحالي
+        while (current <= today) {
+            current.setDate(current.getDate() + refillDays);
+        }
+
+        const y = current.getFullYear();
+        const m = String(current.getMonth() + 1).padStart(2, '0');
+        const d = String(current.getDate()).padStart(2, '0');
+        return `${y}-${m}-${d}`;
+    }
+
+    function getBestColumnValue(row, aliases, excludedAliases = []) {
+        if (!row || typeof row !== 'object') return null;
+        const keys = Object.keys(row);
+        const normalize = (s) => String(s).toLowerCase().replace(/[^a-z0-9\u0600-\u06FF]/g, '');
+
+        const normExcluded = excludedAliases.map(normalize);
+        const normAliases = aliases.map(normalize);
+
+        for (let k of keys) {
+            const normKey = normalize(k);
+            if (normExcluded.includes(normKey)) continue;
+            if (normAliases.includes(normKey)) {
+                const val = row[k];
+                if (val !== undefined && val !== null && String(val).trim() !== '') {
+                    return val;
+                }
+            }
+        }
+        return null;
+    }
+
+    // ============================================================
     // 1. دالة المعالجة الذكية (تصنيف البيانات لـ 4 مجموعات واضحة)
     // ============================================================
     function processAndValidateData(rawData, isTextFile) {
@@ -6934,9 +7039,51 @@ SMART IMPORT SYSTEM (Dr. Mo Edition)
         const cleanString = (val) => (val === null || val === undefined) ? "" : String(val).trim();
 
         rawData.forEach((row, index) => {
-            let detectedId = "", detectedRx = "", detectedPhone = "";
-            let values = Object.values(row).map(v => cleanString(v));
+            let detectedId = "", detectedRx = "", detectedPhone = "", detectedTrxDate = "";
 
+            // 1. التعرف المرن على الأعمدة بالأولويات والأسماء (Insurance Approval, Membership ID, Loyalty Phone, Trx Date)
+            const rawId = getBestColumnValue(row, [
+                'Insurance Approval', 'insurance_approval', 'insuranceapproval', 'nationalId', 'national_id',
+                'id', 'iqama', 'civil_id', 'رقم الهوية', 'الهوية'
+            ], ['Is Insurance Approval', 'isinsuranceapproval']);
+
+            const rawRx = getBestColumnValue(row, [
+                'Membership ID', 'membership_id', 'membershipid', 'prescriptionNumber', 'prescription_number',
+                'prescription', 'rx', 'rx number', 'رقم الوصفة', 'الوصفة'
+            ]);
+
+            const rawPhone = getBestColumnValue(row, [
+                'Loyalty Phone', 'loyalty_phone', 'loyaltyphone', 'phone', 'phoneNumber',
+                'mobile', 'mobile number', 'رقم الجوال', 'الجوال'
+            ]);
+
+            const rawDate = getBestColumnValue(row, [
+                'Trx Date', 'trx_date', 'trxdate', 'transaction date', 'transaction_date',
+                'dispensing date', 'dispensing_date', 'date', 'تاريخ الصرف', 'تاريخ المعاملة'
+            ], ['trx month', 'trx time', 'trx status', 'trx type']);
+
+            if (rawId) {
+                const sId = cleanString(rawId).replace(/\D/g, '');
+                if (patterns.id.test(sId)) detectedId = sId;
+                else if (patterns.id.test(cleanString(rawId))) detectedId = cleanString(rawId);
+            }
+
+            if (rawRx) {
+                const sRx = cleanString(rawRx);
+                if (patterns.rx.test(sRx) || sRx.length >= 4) detectedRx = sRx.toLowerCase();
+            }
+
+            if (rawPhone) {
+                const phoneMatch = cleanString(rawPhone).match(patterns.phone);
+                if (phoneMatch) detectedPhone = '0' + phoneMatch[2];
+            }
+
+            if (rawDate) {
+                detectedTrxDate = parseDateSmart(rawDate);
+            }
+
+            // 2. الفحص بالأنماط كخيار إضافي احتياطي (Fallback)
+            let values = Object.values(row).map(v => cleanString(v));
             values.forEach(val => {
                 if (!detectedId && patterns.id.test(val)) detectedId = val;
                 else if (!detectedRx && patterns.rx.test(val)) detectedRx = val.toLowerCase();
@@ -6944,9 +7091,21 @@ SMART IMPORT SYSTEM (Dr. Mo Edition)
                     const phoneMatch = val.match(patterns.phone);
                     if (phoneMatch) detectedPhone = '0' + phoneMatch[2];
                 }
+                else if (!detectedTrxDate) {
+                    const d = parseDateSmart(val);
+                    if (d) detectedTrxDate = d;
+                }
             });
 
             if (!detectedId || !detectedRx) return;
+
+            // تاريخ الصرف: إذا لم يوجد نعتمد تاريخ اليوم
+            if (!detectedTrxDate) {
+                detectedTrxDate = new Date().toISOString().split('T')[0];
+            }
+
+            // حساب تاريخ الريفيل القادم: شهر ورا شهر (24 يوم للشهر) حتى يتجاوز تاريخ اليوم
+            const nextRefill = calculateNextRefillDate(detectedTrxDate, 24);
 
             const currentKey = `${detectedId}_${detectedRx}`;
             const existingMatch = existingMap.get(currentKey);
@@ -6955,35 +7114,59 @@ SMART IMPORT SYSTEM (Dr. Mo Edition)
                 const s = existingMatch.status;
                 // المجموعة 1: سحب حالة (PULL)
                 if (s === 'Overdue' || s === 'Need New RX') {
-                    const uniqueKey = `PULL_${index}_${detectedId}`;
-                    validPatients[uniqueKey] = {
-                        nationalId: detectedId, phoneNumber: detectedPhone || existingMatch.patient.phoneNumber,
-                        dispensingDate: new Date().toISOString().split('T')[0],
-                        nextRefillDate: "", prescriptions: [{ number: detectedRx, note: '' }],
-                        generalNote: `Re-Imported`, imported: true, importDate: batchTimestamp, oldStatus: s
-                    };
+                    const uniqueKey = `PULL_${detectedId}_${detectedRx}`;
+                    if (!validPatients[uniqueKey]) {
+                        validPatients[uniqueKey] = {
+                            nationalId: detectedId,
+                            phoneNumber: detectedPhone || existingMatch.patient.phoneNumber,
+                            dispensingDate: detectedTrxDate,
+                            nextRefillDate: nextRefill,
+                            refillPeriod: 24,
+                            prescriptions: [{ number: detectedRx, note: '' }],
+                            generalNote: `Re-Imported`,
+                            imported: true,
+                            importDate: batchTimestamp,
+                            oldStatus: s
+                        };
+                    } else if (detectedPhone && !validPatients[uniqueKey].phoneNumber) {
+                        validPatients[uniqueKey].phoneNumber = detectedPhone;
+                    }
                 }
                 else {
                     // المجموعة 2: تحديث جوال فقط (UPDATE)
                     if (detectedPhone && String(existingMatch.patient.phoneNumber || "").trim() !== detectedPhone) {
-                        updatesToCheck.push({
-                            dbId: existingMatch.patient.id, nationalId: detectedId, rx: detectedRx, newPhone: detectedPhone
-                        });
+                        if (!updatesToCheck.some(u => u.dbId === existingMatch.patient.id && u.newPhone === detectedPhone)) {
+                            updatesToCheck.push({
+                                dbId: existingMatch.patient.id, nationalId: detectedId, rx: detectedRx, newPhone: detectedPhone
+                            });
+                        }
                     }
                     // المجموعة 3: موجود وأكتيف (ACTIVE)
-                    alreadyActive.push({
-                        nationalId: detectedId, rx: detectedRx, nextDate: existingMatch.patient.nextRefillDate
-                    });
+                    if (!alreadyActive.some(a => a.nationalId === detectedId && a.rx === detectedRx)) {
+                        alreadyActive.push({
+                            nationalId: detectedId, rx: detectedRx, nextDate: existingMatch.patient.nextRefillDate
+                        });
+                    }
                 }
             } else {
                 // المجموعة 4: جديد تماماً (NEW)
-                const uniqueKey = `NEW_${index}_${detectedId}`;
-                validPatients[uniqueKey] = {
-                    nationalId: detectedId, phoneNumber: detectedPhone,
-                    dispensingDate: new Date().toISOString().split('T')[0],
-                    nextRefillDate: "", prescriptions: [{ number: detectedRx, note: '' }],
-                    generalNote: "Auto-Imported", imported: true, importDate: batchTimestamp, oldStatus: null
-                };
+                const uniqueKey = `NEW_${detectedId}_${detectedRx}`;
+                if (!validPatients[uniqueKey]) {
+                    validPatients[uniqueKey] = {
+                        nationalId: detectedId,
+                        phoneNumber: detectedPhone,
+                        dispensingDate: detectedTrxDate,
+                        nextRefillDate: nextRefill,
+                        refillPeriod: 24,
+                        prescriptions: [{ number: detectedRx, note: '' }],
+                        generalNote: "Auto-Imported",
+                        imported: true,
+                        importDate: batchTimestamp,
+                        oldStatus: null
+                    };
+                } else if (detectedPhone && !validPatients[uniqueKey].phoneNumber) {
+                    validPatients[uniqueKey].phoneNumber = detectedPhone;
+                }
             }
         });
 
@@ -7034,12 +7217,15 @@ SMART IMPORT SYSTEM (Dr. Mo Edition)
         if (statusPullEntries.length > 0) {
             html += `<div style="border: 2px solid #FFCC80; border-radius: 12px; margin-bottom: 15px; overflow: hidden;">
             ${sectionHeader('🚚 PULL LOG (RESET STATE)', statusPullEntries.length, '#FFF3E0', 'import-check-pull')}
-            <div style="max-height: 150px; overflow-y: auto; background: white;">
+            <div style="max-height: 180px; overflow-y: auto; background: white;">
                 ${statusPullEntries.map(p => {
                 const rxNum = (p.prescriptions && p.prescriptions.length > 0) ? p.prescriptions[0].number : '';
-                return `<div style="padding: 8px 15px; border-bottom: 1px solid #eee; display: flex; align-items: center; gap: 10px; font-size: 12px;">
+                return `<div style="padding: 10px 15px; border-bottom: 1px solid #eee; display: flex; align-items: center; gap: 10px; font-size: 12px; flex-wrap: wrap;">
                         <input type="checkbox" class="import-check-new import-check-pull" data-type="reimport" data-id="${p.nationalId}" data-rx="${rxNum}" checked>
-                        <b>${p.nationalId}</b> <span style="color:#e67e22; margin-left:auto;">➔ RESET STATE</span>
+                        <b>${p.nationalId}</b>
+                        <span style="background: #fff3e0; color: #e67e22; padding: 2px 8px; border-radius: 6px; font-family: monospace; font-weight: bold; font-size: 11px;">Rx: ${rxNum}</span>
+                        <span style="color: #636e72; font-size: 11px;">📅 الصرف: <b>${p.dispensingDate || '-'}</b> ➔ الريفيل: <b style="color: #e67e22;">${p.nextRefillDate}</b></span>
+                        <span style="color:#e67e22; margin-left:auto; font-weight: bold;">➔ RESET STATE</span>
                     </div>`;
             }).join('')}
             </div>
@@ -7050,12 +7236,15 @@ SMART IMPORT SYSTEM (Dr. Mo Edition)
         if (brandNewEntries.length > 0) {
             html += `<div style="border: 2px solid #A5D6A7; border-radius: 12px; margin-bottom: 15px; overflow: hidden;">
             ${sectionHeader('✨ BRAND NEW RECORDS', brandNewEntries.length, '#E8F5E9', 'import-check-brand')}
-            <div style="max-height: 150px; overflow-y: auto; background: white;">
+            <div style="max-height: 180px; overflow-y: auto; background: white;">
                 ${brandNewEntries.map(p => {
                 const rxNum = (p.prescriptions && p.prescriptions.length > 0) ? p.prescriptions[0].number : '';
-                return `<div style="padding: 8px 15px; border-bottom: 1px solid #eee; display: flex; align-items: center; gap: 10px; font-size: 12px;">
+                return `<div style="padding: 10px 15px; border-bottom: 1px solid #eee; display: flex; align-items: center; gap: 10px; font-size: 12px; flex-wrap: wrap;">
                         <input type="checkbox" class="import-check-new import-check-brand" data-type="brand_new" data-id="${p.nationalId}" data-rx="${rxNum}" checked>
-                        <b>${p.nationalId}</b> <span style="color:#27ae60; margin-left:auto;">+ ADD NEW</span>
+                        <b>${p.nationalId}</b>
+                        <span style="background: #e8f5e9; color: #2e7d32; padding: 2px 8px; border-radius: 6px; font-family: monospace; font-weight: bold; font-size: 11px;">Rx: ${rxNum}</span>
+                        <span style="color: #636e72; font-size: 11px;">📅 الصرف: <b>${p.dispensingDate || '-'}</b> ➔ الريفيل: <b style="color: #27ae60;">${p.nextRefillDate}</b></span>
+                        <span style="color:#27ae60; margin-left:auto; font-weight: bold;">+ ADD NEW</span>
                     </div>`;
             }).join('')}
             </div>
@@ -7135,22 +7324,48 @@ SMART IMPORT SYSTEM (Dr. Mo Edition)
                 const rx = check.dataset.rx;
                 const data = pendingImportData.find(p => {
                     const rxNum = (p.prescriptions && p.prescriptions.length > 0) ? p.prescriptions[0].number : '';
-                    return p.nationalId === id && rxNum === rx;
+                    return p.nationalId === id && rxNum.toLowerCase() === rx.toLowerCase();
                 });
 
                 if (data) {
-                    const existing = patients.find(p => p.nationalId === id && p.prescriptions.some(r => r.number.toLowerCase() === rx.toLowerCase()));
+                    const dispDate = data.dispensingDate || todayStr;
+                    const nextDate = data.nextRefillDate || todayStr;
+                    const refillP = data.refillPeriod || 24;
+
+                    const existing = patients.find(p => p.nationalId === id && p.prescriptions && p.prescriptions.some(r => r.number.toLowerCase() === rx.toLowerCase()));
                     if (existing) {
                         updatePromises.push(supabaseClient.from('patients').update({
-                            dispensing_date: todayStr, next_refill_date: todayStr, imported: true, import_date: data.importDate
+                            dispensing_date: dispDate,
+                            next_refill_date: nextDate,
+                            refill_period: refillP,
+                            imported: true,
+                            import_date: data.importDate
                         }).eq('id', existing.id));
+
+                        updatePromises.push(supabaseClient.from('prescriptions').update({
+                            dispensing_date: dispDate,
+                            next_refill_date: nextDate
+                        }).eq('patient_id', existing.id));
+
                         counters.moved++;
                     } else {
                         patientsToInsert.push({
-                            pharmacy_id: currentUser.id, national_id: data.nationalId, phone_number: data.phoneNumber || '',
-                            dispensing_date: todayStr, next_refill_date: todayStr, imported: true, import_date: data.importDate
+                            pharmacy_id: currentUser.id,
+                            national_id: data.nationalId,
+                            phone_number: data.phoneNumber || '',
+                            dispensing_date: dispDate,
+                            next_refill_date: nextDate,
+                            refill_period: refillP,
+                            imported: true,
+                            import_date: data.importDate
                         });
-                        actionMapping.push({ nationalId: data.nationalId, rx: rx });
+                        actionMapping.push({
+                            nationalId: data.nationalId,
+                            rx: rx,
+                            dispensingDate: dispDate,
+                            nextRefillDate: nextDate,
+                            refillPeriod: refillP
+                        });
                     }
                 }
             });
@@ -7159,22 +7374,28 @@ SMART IMPORT SYSTEM (Dr. Mo Edition)
             if (patientsToInsert.length > 0) {
                 const { data: saved, error } = await supabaseClient.from('patients').insert(patientsToInsert).select();
                 if (error) throw error;
-                const rxRows = saved.map(p => {
-                    const map = actionMapping.find(m => m.nationalId === p.national_id);
+                const rxRows = saved.map((p, idx) => {
+                    const map = actionMapping[idx] || actionMapping.find(m => m.nationalId === p.national_id);
                     counters.new++;
-                    return { patient_id: p.id, prescription_number: map.rx, dispensing_date: todayStr, next_refill_date: todayStr };
+                    return {
+                        patient_id: p.id,
+                        prescription_number: map ? map.rx : '',
+                        dispensing_date: map ? map.dispensingDate : (p.dispensing_date || todayStr),
+                        next_refill_date: map ? map.nextRefillDate : (p.next_refill_date || todayStr)
+                    };
                 });
                 await supabaseClient.from('prescriptions').insert(rxRows);
             }
 
             await loadPatientsFromSupabase();
-            showModal('✅ Done', `Processed: ${counters.new} New, ${counters.moved} Pulled, ${counters.updated} Updated.`, '<button class="btn-primary" onclick="closeModal(); switchTab(\'patients\')">OK</button>');
+            showModal('✅ Done', `Processed: ${counters.new} New, ${counters.moved} Pulled, ${counters.updated} Updated.`, `<button class="btn-primary" onclick="closeModal(); switchTab('patients')">OK</button>`);
             container.innerHTML = '';
         } catch (e) {
             console.error(e);
             showModal('❌ Failed', e.message, '<button class="btn-primary" onclick="closeModal()">Try Again</button>');
         }
     }
+
     function handleImportFile(e) {
         let file = e.target.files[0];
         if (!file) return;
@@ -10464,12 +10685,27 @@ SMART IMPORT SYSTEM (Dr. Mo Edition)
                 let incomingMap = {};
 
                 rawData.forEach(row => {
-                    let id = String(row['ID'] || row['nationalId'] || "").trim();
-                    let nextRefill = safeDate(row['NextRefill Date'] || row['nextRefillDate']);
+                    let id = String(
+                        getBestColumnValue(row, ['Insurance Approval', 'nationalId', 'ID', 'id', 'national_id'], ['Is Insurance Approval', 'isinsuranceapproval']) || ""
+                    ).trim();
+
+                    let rxNumber = String(
+                        getBestColumnValue(row, ['Membership ID', 'Prescription Number', 'prescriptionNumber', 'rx', 'prescription_number']) || ""
+                    ).trim();
+
+                    let phone = String(
+                        getBestColumnValue(row, ['Loyalty Phone', 'Phone', 'phoneNumber', 'mobile', 'phone']) || ""
+                    ).trim();
+
+                    let rawDate = getBestColumnValue(row, ['Trx Date', 'Dispensing Date', 'dispensingDate', 'date'], ['trx month', 'trx time', 'trx status', 'trx type']);
+                    let dispDate = parseDateSmart(rawDate) || safeDate(rawDate) || new Date().toISOString().split('T')[0];
+
+                    let period = safeNumber(row['Refill Period'] || row['refillPeriod']) || 24;
+                    let rawRefill = safeDate(row['NextRefill Date'] || row['nextRefillDate']);
+                    let nextRefill = rawRefill || calculateNextRefillDate(dispDate, period);
 
                     if (!id) return;
 
-                    // المفتاح المميز: الهوية + تاريخ الريفيل (عشان لو التاريخ مختلف يعمل كارت جديد)
                     let uniqueKey = `${id}_${nextRefill}`;
 
                     if (!incomingMap[uniqueKey]) {
@@ -10477,25 +10713,24 @@ SMART IMPORT SYSTEM (Dr. Mo Edition)
                             pharmacy_id: currentUser.id,
                             national_id: id,
                             patient_name: row['Name'] || row['patientName'] || "",
-                            phone_number: String(row['Phone'] || row['phoneNumber'] || ""),
+                            phone_number: phone,
                             general_note: row['General Note'] || row['generalNote'] || "",
-                            dispensing_date: safeDate(row['Dispensing Date'] || row['dispensingDate']) || new Date().toISOString().split('T')[0],
+                            dispensing_date: dispDate,
                             next_refill_date: nextRefill,
-                            refill_period: safeNumber(row['Refill Period'] || row['refillPeriod']) || 24,
-                            imported: false, // كارت أبيض
+                            refill_period: period,
+                            imported: true, // في قسم الامبورتد
                             import_date: new Date().toISOString(),
                             prescriptions: []
                         };
                     }
 
-                    let rxNumber = row['Prescription Number'] || row['prescriptionNumber'] || "";
                     if (rxNumber && String(rxNumber).trim() !== "") {
                         incomingMap[uniqueKey].prescriptions.push({
                             prescription_number: String(rxNumber),
                             note: row['Prescription Note'] || row['prescriptionNote'] || "",
-                            dispensing_date: safeDate(row['Dispensing Date'] || row['dispensingDate']) || new Date().toISOString().split('T')[0],
+                            dispensing_date: dispDate,
                             next_refill_date: nextRefill,
-                            refill_period: safeNumber(row['Refill Period'] || row['refillPeriod']) || 24
+                            refill_period: period
                         });
                     }
                 });
