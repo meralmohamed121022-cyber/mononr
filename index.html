@@ -3326,7 +3326,7 @@
             padding: 15px;
             display: grid;
             /* نفس تصميم الكروت العادية */
-            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
             gap: 15px;
             background: #FAFAFA;
         }
@@ -3360,8 +3360,8 @@
         .import-batch-grid {
             padding: 20px;
             display: grid;
-            /* هذا السطر يجعل الكروت تتجاوب مع الشاشة: كارتين أو ثلاثة بجانب بعض */
-            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            /* هذا السطر يجعل الكروت تتجاوب مع الشاشة: كارتين أو ثلاثة بجانب بعض مع مساحة مريحة */
+            grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
             gap: 15px;
         }
 
@@ -3864,6 +3864,85 @@
             box-shadow: 0 8px 24px rgba(230, 126, 34, 0.3);
         }
 
+        /* --- BLOCKED PATIENT STYLES (نظام حظر المرضى) --- */
+        .patient-card.is-blocked {
+            background: #fff8f8 !important;
+            border: 2px solid #ef4444 !important;
+            box-shadow: 0 8px 25px rgba(239, 68, 68, 0.25) !important;
+        }
+        .patient-card.is-blocked:hover {
+            box-shadow: 0 12px 32px rgba(239, 68, 68, 0.35) !important;
+        }
+        .blocked-alert-banner {
+            background: linear-gradient(135deg, #ef4444, #dc2626);
+            color: white;
+            padding: 10px 14px;
+            border-radius: 10px;
+            margin: 8px 0 12px 0;
+            font-size: 13px;
+            font-weight: 800;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            box-shadow: 0 4px 12px rgba(239, 68, 68, 0.35);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        .blocked-card-body {
+            transition: filter 0.3s ease, opacity 0.3s ease;
+        }
+        .blocked-card-body.blurred {
+            filter: blur(5px) grayscale(40%);
+            pointer-events: none;
+            user-select: none;
+            opacity: 0.55;
+        }
+        .btn-reveal-blur {
+            background: rgba(255, 255, 255, 0.25);
+            border: 1px solid rgba(255, 255, 255, 0.6);
+            color: white;
+            padding: 5px 12px;
+            border-radius: 6px;
+            font-size: 11px;
+            font-weight: 800;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            transition: all 0.2s ease;
+        }
+        .btn-reveal-blur:hover {
+            background: rgba(255, 255, 255, 0.4);
+            transform: scale(1.03);
+        }
+        .btn-action.btn-block {
+            background: #ef4444;
+            color: white;
+        }
+        .btn-action.btn-block:hover {
+            background: #dc2626;
+        }
+        .btn-action.btn-unblock {
+            background: #10b981;
+            color: white;
+        }
+        .btn-action.btn-unblock:hover {
+            background: #059669;
+        }
+        .chip.chip-blocked {
+            background: #fee2e2;
+            color: #b91c1c;
+            border: 1px solid #fca5a5;
+        }
+        .chip.chip-blocked.active {
+            background: #ef4444;
+            color: white;
+            border-color: #ef4444;
+        }
+        .queue-row-blocked {
+            background: #fff5f5 !important;
+            border-right: 4px solid #ef4444 !important;
+        }
+
         /* أنيميشن الكبسولة اللي بتنط */
         .pill-loader {
             width: 40px;
@@ -3909,17 +3988,221 @@
         }
 
         .card-desktop-row {
-            display: grid;
-            grid-template-columns: 1fr;
+            display: flex;
+            flex-direction: column;
             gap: 8px;
-            margin-top: 8px;
-            align-items: stretch;
+            margin-top: 6px;
         }
 
         @media(min-width: 768px) {
             .card-desktop-row {
-                grid-template-columns: 1fr 1fr;
+                grid-template-columns: 1fr;
             }
+        }
+
+        /* ========================================================
+           ⏰ نظام ويدجت المنبه بالكارت والمودال التفاعلي الاحترافي
+        ======================================================== */
+        .card-alarm-widget {
+            background: #f8fafc;
+            border: 1.5px dashed #cbd5e1;
+            border-radius: 10px;
+            padding: 8px 12px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 8px;
+            transition: all 0.2s ease;
+            user-select: none;
+            box-sizing: border-box;
+            width: 100%;
+        }
+        .card-alarm-widget:hover {
+            background: #f0f9ff;
+            border-color: #38bdf8;
+            transform: translateY(-1px);
+            box-shadow: 0 3px 8px rgba(56, 189, 248, 0.15);
+        }
+        .card-alarm-widget.active {
+            background: linear-gradient(135deg, #f0fdf4 0%, #e0f2fe 100%);
+            border: 1.5px solid #38bdf8;
+            box-shadow: 0 2px 6px rgba(14, 165, 233, 0.12);
+        }
+        .card-alarm-widget.active:hover {
+            border-color: #0284c7;
+            box-shadow: 0 4px 12px rgba(14, 165, 233, 0.2);
+        }
+        .card-alarm-widget.ringing {
+            background: #fef2f2;
+            border: 2px solid #ef4444;
+            animation: alarmPulse 0.9s infinite alternate;
+        }
+        @keyframes alarmPulse {
+            0% { box-shadow: 0 0 0 rgba(239, 68, 68, 0.4); border-color: #ef4444; }
+            100% { box-shadow: 0 0 14px rgba(239, 68, 68, 0.7); border-color: #b91c1c; }
+        }
+
+        .alarm-bell-icon {
+            font-size: 14px;
+            line-height: 1;
+            flex-shrink: 0;
+        }
+        .alarm-active-tag {
+            background: #0284c7;
+            color: white;
+            font-size: 8px;
+            font-weight: 800;
+            padding: 1px 6px;
+            border-radius: 6px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        .alarm-action-pill {
+            font-size: 10px;
+            font-weight: 800;
+            color: #0284c7;
+            background: white;
+            border: 1px solid #bae6fd;
+            padding: 3px 8px;
+            border-radius: 6px;
+            transition: all 0.15s ease;
+            white-space: nowrap;
+        }
+        .alarm-action-pill:hover {
+            background: #0284c7;
+            color: white;
+        }
+        .alarm-add-pill {
+            background: #e0f2fe;
+            border-color: #7dd3fc;
+            color: #0369a1;
+        }
+        .btn-alarm-stop {
+            background: #ef4444;
+            color: white;
+            border: none;
+            padding: 4px 10px;
+            border-radius: 6px;
+            font-size: 10px;
+            font-weight: 900;
+            cursor: pointer;
+            box-shadow: 0 2px 6px rgba(239, 68, 68, 0.4);
+            animation: blink 0.5s infinite;
+            white-space: nowrap;
+        }
+        .btn-alarm-del {
+            background: #fee2e2;
+            color: #dc2626;
+            border: 1px solid #fca5a5;
+            padding: 3px 7px;
+            border-radius: 6px;
+            font-size: 10px;
+            cursor: pointer;
+            transition: all 0.15s ease;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .btn-alarm-del:hover {
+            background: #dc2626;
+            color: white;
+        }
+
+        /* تصميم المودال لاختيار الوقت والتاريخ */
+        .alarm-modal-section {
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 12px;
+            padding: 12px;
+            margin-bottom: 12px;
+            text-align: right;
+        }
+        .alarm-modal-title {
+            font-size: 12px;
+            font-weight: 800;
+            color: #475569;
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .alarm-modal-input {
+            width: 100%;
+            box-sizing: border-box;
+            padding: 9px 12px;
+            border: 2px solid #cbd5e1;
+            border-radius: 10px;
+            font-size: 13px;
+            font-weight: 700;
+            color: #0f172a;
+            background: white;
+            outline: none;
+            transition: border-color 0.2s ease;
+            font-family: inherit;
+        }
+        .alarm-modal-input:focus {
+            border-color: #0284c7;
+            box-shadow: 0 0 0 3px rgba(2, 132, 199, 0.15);
+        }
+        .alarm-preset-group {
+            display: flex;
+            gap: 6px;
+            flex-wrap: wrap;
+            margin-top: 8px;
+        }
+        .alarm-preset-btn {
+            background: white;
+            border: 1px solid #cbd5e1;
+            border-radius: 8px;
+            padding: 5px 9px;
+            font-size: 11px;
+            font-weight: 700;
+            color: #334155;
+            cursor: pointer;
+            transition: all 0.15s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+        }
+        .alarm-preset-btn:hover {
+            background: #0284c7;
+            border-color: #0284c7;
+            color: white;
+            transform: translateY(-1px);
+        }
+        .alarm-preset-btn.active {
+            background: #0284c7;
+            border-color: #0284c7;
+            color: white;
+        }
+        .alarm-preview-box {
+            background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%);
+            color: white;
+            border-radius: 12px;
+            padding: 14px;
+            text-align: center;
+            margin-top: 10px;
+            box-shadow: 0 4px 14px rgba(2, 132, 199, 0.25);
+            transition: background 0.3s ease;
+        }
+        .alarm-preview-time {
+            font-size: 18px;
+            font-weight: 900;
+            margin: 4px 0;
+            font-family: monospace;
+            letter-spacing: 0.5px;
+        }
+        .alarm-preview-date {
+            font-size: 13px;
+            font-weight: 700;
+            opacity: 0.95;
+        }
+        .alarm-preview-delta {
+            font-size: 11px;
+            margin-top: 4px;
+            font-weight: 600;
+            opacity: 0.9;
         }
         
         .custom-prompt-overlay {
@@ -4241,10 +4524,21 @@
                 <!-- Identity and Phone Section -->
                 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
                     <div class="form-group">
-                        <label class="form-label"><span style="font-size: 18px; margin-right: 8px;">🆔</span> ID Number (10
-                            digits)</label>
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px;">
+                            <label class="form-label" style="margin-bottom: 0;"><span style="font-size: 18px; margin-right: 8px;">🆔</span> ID Number (10 digits)</label>
+                            <button type="button" id="btnAddTabBlock" onclick="blockFromAddTab()" style="display: none; background: #fff1f2; border: 1px dashed #ef4444; color: #ef4444; padding: 2px 8px; border-radius: 6px; font-size: 11px; cursor: pointer; font-weight: bold; align-items: center; gap: 4px;">
+                                <span>🚫</span> حظر هذه الهوية
+                            </button>
+                        </div>
                         <input type="text" class="form-input" id="nationalId" placeholder="1234567890" maxlength="10"
-                            pattern="[1-4][0-9]{9}">
+                            pattern="[1-4][0-9]{9}" oninput="checkBlockedOnAddInput()">
+                        <div id="addTabBlockedAlert" style="display: none; background: #fff5f5; border: 1.5px solid #ef4444; color: #b91c1c; padding: 8px 12px; border-radius: 8px; margin-top: 6px; font-size: 12px; font-weight: bold; align-items: center; justify-content: space-between; box-shadow: 0 2px 6px rgba(239,68,68,0.15);" dir="auto">
+                            <div style="display: flex; align-items: center; gap: 6px;">
+                                <span style="font-size: 16px;">🚫</span>
+                                <span>تنبيه: هذا العميل محظور! (العميل رافض الصرف من الفرع بتاعنا)</span>
+                            </div>
+                            <button type="button" onclick="unblockFromAddTab()" style="background: #10b981; color: white; border: none; padding: 4px 10px; border-radius: 6px; font-size: 11px; font-weight: bold; cursor: pointer;">إلغاء الحظر</button>
+                        </div>
                     </div>
                     <div class="form-group">
                         <label class="form-label"><span style="font-size: 18px; margin-right: 8px;">📱</span> Phone Number
@@ -4308,9 +4602,13 @@
                     <div class="chip" onclick="filterPatients('overdue')">Overdue</div>
                     <div class="chip" onclick="filterPatients('need_rx')">Need New RX</div>
                     <div class="chip" onclick="filterPatients('imported')">Imported</div>
+                    <div class="chip chip-blocked" onclick="filterPatients('blocked')">🚫 Blocked (<span id="blockedFilterCount">0</span>)</div>
                 </div>
 
-                <div style="display: flex; justify-content: flex-end; margin-bottom: 10px;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                    <button class="btn-action" style="padding: 10px 18px; border-radius: 8px; border: none; font-weight: bold; background: #ef4444; color: white; cursor: pointer; display: flex; align-items: center; gap: 6px; box-shadow: 0 4px 10px rgba(239, 68, 68, 0.25);" onclick="openBlockIdModal()">
+                        🚫 Block ID (حظر هوية)
+                    </button>
                     <button class="btn-action btn-delete" style="padding: 10px 18px; border-radius: 8px; border: none; font-weight: bold; display: none;" id="btnDeleteDisplayed" onclick="deleteAllDisplayedPatients()">🗑️ Delete All</button>
                 </div>
                 <div id="patientsContainer"></div>
@@ -4614,6 +4912,340 @@
         window.confirmCallback = callback;
         window.confirmCancelCb = cancelCallback || function () { };
     }
+
+    // ============================================
+    // BLOCKED PATIENTS SYSTEM (نظام حظر المرضى / الهويات)
+    // ============================================
+    let blockedPatientsList = [];
+
+    function loadBlockedIds() {
+        try {
+            const key = 'mono_blocked_patients_' + (currentUser && currentUser.id ? currentUser.id : 'default');
+            let stored = localStorage.getItem(key);
+            if (!stored) {
+                stored = localStorage.getItem('mono_blocked_patients');
+            }
+            if (stored) {
+                blockedPatientsList = JSON.parse(stored);
+            } else {
+                blockedPatientsList = [];
+            }
+        } catch (e) {
+            console.error('Error reading blocked patients from localStorage:', e);
+            blockedPatientsList = [];
+        }
+        syncBlockedFromPatients();
+    }
+
+    function saveBlockedIds() {
+        try {
+            const key = 'mono_blocked_patients_' + (currentUser && currentUser.id ? currentUser.id : 'default');
+            localStorage.setItem(key, JSON.stringify(blockedPatientsList));
+            localStorage.setItem('mono_blocked_patients', JSON.stringify(blockedPatientsList));
+        } catch (e) {
+            console.error('Error saving blocked patients to localStorage:', e);
+        }
+    }
+
+    function isBlockedNationalId(nationalId) {
+        if (!nationalId) return false;
+        const nid = String(nationalId).trim();
+        return blockedPatientsList.some(b => String(b.nationalId).trim() === nid);
+    }
+
+    function syncBlockedFromPatients() {
+        if (!Array.isArray(patients)) return;
+        let modified = false;
+        patients.forEach(p => {
+            if (p.nationalId && p.generalNote && p.generalNote.includes('[BLOCKED]')) {
+                const nid = String(p.nationalId).trim();
+                if (!blockedPatientsList.find(b => String(b.nationalId).trim() === nid)) {
+                    blockedPatientsList.push({
+                        nationalId: nid,
+                        reason: 'العميل رافض الصرف من الفرع بتاعنا',
+                        date: p.updatedAt || new Date().toISOString()
+                    });
+                    modified = true;
+                }
+            }
+        });
+        if (modified) {
+            saveBlockedIds();
+        }
+    }
+
+    async function blockPatientId(nationalId, reason = 'العميل رافض الصرف من الفرع بتاعنا') {
+        if (!nationalId) return;
+        const nid = String(nationalId).trim();
+        if (!blockedPatientsList.find(b => String(b.nationalId).trim() === nid)) {
+            blockedPatientsList.push({
+                nationalId: nid,
+                reason: reason || 'العميل رافض الصرف من الفرع بتاعنا',
+                date: new Date().toISOString()
+            });
+            saveBlockedIds();
+        }
+
+        // تحديث كل كروت المريض في الذاكرة
+        const matches = patients.filter(p => String(p.nationalId).trim() === nid);
+        matches.forEach(p => {
+            if (!p.generalNote || !p.generalNote.includes('[BLOCKED]')) {
+                p.generalNote = p.generalNote ? `[BLOCKED] ${p.generalNote}` : '[BLOCKED] العميل رافض الصرف من الفرع بتاعنا';
+            }
+        });
+
+        // تحديث في السيرفر إن أمكن
+        if (currentUser && currentUser.id && matches.length > 0) {
+            matches.forEach(async (p) => {
+                try {
+                    await supabaseClient.from('patients').update({ general_note: p.generalNote }).eq('id', p.id);
+                } catch(e) { console.error('Error syncing blocked state:', e); }
+            });
+        }
+
+        updateStats();
+        displayPatients();
+        if (typeof renderDispensingQueue === 'function') {
+            renderDispensingQueue();
+        }
+        checkBlockedOnAddInput();
+        showToast(`🚫 تم حظر الهوية: ${nid}`);
+    }
+
+    async function unblockPatientId(nationalId) {
+        if (!nationalId) return;
+        const nid = String(nationalId).trim();
+        blockedPatientsList = blockedPatientsList.filter(b => String(b.nationalId).trim() !== nid);
+        saveBlockedIds();
+
+        // إزالة الحظر من كروت المريض في الذاكرة
+        const matches = patients.filter(p => String(p.nationalId).trim() === nid);
+        matches.forEach(p => {
+            if (p.generalNote && p.generalNote.includes('[BLOCKED]')) {
+                p.generalNote = p.generalNote.replace('[BLOCKED] العميل رافض الصرف من الفرع بتاعنا', '').replace('[BLOCKED]', '').trim();
+            }
+        });
+
+        // تحديث في السيرفر
+        if (currentUser && currentUser.id && matches.length > 0) {
+            matches.forEach(async (p) => {
+                try {
+                    await supabaseClient.from('patients').update({ general_note: p.generalNote }).eq('id', p.id);
+                } catch(e) { console.error('Error syncing unblocked state:', e); }
+            });
+        }
+
+        updateStats();
+        displayPatients();
+        if (typeof renderDispensingQueue === 'function') {
+            renderDispensingQueue();
+        }
+        checkBlockedOnAddInput();
+        showToast(`✅ تم إلغاء حظر الهوية: ${nid}`);
+    }
+
+    function openBlockIdModal(prefilledId = '') {
+        const modalContent = `
+            <div style="padding: 10px;" dir="auto">
+                <div style="text-align: center; margin-bottom: 15px;">
+                    <div style="font-size: 40px; margin-bottom: 8px;">🚫</div>
+                    <h3 style="color: #d63031; margin: 0; font-size: 18px;">حظر مريض / رقم هوية</h3>
+                    <p style="color: #636e72; font-size: 13px; margin-top: 4px;">سيتم حظر الصرف لهذا العميل وعرض تنبيه باللون الأحمر وإخفاء بيانات الوصفات</p>
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label" style="font-weight: bold; color: #2d3436;">🆔 رقم الهوية الوطنية:</label>
+                    <input type="text" id="blockModalNationalId" class="form-input" placeholder="1xxxxxxxxx" maxlength="10" value="${prefilledId}" style="font-size: 16px; font-weight: bold; font-family: monospace; border: 2px solid #ff7675;">
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label" style="font-weight: bold; color: #2d3436;">📝 سبب الحظر والتنبيه:</label>
+                    <input type="text" id="blockModalReason" class="form-input" value="العميل رافض الصرف من الفرع بتاعنا" style="font-size: 13px; font-weight: 600;">
+                </div>
+
+                <div style="background: #fff5f5; border: 1px dashed #fab1a0; border-radius: 8px; padding: 10px; font-size: 11px; color: #d63031; line-height: 1.5;">
+                    💡 <b>ملاحظة:</b> يمكنك حظر الهوية سواء كانت متخزنة مسبقاً أو غير موجودة بعد. سيظهر تنبيه الحظر في كافة التابات (المرضى، الصرف، الإضافة).
+                </div>
+            </div>
+        `;
+
+        showModal(
+            '<span style="color: #d63031;">🚫 حظر هوية جديدة</span>',
+            modalContent,
+            `
+            <button class="btn-secondary" onclick="closeModal()">إلغاء</button>
+            <button class="btn-primary" style="background: #d63031; border-color: #d63031;" onclick="executeBlockFromModal()">تأكيد الحظر</button>
+            `
+        );
+        setTimeout(() => {
+            const input = document.getElementById('blockModalNationalId');
+            if (input && !prefilledId) input.focus();
+        }, 150);
+    }
+
+    function executeBlockFromModal() {
+        const idInput = document.getElementById('blockModalNationalId');
+        const reasonInput = document.getElementById('blockModalReason');
+        const id = idInput ? idInput.value.trim() : '';
+        const reason = reasonInput ? reasonInput.value.trim() : 'العميل رافض الصرف من الفرع بتاعنا';
+
+        if (!id || id.length < 5) {
+            showToast('⚠️ يرجى إدخال رقم هوية صحيح');
+            return;
+        }
+
+        closeModal();
+        blockPatientId(id, reason);
+    }
+
+    function confirmBlockPatient(nationalId) {
+        const nid = String(nationalId).trim();
+        confirmAction(
+            `<div style="text-align: center;" dir="auto">
+                <div style="font-size: 38px; margin-bottom: 10px;">🚫</div>
+                <h3 style="color: #d63031; margin-bottom: 6px;">حظر العميل؟</h3>
+                <p style="font-size: 14px; color: #2d3436; font-weight: bold; margin-bottom: 8px;">الهوية: <b style="font-family:monospace;">${nid}</b></p>
+                <p style="font-size: 13px; color: #636e72; line-height: 1.5;">سيتم وضع علامة <b>(العميل رافض الصرف من الفرع بتاعنا)</b> وعمل بلور على بيانات الوصفات وتنبيه الصيدلي في كافة التابات.</p>
+            </div>`,
+            () => {
+                blockPatientId(nid);
+            }
+        );
+    }
+
+    function confirmUnblockPatient(nationalId) {
+        const nid = String(nationalId).trim();
+        confirmAction(
+            `<div style="text-align: center;" dir="auto">
+                <div style="font-size: 38px; margin-bottom: 10px;">✅</div>
+                <h3 style="color: #00b894; margin-bottom: 6px;">إلغاء حظر العميل؟</h3>
+                <p style="font-size: 14px; color: #2d3436; font-weight: bold; margin-bottom: 8px;">الهوية: <b style="font-family:monospace;">${nid}</b></p>
+                <p style="font-size: 13px; color: #636e72;">هل أنت متأكد من إلغاء الحظر وإعادة تمكين الصرف الطبيعي لهذا العميل؟</p>
+            </div>`,
+            () => {
+                unblockPatientId(nid);
+            }
+        );
+    }
+
+    function toggleCardReveal(patientId, btn) {
+        const body = document.getElementById(`blocked-body-${patientId}`);
+        if (!body) return;
+        
+        const isBlurred = body.classList.contains('blurred');
+        if (isBlurred) {
+            body.classList.remove('blurred');
+            if (btn) {
+                btn.innerHTML = '<span class="reveal-icon">🙈</span> <span class="reveal-text">إخفاء البيانات</span>';
+                btn.style.background = 'rgba(0, 0, 0, 0.3)';
+            }
+        } else {
+            body.classList.add('blurred');
+            if (btn) {
+                btn.innerHTML = '<span class="reveal-icon">👁️</span> <span class="reveal-text">إظهار البيانات</span>';
+                btn.style.background = 'rgba(255, 255, 255, 0.25)';
+            }
+        }
+    }
+
+    function checkBlockedOnAddInput() {
+        const input = document.getElementById('nationalId');
+        const alertBox = document.getElementById('addTabBlockedAlert');
+        const blockBtn = document.getElementById('btnAddTabBlock');
+        if (!input) return;
+
+        const val = input.value.trim();
+        if (val && isBlockedNationalId(val)) {
+            if (alertBox) alertBox.style.display = 'flex';
+            if (blockBtn) blockBtn.style.display = 'none';
+            input.style.borderColor = '#ef4444';
+            input.style.background = '#fff5f5';
+        } else {
+            if (alertBox) alertBox.style.display = 'none';
+            if (blockBtn) blockBtn.style.display = (val.length >= 5) ? 'inline-flex' : 'none';
+            input.style.borderColor = '';
+            input.style.background = '';
+        }
+    }
+
+    function blockFromAddTab() {
+        const input = document.getElementById('nationalId');
+        const val = input ? input.value.trim() : '';
+        if (!val || val.length < 5) {
+            showToast('⚠️ يرجى إدخال رقم هوية صالح أولاً');
+            return;
+        }
+        confirmBlockPatient(val);
+    }
+
+    function unblockFromAddTab() {
+        const input = document.getElementById('nationalId');
+        const val = input ? input.value.trim() : '';
+        if (val) {
+            confirmUnblockPatient(val);
+        }
+    }
+
+    function createOrphanBlockedCard(blockedItem, searchTerm = '') {
+        let card = document.createElement('div');
+        card.className = 'patient-card is-blocked fade-in';
+        card.setAttribute('data-patient-id', 'blocked-' + blockedItem.nationalId);
+
+        const hl_nationalId = highlightMatch(blockedItem.nationalId, searchTerm);
+
+        card.innerHTML = `
+        <div class="patient-header" style="border-bottom: none; margin-bottom: 0; padding-bottom: 0;">
+            <div style="display: flex; align-items: center; justify-content: space-between; gap: 8px; width: 100%;">
+                <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap; flex: 1;">
+                    <div class="patient-id" style="margin-bottom: 0; color: #d63031;">${hl_nationalId}</div>
+                    <div style="display: flex; align-items: center; background: #ffebee; padding: 4px 10px; border-radius: 20px; border: 1px solid #ffcdd2;">
+                        <div style="color: #c62828; font-weight: 800; font-size: 11px;">
+                            🚫 هوية محظورة مسجلة
+                        </div>
+                    </div>
+                </div>
+                <div>
+                    <div class="patient-badge" style="font-size:10px; background: #d63031; color: white;">BLOCKED</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="blocked-alert-banner" style="margin-top: 10px;">
+            <div style="display: flex; align-items: center; gap: 8px;">
+                <span style="font-size: 18px;">🚫</span>
+                <span>العميل رافض الصرف من الفرع بتاعنا</span>
+            </div>
+            <span style="font-size: 11px; opacity: 0.85;">${blockedItem.date ? new Date(blockedItem.date).toLocaleDateString('ar-SA') : ''}</span>
+        </div>
+
+        <div style="padding: 12px; background: #fffdfd; border-radius: 10px; border: 1px dashed #fab1a0; margin: 10px 0; color: #636e72; font-size: 12px;" dir="auto">
+            ℹ️ تم إدراج هذه الهوية في قائمة الحظر. في حال محاولة إضافة أو صرف أي وصفة لها، يتم تنبيه الصيدلي فوراً.
+        </div>
+
+        <div class="card-footer" style="display: flex; justify-content: flex-end; margin-top: 8px;">
+            <button class="btn-action btn-unblock" onclick="confirmUnblockPatient('${blockedItem.nationalId}')" style="padding: 10px 18px; font-size: 12px; background: #10b981; color: white; border-radius: 8px; border: none; cursor: pointer; font-weight: bold; display: inline-flex; align-items: center; gap: 6px;">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"></polyline></svg> إلغاء الحظر
+            </button>
+        </div>
+        `;
+
+        return card;
+    }
+
+    // ربط الدوال بـ window
+    window.loadBlockedIds = loadBlockedIds;
+    window.saveBlockedIds = saveBlockedIds;
+    window.isBlockedNationalId = isBlockedNationalId;
+    window.blockPatientId = blockPatientId;
+    window.unblockPatientId = unblockPatientId;
+    window.openBlockIdModal = openBlockIdModal;
+    window.executeBlockFromModal = executeBlockFromModal;
+    window.confirmBlockPatient = confirmBlockPatient;
+    window.confirmUnblockPatient = confirmUnblockPatient;
+    window.toggleCardReveal = toggleCardReveal;
+    window.checkBlockedOnAddInput = checkBlockedOnAddInput;
+    window.blockFromAddTab = blockFromAddTab;
+    window.unblockFromAddTab = unblockFromAddTab;
     // ============================================
     // DUPLICATE DETECTION
     // ============================================
@@ -5203,6 +5835,7 @@
         if (appInitialized) return;
         appInitialized = true;
         // 1. الإعدادات الأولية للعناصر (التاريخ والوصفة الأولى)
+        loadBlockedIds();
         document.getElementById('dispensingDate').valueAsDate = new Date();
         addPrescription();
 
@@ -5213,8 +5846,9 @@
         document.getElementById('filterDateTo').addEventListener('change', applyDateFilter);
         document.getElementById('importFileData').addEventListener('change', handleImportFile);
 
-        // التحقق من التكرار عند الخروج من حقل الهوية
+        // التحقق من التكرار والحظر عند حقل الهوية
         document.getElementById('nationalId').addEventListener('blur', checkIDDuplicate);
+        document.getElementById('nationalId').addEventListener('input', checkBlockedOnAddInput);
 
         // 3. العرض الأولي للبيانات المحملة مسبقاً
         calculateNextRefill();
@@ -5525,6 +6159,29 @@
             return;
         }
 
+        // فحص هل الهوية محظورة قبل الحفظ
+        if (nationalId && isBlockedNationalId(nationalId) && !window.isBlockedBypassed) {
+            confirmAction(
+                `<div style="text-align: center;" dir="auto">
+                    <div style="font-size: 38px; margin-bottom: 10px;">🚫</div>
+                    <h3 style="color: #d63031; margin-bottom: 8px;">تنبيه: هذا العميل محظور!</h3>
+                    <p style="font-size: 14px; color: #2d3436; font-weight: bold; margin-bottom: 8px;">العميل رافض الصرف من الفرع بتاعنا</p>
+                    <p style="font-size: 13px; color: #636e72;">رقم الهوية: <b style="font-family: monospace;">${nationalId}</b></p>
+                    <p style="font-size: 13px; color: #636e72; margin-top: 10px;">هل ترغب في المتابعة وحفظ الوصفة رغم ذلك أم إلغاء الحفظ؟</p>
+                </div>`,
+                async function () {
+                    window.isBlockedBypassed = true;
+                    await savePatient();
+                    window.isBlockedBypassed = false;
+                },
+                function () {
+                    if (typeof resetSaveBtn === 'function') resetSaveBtn();
+                    showToast('تم إلغاء الحفظ بناءً على الحظر');
+                }
+            );
+            return;
+        }
+
         // --- بداية وضع التحميل (Loading State) ---
         const saveBtn = document.getElementById('saveBtn');
         const saveBtnText = document.getElementById('saveButtonText');
@@ -5640,6 +6297,7 @@
 
         addPrescription();
         calculateNextRefill();
+        checkBlockedOnAddInput();
     }
 
     function switchTab(tabName) {
@@ -5695,6 +6353,10 @@
             const isActualNeedRx = isDateOverdue && hasRxNote; // دي الحالة اللي بتتسحب من الأوفر دو
 
             // 🎯 تنفيذ منطق العزل والفلترة
+            if (currentFilter === 'blocked') {
+                return isBlockedNationalId(p.nationalId);
+            }
+
             if (currentFilter === 'need_rx') {
                 return isActualNeedRx;
             }
@@ -5742,8 +6404,22 @@
             });
         }
 
-        // 6. عرض رسالة "لا توجد نتائج"
-        if (filteredPatients.length === 0) {
+        // 6. التحقق من الهويات المحظورة المسجلة بدون كروت
+        let orphanBlocked = [];
+        if (currentFilter === 'blocked' || currentFilter === 'all' || searchTerm) {
+            const displayedIds = new Set(filteredPatients.map(p => String(p.nationalId || '').trim()));
+            blockedPatientsList.forEach(b => {
+                const bNid = String(b.nationalId || '').trim();
+                if (bNid && !displayedIds.has(bNid)) {
+                    if (!searchTerm || bNid.includes(searchTerm)) {
+                        orphanBlocked.push(b);
+                    }
+                }
+            });
+        }
+
+        // 7. عرض رسالة "لا توجد نتائج"
+        if (filteredPatients.length === 0 && orphanBlocked.length === 0) {
             container.innerHTML = `
             <div class="no-data">
                 <div class="no-data-icon">
@@ -5752,12 +6428,19 @@
                 <p style="font-size: 18px; font-weight: 700; color: #95A5A6;">
                     ${searchTerm ? 'No matching results' : 'No patients match this filter'}
                 </p>
+                ${searchTerm && /^[1-4]?[0-9]{3,10}$/.test(searchTerm) ? `
+                    <div style="margin-top: 15px;">
+                        <button onclick="openBlockIdModal('${searchTerm}')" style="background: #ef4444; color: white; border: none; padding: 10px 20px; border-radius: 10px; cursor: pointer; font-weight: bold; font-size: 13px; box-shadow: 0 4px 12px rgba(239,68,68,0.25); display: inline-flex; align-items: center; gap: 6px;">
+                            <span>🚫</span> حظر هذه الهوية (${searchTerm})
+                        </button>
+                    </div>
+                ` : ''}
             </div>
         `;
             return;
         }
 
-        // 7. العرض النهائي
+        // 8. العرض النهائي
         if (currentFilter === 'imported' && !searchTerm && !dateFilterActive) {
             const batches = {};
             filteredPatients.forEach(p => {
@@ -5805,6 +6488,7 @@
 
         } else {
             filteredPatients.forEach(p => container.appendChild(createPatientCard(p, searchTerm)));
+            orphanBlocked.forEach(b => container.appendChild(createOrphanBlockedCard(b, searchTerm)));
         }
     }
     // دالة مساعدة لعمل Highlight للنص
@@ -5939,13 +6623,18 @@
         card.className = 'patient-card fade-in';
         card.setAttribute('data-patient-id', patient.id);
 
+        const isBlocked = isBlockedNationalId(patient.nationalId);
+        if (isBlocked) {
+            card.classList.add('is-blocked');
+        }
+
         let status = getRefillStatus(patient.nextRefillDate);
         if (status) card.classList.add(status);
         if (patient.imported) card.classList.add('imported');
 
-        let badgeText = status === 'today' ? 'DUE TODAY' :
+        let badgeText = isBlocked ? 'BLOCKED' : (status === 'today' ? 'DUE TODAY' :
             status === 'overdue' ? 'OVERDUE' :
-                status === 'upcoming' ? 'UPCOMING' : 'SCHEDULED';
+                status === 'upcoming' ? 'UPCOMING' : 'SCHEDULED');
 
         const hl_nationalId = highlightMatch(patient.nationalId, searchTerm);
         const hl_phone = highlightMatch(patient.phoneNumber, searchTerm);
@@ -6009,24 +6698,24 @@
 
         // --- [ لوحة التحكم السريع في التواريخ - مع أزرار TODAY ] ---
         let quickDatePanel = `
-        <div style="background: #f8f9fa; padding: 10px; border-radius: 10px; border: 1px solid #eee; box-shadow: inset 0 1px 3px rgba(0,0,0,0.05); box-sizing: border-box; height: 100%; display: flex; flex-direction: column; justify-content: space-between;">
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 8px;">
-                <div>
+        <div style="background: #f8f9fa; padding: 10px; border-radius: 10px; border: 1px solid #eee; box-shadow: inset 0 1px 3px rgba(0,0,0,0.05); box-sizing: border-box; width: 100%; display: flex; flex-direction: column; gap: 8px;">
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
+                <div style="min-width: 0;">
                     <span style="font-size: 9px; font-weight: 800; color: #95a5a6; display: block; margin-bottom: 3px; text-transform: uppercase;">Dispensing Date</span>
                     <div style="display: flex; gap: 4px;">
                         <input type="date" id="q-dispense-${patient.id}" value="${patient.dispensingDate || new Date().toISOString().split('T')[0]}" 
-                               style="width: 100%; border: 1px solid #ddd; border-radius: 6px; padding: 4px; font-size: 11px; font-weight: 700; outline: none; background: #fff;">
+                               style="width: 100%; min-width: 0; border: 1px solid #ddd; border-radius: 6px; padding: 5px 6px; font-size: 11px; font-weight: 700; outline: none; background: #fff;">
                         <button onclick="setDateToToday('q-dispense-${patient.id}')" 
-                                style="background: var(--primary); color: white; border: none; border-radius: 4px; padding: 0 6px; font-size: 9px; font-weight: 900; cursor: pointer;" title="Set to Today">T</button>
+                                style="background: var(--primary); color: white; border: none; border-radius: 6px; padding: 0 8px; font-size: 10px; font-weight: 900; cursor: pointer; flex-shrink: 0;" title="Set to Today">T</button>
                     </div>
                 </div>
-                <div>
+                <div style="min-width: 0;">
                     <span style="font-size: 9px; font-weight: 800; color: #95a5a6; display: block; margin-bottom: 3px; text-transform: uppercase;">Next Refill</span>
                     <div style="display: flex; gap: 4px;">
                         <input type="date" id="q-next-${patient.id}" value="${patient.nextRefillDate}" 
-                               style="width: 100%; border: 1.5px solid var(--primary); border-radius: 6px; padding: 4px; font-weight: 800; color: #0984e3; outline: none; background: #fff;">
+                               style="width: 100%; min-width: 0; border: 1.5px solid var(--primary); border-radius: 6px; padding: 5px 6px; font-weight: 800; color: #0984e3; outline: none; background: #fff; font-size: 11px;">
                         <button onclick="setDateToToday('q-next-${patient.id}')" 
-                                style="background: var(--secondary); color: white; border: none; border-radius: 4px; padding: 0 6px; font-size: 9px; font-weight: 900; cursor: pointer;" title="Set to Today">T</button>
+                                style="background: var(--secondary); color: white; border: none; border-radius: 6px; padding: 0 8px; font-size: 10px; font-weight: 900; cursor: pointer; flex-shrink: 0;" title="Set to Today">T</button>
                     </div>
                 </div>
             </div>
@@ -6034,14 +6723,14 @@
             <div style="display: flex; gap: 6px; align-items: center;">
                 <div style="display: flex; gap: 4px; flex: 1;">
                     <button onclick="setQuickDuration('${patient.id}', 24, this)" 
-                            style="flex:1; font-size:9px; padding:6px 0; border:1px solid #dcdde1; border-radius:6px; cursor:pointer; background:white; font-weight:800; color: #2f3640; transition: all 0.2s ease;">1M</button>
+                            style="flex:1; font-size:10px; padding:6px 0; border:1px solid #dcdde1; border-radius:6px; cursor:pointer; background:white; font-weight:800; color: #2f3640; transition: all 0.2s ease;">1M</button>
                     <button onclick="setQuickDuration('${patient.id}', 48, this)" 
-                            style="flex:1; font-size:9px; padding:6px 0; border:1px solid #dcdde1; border-radius:6px; cursor:pointer; background:white; font-weight:800; color: #2f3640; transition: all 0.2s ease;">2M</button>
+                            style="flex:1; font-size:10px; padding:6px 0; border:1px solid #dcdde1; border-radius:6px; cursor:pointer; background:white; font-weight:800; color: #2f3640; transition: all 0.2s ease;">2M</button>
                     <button onclick="setQuickDuration('${patient.id}', 72, this)" 
-                            style="flex:1; font-size:9px; padding:6px 0; border:1px solid #dcdde1; border-radius:6px; cursor:pointer; background:white; font-weight:800; color: #2f3640; transition: all 0.2s ease;">3M</button>
+                            style="flex:1; font-size:10px; padding:6px 0; border:1px solid #dcdde1; border-radius:6px; cursor:pointer; background:white; font-weight:800; color: #2f3640; transition: all 0.2s ease;">3M</button>
                 </div>
                 <button onclick="executeQuickSync('${patient.id}')" 
-                        style="background: var(--primary); color: white; border: none; border-radius: 8px; width: 36px; height: 32px; cursor: pointer; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 6px rgba(13,71,161,0.2); transition: 0.3s;"
+                        style="background: var(--primary); color: white; border: none; border-radius: 8px; width: 38px; height: 32px; cursor: pointer; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 6px rgba(13,71,161,0.2); transition: 0.3s; flex-shrink: 0;"
                         title="Save Changes">
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
                 </button>
@@ -6049,41 +6738,61 @@
         </div>
     `;
 
-        const hasAlarm = patient.sensor_reminder;
+        const hasAlarm = Boolean(patient.sensor_reminder);
         const isRinging = window.currentlyRingingId === patient.id;
+        const alarmFormatted = hasAlarm ? formatAlarmDisplay(patient.sensor_reminder) : '';
 
-        let sensorReminderHtml = `
-    <div id="alarm-box-${patient.id}" style="padding: 8px; background: ${isRinging ? '#fff5f5' : (hasAlarm ? '#f0f9ff' : '#fffcf5')}; border-radius: 10px; border: 1.5px solid ${isRinging ? '#d63031' : (hasAlarm ? '#74b9ff' : '#ffeaa7')}; transition: all 0.3s ease; box-shadow: inset 0 1px 3px rgba(0,0,0,0.05); height: 100%; box-sizing: border-box; display: flex; flex-direction: column; justify-content: space-between;">
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
-            <div style="display: flex; align-items: center; gap: 4px; font-size: 10px; font-weight: 800; color: ${isRinging ? '#d63031' : (hasAlarm ? '#0984e3' : '#e67e22')};">
-                <span style="font-size: 14px;">${isRinging ? '🚨' : (hasAlarm ? '🔔' : '🔕')}</span> ALARM
-            </div>
-            ${isRinging ? `
-                <button onclick="stopAlarmSound()" style="background:#d63031; color:white; border:none; padding:4px 8px; border-radius:6px; font-size:9px; font-weight:bold; cursor:pointer; animation: blink 0.5s infinite;">STOP</button>
-            ` : (hasAlarm ? '<span style="background:#0984e3; color:white; padding:2px 6px; border-radius:8px; font-size:8px; font-weight:bold;">ACTIVE</span>' : '')}
-        </div>
-        <div style="display: flex; gap: 4px; align-items: center;">
-            <input type="datetime-local" id="rem-time-${patient.id}" 
-                   value="${patient.sensor_reminder || ''}" 
-                   style="flex: 1; padding: 6px; border: 1px solid #dfe6e9; border-radius: 8px; font-size: 10px; outline: none; background: white; color: #2d3436;">
-            <button onclick="saveSensorReminder('${patient.id}')" 
-                    style="background: #00b894; color: white; border: none; padding: 6px 10px; border-radius: 8px; cursor: pointer; font-weight: 900; font-size: 10px;">
-                SET
-            </button>
-            ${hasAlarm ? `
-                <button onclick="deleteReminder('${patient.id}')" 
-                        style="background: #fab1a0; color: #d63031; border: none; padding: 6px; border-radius: 8px; cursor: pointer; font-weight: 900;" title="Delete">🗑️</button>
-            ` : ''}
-        </div>
-        ${hasAlarm && !isRinging ? `<div style="font-size: 9px; color: #636e72; margin-top: 4px; font-weight: 600; display: flex; align-items: center; gap: 4px;"><span>🕒</span> Next: ${patient.sensor_reminder.replace('T', ' at ')}</div>` : ''}
-    </div>
-    `;
+        let sensorReminderHtml = '';
+        if (isRinging) {
+            sensorReminderHtml = `
+            <div id="alarm-box-${patient.id}" class="card-alarm-widget ringing" onclick="openAlarmModal('${patient.id}')" title="اضغط لفتح خيارات المنبه">
+                <div style="display:flex; align-items:center; gap:8px; min-width:0;">
+                    <span class="alarm-bell-icon">🚨</span>
+                    <div style="min-width:0;">
+                        <div style="font-size:11px; font-weight:900; color:#dc2626; line-height:1.2;">المنبه يرن الآن!</div>
+                        <div style="font-size:9px; color:#ef4444; font-weight:700;">اضغط هنا للتحكم</div>
+                    </div>
+                </div>
+                <button onclick="event.stopPropagation(); stopAlarmSound();" class="btn-alarm-stop" title="إيقاف الصوت">
+                    STOP 🔇
+                </button>
+            </div>`;
+        } else if (hasAlarm) {
+            sensorReminderHtml = `
+            <div id="alarm-box-${patient.id}" class="card-alarm-widget active" onclick="openAlarmModal('${patient.id}')" title="اضغط لتعديل المنبه">
+                <div style="display:flex; align-items:center; gap:6px; min-width:0;">
+                    <span class="alarm-bell-icon" style="color:#0284c7; font-size:13px;">🔔</span>
+                    <div style="min-width:0;">
+                        <div style="font-size:10px; font-weight:800; color:#0369a1; display:flex; align-items:center; gap:4px;">
+                            <span>منبه مجدول</span>
+                            <span class="alarm-active-tag">نشط</span>
+                        </div>
+                        <div style="font-size:11px; font-weight:800; color:#0f172a; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">
+                            ${alarmFormatted}
+                        </div>
+                    </div>
+                </div>
+                <div style="display:flex; align-items:center; gap:4px; flex-shrink:0;">
+                    <span class="alarm-action-pill" title="تعديل المنبه">✏️ تعديل</span>
+                    <button onclick="event.stopPropagation(); deleteReminder('${patient.id}');" class="btn-alarm-del" title="حذف المنبه">🗑️</button>
+                </div>
+            </div>`;
+        } else {
+            sensorReminderHtml = `
+            <div id="alarm-box-${patient.id}" class="card-alarm-widget empty" onclick="openAlarmModal('${patient.id}')" title="اضغط لضبط منبه">
+                <div style="display:flex; align-items:center; gap:6px;">
+                    <span class="alarm-bell-icon" style="opacity:0.6; font-size:13px;">🔕</span>
+                    <span style="font-size:11px; font-weight:700; color:#64748b;">ضبط منبه (Alarm)</span>
+                </div>
+                <span class="alarm-action-pill alarm-add-pill">+ ضبط موعد</span>
+            </div>`;
+        }
 
         card.innerHTML = `
     <div class="patient-header" style="border-bottom: none; margin-bottom: 0; padding-bottom: 0;">
         <div style="display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; width: 100%;">
             <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap; flex: 1;">
-                <div class="patient-id" style="margin-bottom: 0;">${hl_nationalId}</div>
+                <div class="patient-id" style="margin-bottom: 0; ${isBlocked ? 'color: #d63031;' : ''}">${hl_nationalId}</div>
                 <button class="btn-check-inline" onclick="checkHistory('${patient.id}'); event.stopPropagation();" title="Check History">
                     <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
                     CHECK
@@ -6111,6 +6820,13 @@
                         👤 ${highlightMatch(patient.patientName, searchTerm)}
                     </div>
                 </div>` : ''}
+
+                ${isBlocked ? `
+                <div style="display: flex; align-items: center; background: #ffebee; padding: 4px 10px; border-radius: 20px; border: 1px solid #ffcdd2;">
+                    <div style="color: #d63031; font-weight: 800; font-size: 11px; display: flex; align-items: center; gap: 4px;">
+                        🚫 رافض الصرف من فرعنا
+                    </div>
+                </div>` : ''}
             </div>
             
             <div style="display: flex; justify-content: center; align-items: center; margin: 0 10px;">
@@ -6118,60 +6834,83 @@
             </div>
             
             <div style="display: flex; justify-content: flex-end; flex: 1;">
-                <div class="patient-badge" style="font-size:10px; margin-top: 5px;">${badgeText}</div>
+                <div class="patient-badge" style="font-size:10px; margin-top: 5px; ${isBlocked ? 'background:#d63031; color:white;' : ''}">${badgeText}</div>
             </div>
         </div>
     </div>
     
-    <div class="section-prescriptions" style="padding: 0; margin-top: 8px;">
-        <div style="overflow-x: auto; white-space: nowrap; padding-bottom: 5px; display: flex; align-items: center; gap: 10px;">
-        ${(patient.prescriptions || []).map(p => `
-            <div class="rx-item" style="display: inline-flex; margin-bottom: 0; align-items: center; gap: 6px; background: #f8f9fa; padding: 2px 6px; border-radius: 8px; border: 1px solid #e9ecef;">
-                <input type="text" 
-                       value="${p.number}" 
-                       data-original-rx="${p.number}"
-                       onchange="handleRxEdit(this, '${patient.id}', '${p.number}')"
-                       onclick="event.stopPropagation();"
-                       style="font-family:monospace; font-weight:700; font-size:12px; color:#2d3436; border: 1px dashed transparent; background: transparent; outline: none; width: 75px; padding: 0 2px; transition: 0.2s;"
-                       onfocus="this.style.borderBottomColor='#0984e3'; this.style.background='rgba(255,255,255,0.9)'"
-                       onblur="this.style.borderBottomColor='transparent'; this.style.background='transparent'">
-                <button class="btn-copy-only" onclick="event.stopPropagation(); copyRxOnly('${patient.nationalId}', '${p.number}')" title="Copy" style="width:24px; height:24px; display: flex; align-items: center; justify-content: center; background: #e3f2fd; border: none; border-radius: 4px; color: #1976d2; cursor: pointer;">
-                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
-                </button>
-                <button class="btn-check-wasfaty" onclick="event.stopPropagation(); checkPrescription('${patient.nationalId}', '${p.number}')" title="Wasfaty" style="width:24px; height:24px; display: flex; align-items: center; justify-content: center; background: #10ac84; border: none; border-radius: 4px; color: white; cursor: pointer; font-weight: 900; font-family: 'Inter', sans-serif; font-size: 13px; box-shadow: 0 2px 4px rgba(16, 172, 132, 0.3);">
-                    W
-                </button>
-                <button class="btn-delete-rx" onclick="event.stopPropagation(); confirmDeleteRx(this, '${patient.id}', '${p.number}')" title="Delete Rx" style="width:24px; height:24px; background: #ffeaa7; border: none; border-radius: 4px; color: #d63031; cursor: pointer; display: flex; align-items: center; justify-content: center;">
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+    ${isBlocked ? `
+    <div class="blocked-alert-banner" dir="auto">
+        <div style="display: flex; align-items: center; gap: 8px;">
+            <span style="font-size: 18px;">🚫</span>
+            <span>العميل رافض الصرف من الفرع بتاعنا</span>
+        </div>
+        <button type="button" class="btn-reveal-blur" onclick="toggleCardReveal('${patient.id}', this); event.stopPropagation();">
+            <span class="reveal-icon">👁️</span> <span class="reveal-text">إظهار البيانات</span>
+        </button>
+    </div>
+    ` : ''}
+
+    <div class="blocked-card-body ${isBlocked ? 'blurred' : ''}" id="blocked-body-${patient.id}">
+        <div class="section-prescriptions" style="padding: 0; margin-top: 8px;">
+            <div style="overflow-x: auto; white-space: nowrap; padding-bottom: 5px; display: flex; align-items: center; gap: 10px;">
+            ${(patient.prescriptions || []).map(p => `
+                <div class="rx-item" style="display: inline-flex; margin-bottom: 0; align-items: center; gap: 6px; background: #f8f9fa; padding: 2px 6px; border-radius: 8px; border: 1px solid #e9ecef;">
+                    <input type="text" 
+                           value="${p.number}" 
+                           data-original-rx="${p.number}"
+                           onchange="handleRxEdit(this, '${patient.id}', '${p.number}')"
+                           onclick="event.stopPropagation();"
+                           style="font-family:monospace; font-weight:700; font-size:12px; color:#2d3436; border: 1px dashed transparent; background: transparent; outline: none; width: 75px; padding: 0 2px; transition: 0.2s;"
+                           onfocus="this.style.borderBottomColor='#0984e3'; this.style.background='rgba(255,255,255,0.9)'"
+                           onblur="this.style.borderBottomColor='transparent'; this.style.background='transparent'">
+                    <button class="btn-copy-only" onclick="event.stopPropagation(); copyRxOnly('${patient.nationalId}', '${p.number}')" title="Copy" style="width:24px; height:24px; display: flex; align-items: center; justify-content: center; background: #e3f2fd; border: none; border-radius: 4px; color: #1976d2; cursor: pointer;">
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+                    </button>
+                    <button class="btn-check-wasfaty" onclick="event.stopPropagation(); checkPrescription('${patient.nationalId}', '${p.number}')" title="Wasfaty" style="width:24px; height:24px; display: flex; align-items: center; justify-content: center; background: #10ac84; border: none; border-radius: 4px; color: white; cursor: pointer; font-weight: 900; font-family: 'Inter', sans-serif; font-size: 13px; box-shadow: 0 2px 4px rgba(16, 172, 132, 0.3);">
+                        W
+                    </button>
+                    <button class="btn-delete-rx" onclick="event.stopPropagation(); confirmDeleteRx(this, '${patient.id}', '${p.number}')" title="Delete Rx" style="width:24px; height:24px; background: #ffeaa7; border: none; border-radius: 4px; color: #d63031; cursor: pointer; display: flex; align-items: center; justify-content: center;">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+                    </button>
+                </div>
+            `).join('')}
+                <button onclick="event.stopPropagation(); handleAddNewRx('${patient.id}')" style="background: #e0f7fa; color: #0097a7; border: 1px dashed #00bcd4; border-radius: 8px; height: 32px; padding: 0 12px; cursor: pointer; font-weight: bold; font-size: 12px; display: inline-flex; align-items: center; gap: 6px;">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+                    إضافة
                 </button>
             </div>
-        `).join('')}
-            <button onclick="event.stopPropagation(); handleAddNewRx('${patient.id}')" style="background: #e0f7fa; color: #0097a7; border: 1px dashed #00bcd4; border-radius: 8px; height: 32px; padding: 0 12px; cursor: pointer; font-weight: bold; font-size: 12px; display: inline-flex; align-items: center; gap: 6px;">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
-                إضافة
-            </button>
         </div>
-    </div>
 
-    <div class="card-section-info" style="margin-top: 5px;">
-        <div class="card-desktop-row" style="margin-top: 0;">
-            <div>${quickDatePanel}</div>
-            <div>${sensorReminderHtml}</div>
-        </div>
-        <div style="margin-top: 8px; border-top: 1px dashed #ced6e0; padding-top: 5px;">
-            <span class="date-badge ${status}" style="width: 100%; display: block; text-align: center; padding: 4px; font-size: 10px;">${getDaysUntilRefill(patient.nextRefillDate)}</span>
-        </div>
-        <div style="margin-top: 5px; width: 100%; overflow: hidden;">
-            ${quickNotesHtml}
+        <div class="card-section-info" style="margin-top: 5px;">
+            <div class="card-desktop-row" style="margin-top: 0;">
+                <div style="width: 100%;">${quickDatePanel}</div>
+                <div style="width: 100%;">${sensorReminderHtml}</div>
+            </div>
+            <div style="margin-top: 8px; border-top: 1px dashed #ced6e0; padding-top: 5px;">
+                <span class="date-badge ${status}" style="width: 100%; display: block; text-align: center; padding: 4px; font-size: 10px;">${getDaysUntilRefill(patient.nextRefillDate)}</span>
+            </div>
+            <div style="margin-top: 5px; width: 100%; overflow: hidden;">
+                ${quickNotesHtml}
+            </div>
         </div>
     </div>
     
     <div style="display: flex; gap: 8px; margin-top: 8px; align-items: stretch; width: 100%;">
         <div style="flex: 1; min-width: 0;">${notesBoxHtml}</div>
-        <div class="card-footer" style="flex: 1; display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; min-width: 0;">
-            <button class="btn-action btn-edit" onclick="editPatient('${patient.id}')" style="padding: 10px 5px;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg> Edit</button>
-            <button class="btn-action btn-delete" onclick="deletePatient('${patient.id}')" style="padding: 10px 5px;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg> Delete</button>
-            <button class="btn-action btn-whatsapp" onclick="shareWhatsApp('${patient.id}')" style="padding: 10px 5px;"><svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z"/></svg> Share</button>
+        <div class="card-footer" style="flex: 1; display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; min-width: 0;">
+            <button class="btn-action btn-edit" onclick="editPatient('${patient.id}')" style="padding: 10px 4px; font-size: 11px;"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg> Edit</button>
+            <button class="btn-action btn-delete" onclick="deletePatient('${patient.id}')" style="padding: 10px 4px; font-size: 11px;"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg> Delete</button>
+            <button class="btn-action btn-whatsapp" onclick="shareWhatsApp('${patient.id}')" style="padding: 10px 4px; font-size: 11px;"><svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z"/></svg> Share</button>
+            ${isBlocked ? `
+            <button class="btn-action btn-unblock" onclick="confirmUnblockPatient('${patient.nationalId}')" style="padding: 10px 4px; font-size: 11px; background: #10b981; color: white; display: flex; align-items: center; justify-content: center; gap: 4px;" title="إلغاء حظر المريض">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"></polyline></svg> إلغاء الحظر
+            </button>
+            ` : `
+            <button class="btn-action btn-block" onclick="confirmBlockPatient('${patient.nationalId}')" style="padding: 10px 4px; font-size: 11px; background: #ef4444; color: white; display: flex; align-items: center; justify-content: center; gap: 4px;" title="حظر المريض">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"></circle><line x1="4.93" y1="4.93" x2="19.07" y2="19.07"></line></svg> حظر
+            </button>
+            `}
         </div>
     </div>
     `;
@@ -6286,6 +7025,12 @@
 
         const totalCount = validPatients.length;
 
+        // تحديث عدد المحظورين
+        const blockedCount = validPatients.filter(p => isBlockedNationalId(p.nationalId)).length +
+            blockedPatientsList.filter(b => !validPatients.some(p => String(p.nationalId).trim() === String(b.nationalId).trim())).length;
+        const elBlocked = document.getElementById('blockedFilterCount');
+        if (elBlocked) elBlocked.innerText = blockedCount;
+
         // 2. تحديث الواجهة (البوكسات)
         const statsGrid = document.getElementById('statsGrid');
         if (statsGrid) {
@@ -6364,11 +7109,12 @@
 
             // التحقق من حالة الفلتر لمطابقتها مع نص الزرار
             if ((status === 'all' && chipText === 'all') ||
-                (status === 'today' && chipText === 'due today') ||
-                (status === 'upcoming' && chipText === 'upcoming week') ||
-                (status === 'overdue' && chipText === 'overdue') ||
-                (status === 'need_rx' && chipText === 'need new rx') || // السطر اللي بيشغل اللون الأخضر للزرار الجديد
-                (status === 'imported' && chipText === 'imported')) {
+                (status === 'today' && chipText.includes('due today')) ||
+                (status === 'upcoming' && chipText.includes('upcoming week')) ||
+                (status === 'overdue' && chipText.includes('overdue')) ||
+                (status === 'need_rx' && chipText.includes('need new rx')) ||
+                (status === 'imported' && chipText.includes('imported')) ||
+                (status === 'blocked' && chipText.includes('blocked'))) {
                 chip.classList.add('active');
             }
         });
@@ -7745,6 +8491,7 @@ SMART IMPORT SYSTEM (Dr. Mo Edition)
             }
 
             console.log('✅ Background Sync Complete!');
+            syncBlockedFromPatients();
 
         } catch (error) {
             console.error('❌ Load Error:', error);
@@ -7829,10 +8576,18 @@ SMART IMPORT SYSTEM (Dr. Mo Edition)
 
         // 1. حالة الهوية غير موجودة (إضافة مريض جديد للطابور)
         if (results.length === 0) {
+            const isTermBlocked = isBlockedNationalId(term);
             dropdown.innerHTML = `
-        <div style="padding: 20px; text-align: center; background: #ffffff; border-radius: 12px; border: 2px dashed var(--primary); box-shadow: 0 4px 15px rgba(0,0,0,0.05);">
-            <div style="font-size: 28px; margin-bottom: 12px;">🔍</div>
-            <p style="font-size: 15px; color: var(--primary); margin-bottom: 15px; font-weight: bold; border-bottom: 2px solid #e3f2fd; padding-bottom: 10px;">ID: ${term} Not Found</p>
+        <div style="padding: 20px; text-align: center; background: #ffffff; border-radius: 12px; border: 2px dashed ${isTermBlocked ? '#ef4444' : 'var(--primary)'}; box-shadow: 0 4px 15px rgba(0,0,0,0.05);">
+            <div style="font-size: 28px; margin-bottom: 12px;">${isTermBlocked ? '🚫' : '🔍'}</div>
+            <p style="font-size: 15px; color: ${isTermBlocked ? '#d63031' : 'var(--primary)'}; margin-bottom: 15px; font-weight: bold; border-bottom: 2px solid ${isTermBlocked ? '#ffcdd2' : '#e3f2fd'}; padding-bottom: 10px;">
+                ID: ${term} ${isTermBlocked ? '(محظور - رافض الصرف من عندنا)' : 'Not Found'}
+            </p>
+            ${isTermBlocked ? `
+            <div style="background: #ffebee; border: 1.5px solid #ef5350; border-radius: 10px; padding: 10px; margin-bottom: 15px; color: #c62828; text-align: center; font-weight: bold; font-size: 13px;" dir="auto">
+                🚫 تنبيه: هذا الرقم محظور (العميل رافض الصرف من الفرع بتاعنا)
+            </div>
+            ` : ''}
             
             <div style="display: flex; justify-content: center; margin-bottom: 15px;">
                 <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; background: #E8F5E9; padding: 10px 20px; border-radius: 10px; border: 1px solid #c8e6c9; user-select: none; transition: background 0.2s;">
@@ -7842,7 +8597,7 @@ SMART IMPORT SYSTEM (Dr. Mo Edition)
             </div>
 
             <button onclick="quickAddAndQueue('${term}')" 
-                    style="background:var(--primary); color:white; border:none; padding:15px 20px; border-radius:10px; cursor:pointer; width:100%; font-weight:bold; font-size:14px; box-shadow: 0 4px 12px rgba(13,71,161,0.2);">
+                    style="background:${isTermBlocked ? '#e74c3c' : 'var(--primary)'}; color:white; border:none; padding:15px 20px; border-radius:10px; cursor:pointer; width:100%; font-weight:bold; font-size:14px; box-shadow: 0 4px 12px rgba(13,71,161,0.2);">
                 + Create New Card & Queue
             </button>
         </div>
@@ -7853,15 +8608,19 @@ SMART IMPORT SYSTEM (Dr. Mo Edition)
 
         // 2. حالة الهوية موجودة (عرض النتائج مع زر الثلاجة)
         dropdown.innerHTML = results.map(p => {
+            const isBlocked = isBlockedNationalId(p.nationalId);
             const rxNumbers = (p.prescriptions && p.prescriptions.length > 0)
                 ? p.prescriptions.map(rx => rx.number).join(' - ')
                 : 'No Rx';
             const hasPhone = p.phoneNumber && p.phoneNumber.trim() !== '';
 
             return `
-    <div class="dispense-result-item">
+    <div class="dispense-result-item" style="${isBlocked ? 'border-right: 4px solid #ef4444; background: #fff8f8;' : ''}">
         <div style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
-            <div class="res-id">${p.nationalId}</div>
+            <div style="display: flex; align-items: center; gap: 8px;">
+                <div class="res-id" style="${isBlocked ? 'color: #d63031;' : ''}">${p.nationalId}</div>
+                ${isBlocked ? '<span style="background: #ef4444; color: white; padding: 2px 8px; border-radius: 6px; font-size: 10px; font-weight: 800;">🚫 رافض الصرف</span>' : ''}
+            </div>
             
             <div style="display: flex; align-items: center; gap: 10px;">
                 <label style="display: flex; align-items: center; gap: 5px; cursor: pointer; background: #E8F5E9; padding: 6px 12px; border-radius: 8px; border: 1px solid #c8e6c9; user-select: none;">
@@ -7870,7 +8629,7 @@ SMART IMPORT SYSTEM (Dr. Mo Edition)
                 </label>
 
                 <button onclick="addToQueue('${String(p.id)}')" 
-                        style="background:var(--secondary); color:white; border:none; padding:8px 15px; border-radius:8px; cursor:pointer; font-size:11px; font-weight:bold; box-shadow: 0 4px 10px rgba(0,184,148,0.2);">
+                        style="background:${isBlocked ? '#e74c3c' : 'var(--secondary)'}; color:white; border:none; padding:8px 15px; border-radius:8px; cursor:pointer; font-size:11px; font-weight:bold; box-shadow: 0 4px 10px rgba(0,184,148,0.2);">
                     Add to Queue
                 </button>
             </div>
@@ -7960,6 +8719,29 @@ SMART IMPORT SYSTEM (Dr. Mo Edition)
             btn.disabled = false;
             btn.innerHTML = originalBtnHtml;
             showToast('⚠️ Patient not found');
+            return;
+        }
+
+        if (isBlockedNationalId(patient.nationalId) && !window.isDispenseBlockedBypassed) {
+            btn.disabled = false;
+            btn.innerHTML = originalBtnHtml;
+            confirmAction(
+                `<div style="text-align: center;" dir="auto">
+                    <div style="font-size: 38px; margin-bottom: 10px;">🚫</div>
+                    <h3 style="color: #d63031; margin-bottom: 8px;">تنبيه: هذا العميل محظور!</h3>
+                    <p style="font-size: 14px; color: #2d3436; font-weight: bold; margin-bottom: 8px;">العميل رافض الصرف من الفرع بتاعنا</p>
+                    <p style="font-size: 13px; color: #636e72;">رقم الهوية: <b style="font-family: monospace;">${patient.nationalId}</b></p>
+                    <p style="font-size: 13px; color: #636e72; margin-top: 10px;">هل ترغب في متابعة إضافته إلى طابور الصرف رغم ذلك؟</p>
+                </div>`,
+                async function () {
+                    window.isDispenseBlockedBypassed = true;
+                    await addToQueue(patientId);
+                    window.isDispenseBlockedBypassed = false;
+                },
+                function () {
+                    showToast('تم إلغاء الإضافة بناءً على الحظر');
+                }
+            );
             return;
         }
 
@@ -8153,6 +8935,7 @@ SMART IMPORT SYSTEM (Dr. Mo Edition)
             const p = displayList[i];
             const finalNum = p.queueNumber || (i + 1);
             const drugCount = (p.drugs_list && p.drugs_list.length) ? p.drugs_list.length : 0;
+            const isBlocked = isBlockedNationalId(p.nationalId);
 
             // بناء البادجات الخاصة بالوصفات
             let rxHtml = '';
@@ -8162,8 +8945,8 @@ SMART IMPORT SYSTEM (Dr. Mo Edition)
 
             rowsHtml += `
         <tr id="queue-row-${p.id}" 
-            class="${p.cardColor === 'blue' ? 'color-blue' : ''}" 
-            style="transition: background 0.2s; position: relative;">
+            class="${p.cardColor === 'blue' ? 'color-blue' : ''} ${isBlocked ? 'queue-row-blocked' : ''}" 
+            style="transition: background 0.2s; position: relative; ${isBlocked ? 'background: #fff5f5 !important; border-right: 4px solid #ef4444;' : ''}">
             
             <td style="text-align: center;">
                 <button class="btn-remove-queue" onclick="confirmRemoveFromQueue('${p.id}')" 
@@ -8182,6 +8965,7 @@ SMART IMPORT SYSTEM (Dr. Mo Edition)
 </td>
 
             <td>
+                ${isBlocked ? '<div style="background:#fee2e2; color:#b91c1c; font-size:10px; font-weight:800; padding:2px 6px; border-radius:4px; margin-bottom:3px; display:inline-block;" dir="auto">🚫 رافض الصرف</div><br>' : ''}
                 <input type="text" value="${p.nationalId || ''}" 
                        onchange="updatePatientNationalIdInline('${p.id}', this.value)"
                        placeholder="Enter ID"
@@ -10026,12 +10810,18 @@ SMART IMPORT SYSTEM (Dr. Mo Edition)
         if (dropdown) dropdown.style.display = 'none';
 
         // 3. فتح المودال مع واجهة الإضافة السريعة
+        const isNewIdBlocked = isBlockedNationalId(newId);
         showModal(
-            '<span style="color: var(--primary);">⚡ Quick Add to Queue</span>',
+            `<span style="color: ${isNewIdBlocked ? '#d63031' : 'var(--primary)'};">⚡ Quick Add to Queue ${isNewIdBlocked ? '(🚫 محظور)' : ''}</span>`,
             `
-        <div style="padding: 5px;">
-            <div style="background: #e3f2fd; padding: 12px; border-radius: 12px; margin-bottom: 15px; text-align: center; border: 1px solid #bbdefb;">
-                <span style="font-size: 14px; color: #0d47a1; font-weight: 800; font-family: monospace;">ID: ${newId}</span>
+        <div style="padding: 5px;" dir="auto">
+            ${isNewIdBlocked ? `
+            <div style="background: #ffebee; border: 1.5px solid #ef5350; border-radius: 10px; padding: 10px; margin-bottom: 15px; color: #c62828; text-align: center; font-weight: bold; font-size: 13px;" dir="auto">
+                🚫 تنبيه: هذا الرقم محظور! (العميل رافض الصرف من الفرع بتاعنا)
+            </div>
+            ` : ''}
+            <div style="background: ${isNewIdBlocked ? '#ffebee' : '#e3f2fd'}; padding: 12px; border-radius: 12px; margin-bottom: 15px; text-align: center; border: 1px solid ${isNewIdBlocked ? '#ffcdd2' : '#bbdefb'};">
+                <span style="font-size: 14px; color: ${isNewIdBlocked ? '#b71c1c' : '#0d47a1'}; font-weight: 800; font-family: monospace;">ID: ${newId}</span>
             </div>
             
             <div class="form-group">
@@ -11065,7 +11855,7 @@ SMART IMPORT SYSTEM (Dr. Mo Edition)
     // 7. زر حفظ المنبه (تصفير العداد عند الضبط الجديد)
     async function saveSensorReminder(patientId) {
         const timeInput = document.getElementById(`rem-time-${patientId}`);
-        const timeVal = timeInput.value;
+        const timeVal = timeInput ? timeInput.value : '';
         if (!timeVal) return;
 
         try {
@@ -11078,6 +11868,361 @@ SMART IMPORT SYSTEM (Dr. Mo Edition)
             displayPatients();
         } catch (err) { console.error('Save Error'); }
     }
+
+    // ==========================================
+    // ⏰ نظام مودال المنبه المتقدم (Advanced Alarm Modal)
+    // ==========================================
+
+    function formatAlarmDisplay(isoString) {
+        if (!isoString) return '';
+        try {
+            const parts = isoString.split('T');
+            if (parts.length < 2) return isoString;
+            const [y, m, d] = parts[0].split('-');
+            const [hh, mm] = parts[1].split(':');
+            let h = parseInt(hh, 10);
+            const ampm = h >= 12 ? 'PM' : 'AM';
+            h = h % 12;
+            if (h === 0) h = 12;
+            const hStr = String(h).padStart(2, '0');
+            const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+            const mName = months[parseInt(m, 10) - 1] || m;
+            return `${d} ${mName} ${y} • ${hStr}:${mm} ${ampm}`;
+        } catch (e) {
+            return isoString.replace('T', ' ');
+        }
+    }
+
+    function openAlarmModal(patientId) {
+        const patient = patients.find(p => String(p.id) === String(patientId));
+        if (!patient) {
+            showToast('❌ Patient not found');
+            return;
+        }
+
+        const currentVal = patient.sensor_reminder || '';
+        let initialDate = '';
+        let initialTime = '09:00';
+
+        if (currentVal && currentVal.includes('T')) {
+            const parts = currentVal.split('T');
+            initialDate = parts[0];
+            initialTime = parts[1].substring(0, 5);
+        } else {
+            const todayStr = new Date().toISOString().split('T')[0];
+            if (patient.nextRefillDate && patient.nextRefillDate >= todayStr) {
+                initialDate = patient.nextRefillDate;
+            } else {
+                initialDate = todayStr;
+            }
+            const now = new Date();
+            now.setHours(now.getHours() + 1);
+            initialTime = `${String(now.getHours()).padStart(2, '0')}:00`;
+        }
+
+        window.currentAlarmPatientId = patientId;
+
+        const modalContent = `
+            <div style="padding: 4px;" dir="auto">
+                <div style="text-align: center; margin-bottom: 14px;">
+                    <div style="font-size: 36px; margin-bottom: 4px;">⏰</div>
+                    <h3 style="margin: 0; font-size: 17px; color: #1e293b; font-weight: 900;">تحديد موعد المنبه (Alarm)</h3>
+                    <div style="display: inline-flex; align-items: center; gap: 6px; background: #f1f5f9; padding: 4px 12px; border-radius: 8px; margin-top: 5px; font-family: monospace; font-size: 13px; font-weight: 800; color: #334155;">
+                        <span>🆔 ${patient.nationalId || 'No ID'}</span>
+                        ${patient.patientName ? `<span>• ${patient.patientName}</span>` : ''}
+                    </div>
+                </div>
+
+                <!-- Date Selection Section -->
+                <div class="alarm-modal-section">
+                    <div class="alarm-modal-title">
+                        <span>📅</span>
+                        <span>اليوم والتاريخ (Date):</span>
+                    </div>
+                    <input type="date" id="alarmModalDate" class="alarm-modal-input" value="${initialDate}" onchange="updateAlarmModalPreview()">
+                    
+                    <div class="alarm-preset-group">
+                        <button type="button" class="alarm-preset-btn" onclick="setAlarmModalPresetDate('today')">
+                            📅 اليوم
+                        </button>
+                        <button type="button" class="alarm-preset-btn" onclick="setAlarmModalPresetDate('tomorrow')">
+                            🌅 غداً
+                        </button>
+                        ${patient.nextRefillDate ? `
+                        <button type="button" class="alarm-preset-btn" onclick="setAlarmModalPresetDate('refill', '${patient.nextRefillDate}')" title="تاريخ الصرف القادم للمريض">
+                            🔄 تاريخ الصرف (${patient.nextRefillDate})
+                        </button>
+                        ` : ''}
+                        <button type="button" class="alarm-preset-btn" onclick="setAlarmModalPresetDate('plus7')">
+                            ➕ بعد 7 أيام
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Time Selection Section -->
+                <div class="alarm-modal-section">
+                    <div class="alarm-modal-title">
+                        <span>🕒</span>
+                        <span>الساعة والوقت (Time):</span>
+                    </div>
+                    <input type="time" id="alarmModalTime" class="alarm-modal-input" value="${initialTime}" onchange="updateAlarmModalPreview()">
+                    
+                    <div class="alarm-preset-group">
+                        <button type="button" class="alarm-preset-btn" onclick="setAlarmModalTimePreset('09:00')">
+                            ☕ 09:00 ص
+                        </button>
+                        <button type="button" class="alarm-preset-btn" onclick="setAlarmModalTimePreset('13:00')">
+                            ☀️ 01:00 م
+                        </button>
+                        <button type="button" class="alarm-preset-btn" onclick="setAlarmModalTimePreset('17:00')">
+                            🌆 05:00 م
+                        </button>
+                        <button type="button" class="alarm-preset-btn" onclick="setAlarmModalTimePreset('21:00')">
+                            🌙 09:00 م
+                        </button>
+                    </div>
+                    <div class="alarm-preset-group" style="margin-top: 6px;">
+                        <button type="button" class="alarm-preset-btn" onclick="addAlarmModalOffset(30)" style="font-size: 10px;">
+                            ⏱️ +30 دقيقة
+                        </button>
+                        <button type="button" class="alarm-preset-btn" onclick="addAlarmModalOffset(60)" style="font-size: 10px;">
+                            ⏱️ +1 ساعة
+                        </button>
+                        <button type="button" class="alarm-preset-btn" onclick="addAlarmModalOffset(120)" style="font-size: 10px;">
+                            ⏱️ +2 ساعة
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Live Preview Section -->
+                <div id="alarmModalPreviewBox" class="alarm-preview-box">
+                    <div style="font-size: 11px; text-transform: uppercase; letter-spacing: 1px; opacity: 0.9;">🔔 موعد الرنين المحدد:</div>
+                    <div id="alarmModalPreviewTime" class="alarm-preview-time">--:-- --</div>
+                    <div id="alarmModalPreviewDate" class="alarm-preview-date">--</div>
+                    <div id="alarmModalPreviewDelta" class="alarm-preview-delta">--</div>
+                </div>
+            </div>
+        `;
+
+        const actionsHtml = `
+            <div style="display: flex; gap: 8px; width: 100%;">
+                <button class="btn-secondary" onclick="closeModal()" style="flex: 1; padding: 11px;">إلغاء</button>
+                ${currentVal ? `
+                    <button class="btn-secondary" onclick="deleteReminderFromModal('${patient.id}')" style="background: #fee2e2; border-color: #fca5a5; color: #dc2626; padding: 11px; font-weight: 800;" title="حذف المنبه">
+                        🗑️ حذف
+                    </button>
+                ` : ''}
+                <button class="btn-primary" onclick="saveAlarmFromModal('${patient.id}')" style="flex: 2; padding: 11px; background: linear-gradient(135deg, #0284c7, #0369a1); border: none; font-weight: 900; font-size: 13px;">
+                    💾 حفظ المنبه
+                </button>
+            </div>
+        `;
+
+        showModal(
+            '<span style="color: #0284c7; display: flex; align-items: center; gap: 6px;">⏰ ضبط منبه المريض</span>',
+            modalContent,
+            actionsHtml
+        );
+
+        setTimeout(() => {
+            updateAlarmModalPreview();
+        }, 50);
+    }
+
+    function setAlarmModalPresetDate(type, extraVal) {
+        const dateInput = document.getElementById('alarmModalDate');
+        if (!dateInput) return;
+        const now = new Date();
+        if (type === 'today') {
+            dateInput.value = now.toISOString().split('T')[0];
+        } else if (type === 'tomorrow') {
+            now.setDate(now.getDate() + 1);
+            dateInput.value = now.toISOString().split('T')[0];
+        } else if (type === 'plus7') {
+            now.setDate(now.getDate() + 7);
+            dateInput.value = now.toISOString().split('T')[0];
+        } else if (type === 'refill' && extraVal) {
+            dateInput.value = extraVal;
+        }
+        updateAlarmModalPreview();
+    }
+
+    function setAlarmModalTimePreset(timeStr) {
+        const timeInput = document.getElementById('alarmModalTime');
+        if (!timeInput) return;
+        timeInput.value = timeStr;
+        updateAlarmModalPreview();
+    }
+
+    function addAlarmModalOffset(minutes) {
+        const dateInput = document.getElementById('alarmModalDate');
+        const timeInput = document.getElementById('alarmModalTime');
+        if (!dateInput || !timeInput) return;
+
+        let dVal = dateInput.value || new Date().toISOString().split('T')[0];
+        let tVal = timeInput.value || '09:00';
+
+        try {
+            const combined = new Date(`${dVal}T${tVal}:00`);
+            if (isNaN(combined.getTime())) throw new Error();
+            const updated = new Date(combined.getTime() + minutes * 60000);
+            
+            const pad = (n) => String(n).padStart(2, '0');
+            dateInput.value = `${updated.getFullYear()}-${pad(updated.getMonth() + 1)}-${pad(updated.getDate())}`;
+            timeInput.value = `${pad(updated.getHours())}:${pad(updated.getMinutes())}`;
+        } catch (e) {
+            const now = new Date(Date.now() + minutes * 60000);
+            const pad = (n) => String(n).padStart(2, '0');
+            dateInput.value = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`;
+            timeInput.value = `${pad(now.getHours())}:${pad(now.getMinutes())}`;
+        }
+        updateAlarmModalPreview();
+    }
+
+    function updateAlarmModalPreview() {
+        const dateInput = document.getElementById('alarmModalDate');
+        const timeInput = document.getElementById('alarmModalTime');
+        const previewTimeEl = document.getElementById('alarmModalPreviewTime');
+        const previewDateEl = document.getElementById('alarmModalPreviewDate');
+        const previewDeltaEl = document.getElementById('alarmModalPreviewDelta');
+        const previewBox = document.getElementById('alarmModalPreviewBox');
+
+        if (!dateInput || !timeInput || !previewTimeEl || !previewDateEl || !previewDeltaEl) return;
+
+        const dateVal = dateInput.value;
+        const timeVal = timeInput.value;
+
+        if (!dateVal || !timeVal) {
+            previewTimeEl.textContent = 'يرجى تحديد التاريخ والوقت';
+            previewDateEl.textContent = '';
+            previewDeltaEl.textContent = '';
+            return;
+        }
+
+        try {
+            const [y, m, d] = dateVal.split('-').map(Number);
+            const [hh, mm] = timeVal.split(':').map(Number);
+            const targetDate = new Date(y, m - 1, d, hh, mm);
+
+            // 12-hour format
+            let h12 = hh % 12;
+            if (h12 === 0) h12 = 12;
+            const ampm = hh >= 12 ? 'مساءً' : 'صباحاً';
+            const ampmEn = hh >= 12 ? 'PM' : 'AM';
+            previewTimeEl.textContent = `${String(h12).padStart(2, '0')}:${String(mm).padStart(2, '0')} ${ampm} (${ampmEn})`;
+
+            // Arabic day and date
+            const days = ['الأحد', 'الاثنين', 'الثلاثاء', 'الأربعاء', 'الخميس', 'الجمعة', 'السبت'];
+            const months = ['يناير', 'فبراير', 'مارس', 'أبريل', 'مايو', 'يونيو', 'يوليو', 'أغسطس', 'سبتمبر', 'أكتوبر', 'نوفمبر', 'ديسمبر'];
+            const dayName = days[targetDate.getDay()] || '';
+            const monthName = months[m - 1] || '';
+            previewDateEl.textContent = `${dayName}، ${d} ${monthName} ${y}`;
+
+            // Time difference from now
+            const now = new Date();
+            const diffMs = targetDate.getTime() - now.getTime();
+
+            if (diffMs <= 0) {
+                previewDeltaEl.innerHTML = `<span style="color: #fecaca; font-weight: 800;">⚠️ هذا التوقيت في الماضي أو حالي!</span>`;
+                if (previewBox) {
+                    previewBox.style.background = 'linear-gradient(135deg, #b91c1c 0%, #dc2626 100%)';
+                }
+            } else {
+                const diffMinutes = Math.floor(diffMs / 60000);
+                const diffHours = Math.floor(diffMinutes / 60);
+                const diffDays = Math.floor(diffHours / 24);
+                const remHours = diffHours % 24;
+                const remMinutes = diffMinutes % 60;
+
+                let deltaStr = 'متبقي: ';
+                if (diffDays > 0) deltaStr += `${diffDays} يوم `;
+                if (remHours > 0 || diffDays > 0) deltaStr += `و ${remHours} ساعة `;
+                deltaStr += `و ${remMinutes} دقيقة`;
+
+                previewDeltaEl.innerHTML = `<span style="opacity: 0.95;">⏳ ${deltaStr}</span>`;
+                if (previewBox) {
+                    previewBox.style.background = 'linear-gradient(135deg, #0284c7 0%, #0369a1 100%)';
+                }
+            }
+        } catch (e) {
+            previewTimeEl.textContent = `${timeVal}`;
+            previewDateEl.textContent = `${dateVal}`;
+            previewDeltaEl.textContent = '';
+        }
+    }
+
+    async function saveAlarmFromModal(patientId) {
+        const dateInput = document.getElementById('alarmModalDate');
+        const timeInput = document.getElementById('alarmModalTime');
+        if (!dateInput || !timeInput) return;
+
+        const dateVal = dateInput.value;
+        const timeVal = timeInput.value;
+
+        if (!dateVal || !timeVal) {
+            showToast('⚠️ يرجى تحديد التاريخ والوقت');
+            return;
+        }
+
+        const isoReminder = `${dateVal}T${timeVal}`;
+
+        try {
+            const { error } = await supabaseClient
+                .from('patients')
+                .update({ sensor_reminder: isoReminder })
+                .eq('id', patientId);
+
+            if (error) throw error;
+
+            const p = patients.find(pat => String(pat.id) === String(patientId));
+            if (p) {
+                p.sensor_reminder = isoReminder;
+                p.retry_count = 0;
+            }
+
+            closeModal();
+            displayPatients();
+            showToast('✅ تم حفظ وضبط موعد المنبه بنجاح 🔔');
+        } catch (err) {
+            console.error('Save Alarm Error:', err);
+            showToast('❌ حدث خطأ أثناء حفظ المنبه');
+        }
+    }
+
+    async function deleteReminderFromModal(patientId) {
+        if (!confirm('هل أنت متأكد من حذف هذا المنبه؟')) return;
+        try {
+            const { error } = await supabaseClient
+                .from('patients')
+                .update({ sensor_reminder: null })
+                .eq('id', patientId);
+
+            if (error) throw error;
+
+            const p = patients.find(pat => String(pat.id) === String(patientId));
+            if (p) {
+                p.sensor_reminder = null;
+                p.retry_count = 0;
+            }
+
+            closeModal();
+            displayPatients();
+            showToast('🗑️ تم حذف المنبه بنجاح');
+        } catch (err) {
+            console.error('Delete Alarm Error:', err);
+            showToast('❌ حدث خطأ أثناء حذف المنبه');
+        }
+    }
+
+    // ربط الدوال بالـ window للاستدعاء السهل
+    window.formatAlarmDisplay = formatAlarmDisplay;
+    window.openAlarmModal = openAlarmModal;
+    window.setAlarmModalPresetDate = setAlarmModalPresetDate;
+    window.setAlarmModalTimePreset = setAlarmModalTimePreset;
+    window.addAlarmModalOffset = addAlarmModalOffset;
+    window.updateAlarmModalPreview = updateAlarmModalPreview;
+    window.saveAlarmFromModal = saveAlarmFromModal;
+    window.deleteReminderFromModal = deleteReminderFromModal;
 
     // تشغيل
     setupAlarmRealtimeSync();
@@ -11263,7 +12408,7 @@ SMART IMPORT SYSTEM (Dr. Mo Edition)
         }
     }
     async function deleteReminder(patientId) {
-        if (!confirm('Delete this alarm?')) return;
+        if (!confirm('هل أنت متأكد من حذف هذا المنبه؟')) return;
 
         try {
             await supabaseClient
@@ -11272,14 +12417,18 @@ SMART IMPORT SYSTEM (Dr. Mo Edition)
                 .eq('id', patientId);
 
             const p = patients.find(pat => String(pat.id) === String(patientId));
-            if (p) p.sensor_reminder = null;
+            if (p) {
+                p.sensor_reminder = null;
+                p.retry_count = 0;
+            }
 
             displayPatients();
-            showToast('Alarm Deleted 🗑️');
+            showToast('🗑️ تم حذف المنبه');
         } catch (err) {
-            showToast('Error deleting alarm');
+            showToast('❌ حدث خطأ أثناء حذف المنبه');
         }
     }
+    window.deleteReminder = deleteReminder;
 </script>
 
 <!-- Anti-Debug Protection -->
