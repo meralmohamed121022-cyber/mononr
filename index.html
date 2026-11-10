@@ -4915,6 +4915,7 @@
             // التحقق إذا كان CONFIG جاهز في window
             if (window.CONFIG && window.CONFIG.SUPABASE_URL) {
                 supabaseClient = createClient(window.CONFIG.SUPABASE_URL, window.CONFIG.SUPABASE_ANON_KEY);
+                window.supabaseClient = supabaseClient;
                 console.log("🛡️ Connected to Supabase via Encrypted Config");
             } else {
                 // لو مش جاهز، استنى 50 مللي ثانية وحاول تاني
@@ -5580,6 +5581,7 @@
             }
 
             currentUser = pharmacy;
+            window.currentUser = currentUser;
             localStorage.setItem('monoCurrentUser', JSON.stringify(pharmacy));
 
             document.getElementById('pharmacyInfo').textContent = pharmacy.pharmacy_name || pharmacy.pharmacy_code;
@@ -5900,6 +5902,7 @@
 
         if (savedUser) {
             currentUser = JSON.parse(savedUser);
+            window.currentUser = currentUser;
 
             const pharmacyInfoElement = document.getElementById('pharmacyInfo');
             if (pharmacyInfoElement) {
@@ -6036,7 +6039,49 @@
                 )
                 .subscribe((status) => {
                     if (status === 'SUBSCRIBED') {
-                        console.log('✅ Realtime Sync Active');
+                        console.log('✅ Realtime Sync Active (Patients)');
+                    }
+                });
+
+            // 🔄 اشتراك Realtime الفوري لسجل وأرشيف الطابور (Sync Across Devices)
+            supabaseClient
+                .channel('public:queue_history')
+                .on(
+                    'postgres_changes',
+                    { event: '*', schema: 'public', table: 'queue_history' },
+                    (payload) => {
+                        if (!currentUser) return;
+                        if (payload.eventType === 'INSERT' && payload.new && payload.new.pharmacy_id === currentUser.id) {
+                            const newId = String(payload.new.id);
+                            if (!dispensedQueueHistory.some(h => h.historyId === newId)) {
+                                dispensedQueueHistory.unshift({
+                                    historyId: newId,
+                                    patientId: String(payload.new.patient_id || ''),
+                                    queueNumber: (payload.new.queue_number !== undefined && payload.new.queue_number !== null) ? payload.new.queue_number : '-',
+                                    nationalId: String(payload.new.national_id || ''),
+                                    patientName: String(payload.new.patient_name || ''),
+                                    phoneNumber: String(payload.new.phone_number || ''),
+                                    prescriptions: Array.isArray(payload.new.prescriptions) ? payload.new.prescriptions : (typeof payload.new.prescriptions === 'string' ? JSON.parse(payload.new.prescriptions || '[]') : []),
+                                    drugs_list: Array.isArray(payload.new.drugs_list) ? payload.new.drugs_list : (typeof payload.new.drugs_list === 'string' ? JSON.parse(payload.new.drugs_list || '[]') : []),
+                                    cardColor: payload.new.cardcolor || '',
+                                    actionType: payload.new.action_type || 'dispensed',
+                                    timestamp: new Date(payload.new.created_at).getTime(),
+                                    dateFormatted: payload.new.date_formatted || (new Date(payload.new.created_at).toLocaleDateString('en-GB') + ' ' + new Date(payload.new.created_at).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }))
+                                });
+                                saveDispensedQueueHistory();
+                                if (typeof filterDispensedHistory === 'function') filterDispensedHistory();
+                            }
+                        } else if (payload.eventType === 'DELETE' && payload.old) {
+                            const delId = String(payload.old.id);
+                            dispensedQueueHistory = dispensedQueueHistory.filter(h => h.historyId !== delId);
+                            saveDispensedQueueHistory();
+                            if (typeof filterDispensedHistory === 'function') filterDispensedHistory();
+                        }
+                    }
+                )
+                .subscribe((status) => {
+                    if (status === 'SUBSCRIBED') {
+                        console.log('✅ Realtime Sync Active (Queue History)');
                     }
                 });
         }
@@ -8551,6 +8596,7 @@ SMART IMPORT SYSTEM (Dr. Mo Edition)
 
             updateStats();
             renderDispensingQueue();
+            loadDispensedQueueHistory(); // تحميل ومزامنة سجل الطابور والمحذوفين سحابياً للصيدلية
 
             // 3. التحميل المتسلسل لباقي الداتا (Batch Loading)
             let from = 0;
@@ -9758,7 +9804,8 @@ SMART IMPORT SYSTEM (Dr. Mo Edition)
     // =========================================================================
     let dispensedQueueHistory = [];
 
-    function loadDispensedQueueHistory() {
+    async function loadDispensedQueueHistory() {
+        // 1. قراءة فورية من التخزين المحلي (Offline / Instant)
         try {
             const saved = localStorage.getItem('mono_dispensed_queue_history');
             if (saved) {
@@ -9768,6 +9815,46 @@ SMART IMPORT SYSTEM (Dr. Mo Edition)
             dispensedQueueHistory = [];
         }
         updateHistoryBadge();
+
+        // 2. مزامنة سحابية من Supabase لو مسجل دخول والجدول منشأ
+        const client = (typeof supabaseClient !== 'undefined' && supabaseClient) ? supabaseClient : window.supabaseClient;
+        const user = (typeof currentUser !== 'undefined' && currentUser) ? currentUser : window.currentUser;
+
+        if (client && user && user.id) {
+            try {
+                const { data, error } = await client
+                    .from('queue_history')
+                    .select('*')
+                    .eq('pharmacy_id', user.id)
+                    .order('created_at', { ascending: false })
+                    .limit(500);
+
+                if (!error && Array.isArray(data)) {
+                    if (data.length > 0) {
+                        dispensedQueueHistory = data.map(row => ({
+                            historyId: String(row.id),
+                            patientId: String(row.patient_id || ''),
+                            queueNumber: (row.queue_number !== undefined && row.queue_number !== null) ? row.queue_number : '-',
+                            nationalId: String(row.national_id || ''),
+                            patientName: String(row.patient_name || ''),
+                            phoneNumber: String(row.phone_number || ''),
+                            prescriptions: Array.isArray(row.prescriptions) ? row.prescriptions : (typeof row.prescriptions === 'string' ? JSON.parse(row.prescriptions || '[]') : []),
+                            drugs_list: Array.isArray(row.drugs_list) ? row.drugs_list : (typeof row.drugs_list === 'string' ? JSON.parse(row.drugs_list || '[]') : []),
+                            cardColor: row.cardcolor || row.card_color || '',
+                            actionType: row.action_type || 'dispensed',
+                            timestamp: new Date(row.created_at).getTime(),
+                            dateFormatted: row.date_formatted || (new Date(row.created_at).toLocaleDateString('en-GB') + ' ' + new Date(row.created_at).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }))
+                        }));
+                        saveDispensedQueueHistory();
+                        updateHistoryBadge();
+                    }
+                } else if (error) {
+                    console.warn("Error loading queue_history from Supabase:", error);
+                }
+            } catch (err) {
+                console.warn("Queue history cloud sync info:", err);
+            }
+        }
     }
 
     function saveDispensedQueueHistory() {
@@ -9789,7 +9876,7 @@ SMART IMPORT SYSTEM (Dr. Mo Edition)
         }
     }
 
-    function recordQueueHistoryItem(patient, actionType = 'dispensed') {
+    async function recordQueueHistoryItem(patient, actionType = 'dispensed') {
         if (!patient) return;
         const now = new Date();
         const dateFormatted = now.toLocaleDateString('en-GB') + ' ' + now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
@@ -9811,6 +9898,42 @@ SMART IMPORT SYSTEM (Dr. Mo Edition)
 
         dispensedQueueHistory.unshift(historyEntry);
         saveDispensedQueueHistory();
+
+        // مزامنة سحابية فورية مع Supabase إن وُجد الجدول
+        const client = (typeof supabaseClient !== 'undefined' && supabaseClient) ? supabaseClient : window.supabaseClient;
+        const user = (typeof currentUser !== 'undefined' && currentUser) ? currentUser : window.currentUser;
+
+        if (client && user && user.id) {
+            try {
+                const qNumInt = parseInt(historyEntry.queueNumber, 10);
+                const qNumVal = isNaN(qNumInt) ? null : qNumInt;
+                const isUuid = (id) => typeof id === 'string' && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
+
+                client.from('queue_history').insert([{
+                    pharmacy_id: user.id,
+                    patient_id: isUuid(patient.id) ? patient.id : null,
+                    queue_number: qNumVal,
+                    national_id: historyEntry.nationalId,
+                    patient_name: historyEntry.patientName,
+                    phone_number: historyEntry.phoneNumber,
+                    prescriptions: historyEntry.prescriptions,
+                    drugs_list: historyEntry.drugs_list,
+                    cardcolor: historyEntry.cardColor || 'none',
+                    action_type: historyEntry.actionType,
+                    date_formatted: historyEntry.dateFormatted
+                }]).select().then(({ data, error }) => {
+                    if (error) {
+                        console.error("❌ Failed to insert into Supabase queue_history:", error);
+                    } else if (data && data[0] && data[0].id) {
+                        historyEntry.historyId = String(data[0].id);
+                        saveDispensedQueueHistory();
+                        console.log("✅ Successfully saved to Supabase queue_history:", data[0]);
+                    }
+                });
+            } catch (e) {
+                console.error("Cloud queue insert exception:", e);
+            }
+        }
     }
 
     function openDispensedHistoryModal(filter = 'all') {
@@ -9999,10 +10122,11 @@ SMART IMPORT SYSTEM (Dr. Mo Edition)
         const item = dispensedQueueHistory.find(h => h.historyId === historyId);
         if (!item) return;
 
-        // Check if already in queue
-        const alreadyInQueue = dispensingQueue.some(q => String(q.id) === String(item.patientId));
-        if (alreadyInQueue) {
-            showToast('⚠️ المريض موجود بالفعل في الطابور حالياً!');
+        // التحقق من رقم الانتظار (العبرة برقم الانتظار)
+        const qNumStr = String(item.queueNumber || '');
+        const queueNumExists = (qNumStr !== '-' && qNumStr !== '') && dispensingQueue.some(q => String(q.queueNumber) === qNumStr);
+        if (queueNumExists) {
+            showToast(`⚠️ رقم الانتظار #${qNumStr} موجود بالفعل في الطابور حالياً!`);
             return;
         }
 
@@ -10048,6 +10172,12 @@ SMART IMPORT SYSTEM (Dr. Mo Edition)
     function deleteSingleHistoryItem(historyId) {
         dispensedQueueHistory = dispensedQueueHistory.filter(h => h.historyId !== historyId);
         saveDispensedQueueHistory();
+        const client = (typeof supabaseClient !== 'undefined' && supabaseClient) ? supabaseClient : window.supabaseClient;
+        if (client && historyId && !historyId.startsWith('hist_')) {
+            try {
+                client.from('queue_history').delete().eq('id', historyId).then(() => {});
+            } catch (e) {}
+        }
         filterDispensedHistory();
         showToast('تم الحذف من السجل');
     }
@@ -10056,6 +10186,13 @@ SMART IMPORT SYSTEM (Dr. Mo Edition)
         if (!confirm('هل أنت متأكد من تفريغ سجل المحذوفين والمستلمين بالكامل؟')) return;
         dispensedQueueHistory = [];
         saveDispensedQueueHistory();
+        const client = (typeof supabaseClient !== 'undefined' && supabaseClient) ? supabaseClient : window.supabaseClient;
+        const user = (typeof currentUser !== 'undefined' && currentUser) ? currentUser : window.currentUser;
+        if (client && user && user.id) {
+            try {
+                client.from('queue_history').delete().eq('pharmacy_id', user.id).then(() => {});
+            } catch (e) {}
+        }
         filterDispensedHistory();
         showToast('تم مسح السجل بالكامل 🗑️');
     }
@@ -10173,9 +10310,8 @@ SMART IMPORT SYSTEM (Dr. Mo Edition)
         const now = new Date();
         const dateStr = now.toLocaleDateString('en-GB') + ' ' + now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
 
-        const phoneSvg = phoneNumber ? generateCode128Svg(phoneNumber, { width: 1.15, height: 21, fontSize: 8.5 }) : '<div style="font-size:9px; color:#888; padding:3px;">لا يوجد رقم جوال</div>';
-        const idSvg = nationalId ? generateCode128Svg(nationalId, { width: 1.15, height: 21, fontSize: 8.5 }) : '<div style="font-size:9px; color:#888; padding:3px;">لا يوجد رقم هوية</div>';
-        const queueSvg = (queueNum && queueNum !== '---') ? generateCode128Svg(String(queueNum), { width: 1.35, height: 20, showText: false }) : '';
+        const idSvg = nationalId ? generateCode128Svg(nationalId, { width: 1.25, height: 28, fontSize: 9 }) : '<div style="font-size:9px; color:#888; padding:3px;">لا يوجد رقم هوية</div>';
+        const queueSvg = (queueNum && queueNum !== '---') ? generateCode128Svg(String(queueNum), { width: 1.2, height: 32, showText: false }) : '';
 
         window.currentPrintLabelData = {
             queueNum,
@@ -10187,7 +10323,6 @@ SMART IMPORT SYSTEM (Dr. Mo Edition)
             pharmacyPhone,
             dateStr,
             queueSvg,
-            phoneSvg,
             idSvg
         };
 
@@ -10217,40 +10352,42 @@ SMART IMPORT SYSTEM (Dr. Mo Edition)
                             </div>
                         </div>
 
-                        <!-- Patient Info & Rx (Compact Row) -->
-                        <div style="display: flex; justify-content: space-between; align-items: center; padding: 1px 0 2px 0; border-bottom: 1px dashed #aaa;">
-                            <div style="font-size: 10px; font-weight: 900; color: #000; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 65%;">
+                        <!-- Patient Info & Mobile & Rx (Compact Row) -->
+                        <div style="display: flex; justify-content: space-between; align-items: center; padding: 2px 0; border-bottom: 1px dashed #aaa;">
+                            <div style="font-size: 10.5px; font-weight: 900; color: #000; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 45%;">
                                 👤 ${patientName}
                             </div>
+                            ${phoneNumber ? `
+                            <div style="font-size: 10px; font-weight: 900; color: #000; white-space: nowrap;" dir="ltr">
+                                📱 ${phoneNumber}
+                            </div>
+                            ` : ''}
                             ${rxNumbers ? `
-                            <div style="font-size: 8.5px; font-weight: bold; color: #222; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" dir="ltr">
+                            <div style="font-size: 9px; font-weight: bold; color: #222; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" dir="ltr">
                                 Rx: ${rxNumbers}
                             </div>
                             ` : ''}
                         </div>
 
-                        <!-- Center: Big Queue Number + Barcode (No 'QUEUE #' text!) -->
-                        <div style="text-align: center; margin: 2px 0;">
-                            <div style="font-size: 38px; font-weight: 900; line-height: 1; font-family: Impact, 'Arial Black', -apple-system, sans-serif; letter-spacing: 1px; color: #000;">
-                                ${queueNum}
-                            </div>
-                            ${queueSvg ? `
-                            <div style="margin-top: 2px; display: flex; justify-content: center;">
+                        <!-- Middle Row: Big Queue Number in Center + Queue Barcode on Side -->
+                        <div style="display: flex; align-items: center; justify-content: space-between; padding: 2px 6px; margin: 3px 0;">
+                            <!-- Queue Barcode on Side (Left) -->
+                            <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; min-width: 85px;">
                                 ${queueSvg}
                             </div>
-                            ` : ''}
+
+                            <!-- Big Bold Queue Number in Center -->
+                            <div style="flex: 1; text-align: center;">
+                                <div style="font-size: 54px; font-weight: 900; line-height: 1; font-family: Impact, 'Arial Black', -apple-system, sans-serif; letter-spacing: 1px; color: #000;">
+                                    ${queueNum}
+                                </div>
+                            </div>
                         </div>
 
-                        <!-- Barcode 1: National ID (Full width, centered) -->
-                        <div style="text-align: center; border-top: 1px solid #000; padding-top: 2px; margin-top: 1px;">
-                            <div style="font-size: 7.5px; font-weight: 900; line-height: 1; letter-spacing: 0.5px; margin-bottom: 1px;">رقم الهوية (NATIONAL ID)</div>
+                        <!-- Barcode: National ID (Full width, centered) -->
+                        <div style="text-align: center; border-top: 1.5px solid #000; padding-top: 3px; margin-top: 2px;">
+                            <div style="font-size: 8px; font-weight: 900; line-height: 1; letter-spacing: 0.5px; margin-bottom: 2px;">رقم الهوية (NATIONAL ID)</div>
                             <div id="prevIdBarcode">${idSvg}</div>
-                        </div>
-
-                        <!-- Barcode 2: Mobile Number (Full width, centered, separated) -->
-                        <div style="text-align: center; border-top: 1px dashed #777; padding-top: 2px; margin-top: 1px;">
-                            <div style="font-size: 7.5px; font-weight: 900; line-height: 1; letter-spacing: 0.5px; margin-bottom: 1px;">رقم الجوال (MOBILE NUMBER)</div>
-                            <div id="prevPhoneBarcode">${phoneSvg}</div>
                         </div>
 
                     </div>
@@ -10390,40 +10527,42 @@ SMART IMPORT SYSTEM (Dr. Mo Edition)
                     </div>
                 </div>
 
-                <!-- Patient Info & Rx (Compact Row) -->
-                <div style="display: flex; justify-content: space-between; align-items: center; padding: 1px 0 2px 0; border-bottom: 1px dashed #aaa;">
-                    <div style="font-size: 10px; font-weight: 900; color: #000; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 65%;">
+                <!-- Patient Info & Mobile & Rx (Compact Row) -->
+                <div style="display: flex; justify-content: space-between; align-items: center; padding: 2px 0; border-bottom: 1px dashed #aaa;">
+                    <div style="font-size: 10.5px; font-weight: 900; color: #000; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 45%;">
                         👤 ${d.patientName}
                     </div>
+                    ${d.phoneNumber ? `
+                    <div style="font-size: 10px; font-weight: 900; color: #000; white-space: nowrap;" dir="ltr">
+                        📱 ${d.phoneNumber}
+                    </div>
+                    ` : ''}
                     ${d.rxNumbers ? `
-                    <div style="font-size: 8.5px; font-weight: bold; color: #222; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" dir="ltr">
+                    <div style="font-size: 9px; font-weight: bold; color: #222; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" dir="ltr">
                         Rx: ${d.rxNumbers}
                     </div>
                     ` : ''}
                 </div>
 
-                <!-- Center: Big Queue Number + Barcode (No 'QUEUE #' text!) -->
-                <div style="text-align: center; margin: 2px 0;">
-                    <div style="font-size: 38px; font-weight: 900; line-height: 1; font-family: Impact, 'Arial Black', -apple-system, sans-serif; letter-spacing: 1px; color: #000;">
-                        ${d.queueNum}
-                    </div>
-                    ${d.queueSvg ? `
-                    <div style="margin-top: 2px; display: flex; justify-content: center;">
+                <!-- Middle Row: Big Queue Number in Center + Queue Barcode on Side -->
+                <div style="display: flex; align-items: center; justify-content: space-between; padding: 2px 6px; margin: 3px 0;">
+                    <!-- Queue Barcode on Side (Left) -->
+                    <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; min-width: 85px;">
                         ${d.queueSvg}
                     </div>
-                    ` : ''}
+
+                    <!-- Big Bold Queue Number in Center -->
+                    <div style="flex: 1; text-align: center;">
+                        <div style="font-size: 54px; font-weight: 900; line-height: 1; font-family: Impact, 'Arial Black', -apple-system, sans-serif; letter-spacing: 1px; color: #000;">
+                            ${d.queueNum}
+                        </div>
+                    </div>
                 </div>
 
-                <!-- Barcode 1: National ID (Full width, centered) -->
-                <div style="text-align: center; border-top: 1px solid #000; padding-top: 2px; margin-top: 1px;">
-                    <div style="font-size: 7.5px; font-weight: 900; line-height: 1; letter-spacing: 0.5px; margin-bottom: 1px;">رقم الهوية (NATIONAL ID)</div>
+                <!-- Barcode: National ID (Full width, centered) -->
+                <div style="text-align: center; border-top: 1.5px solid #000; padding-top: 3px; margin-top: 2px;">
+                    <div style="font-size: 8px; font-weight: 900; line-height: 1; letter-spacing: 0.5px; margin-bottom: 2px;">رقم الهوية (NATIONAL ID)</div>
                     <div>${d.idSvg}</div>
-                </div>
-
-                <!-- Barcode 2: Mobile Number (Full width, centered, separated) -->
-                <div style="text-align: center; border-top: 1px dashed #777; padding-top: 2px; margin-top: 1px;">
-                    <div style="font-size: 7.5px; font-weight: 900; line-height: 1; letter-spacing: 0.5px; margin-bottom: 1px;">رقم الجوال (MOBILE NUMBER)</div>
-                    <div>${d.phoneSvg}</div>
                 </div>
             </div>
         </body>
@@ -12215,6 +12354,7 @@ SMART IMPORT SYSTEM (Dr. Mo Edition)
             await loadPatientsFromSupabase();
             updateStats();
             renderDispensingQueue();
+            loadDispensedQueueHistory(); // تحميل ومزامنة سجل الطابور والمحذوفين سحابياً للصيدلية
 
             showToast(`✅ Added to Queue #${nextNumber}`);
 
