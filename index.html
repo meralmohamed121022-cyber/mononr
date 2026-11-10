@@ -10175,6 +10175,7 @@ SMART IMPORT SYSTEM (Dr. Mo Edition)
 
         const phoneSvg = phoneNumber ? generateCode128Svg(phoneNumber, { width: 1.15, height: 21, fontSize: 8.5 }) : '<div style="font-size:9px; color:#888; padding:3px;">لا يوجد رقم جوال</div>';
         const idSvg = nationalId ? generateCode128Svg(nationalId, { width: 1.15, height: 21, fontSize: 8.5 }) : '<div style="font-size:9px; color:#888; padding:3px;">لا يوجد رقم هوية</div>';
+        const queueSvg = (queueNum && queueNum !== '---') ? generateCode128Svg(String(queueNum), { width: 1.35, height: 20, showText: false }) : '';
 
         window.currentPrintLabelData = {
             queueNum,
@@ -10185,6 +10186,7 @@ SMART IMPORT SYSTEM (Dr. Mo Edition)
             pharmacyName,
             pharmacyPhone,
             dateStr,
+            queueSvg,
             phoneSvg,
             idSvg
         };
@@ -10196,7 +10198,7 @@ SMART IMPORT SYSTEM (Dr. Mo Edition)
                         🖨️ طباعة تيكت الطابور (Zebra GK420t - 3" x 2")
                     </h3>
                     <p style="margin: 3px 0 0; font-size: 12px; color: #64748b;">
-                        معاينة مطابقة تماماً للملصق الحراري بمقاس 3 في 2 بوصة مع باركود الجوال والهوية
+                        معاينة مطابقة تماماً للملصق الحراري بمقاس 3 في 2 بوصة مع رقم الانتظار الكبير وباركوداته
                     </p>
                 </div>
 
@@ -10205,37 +10207,38 @@ SMART IMPORT SYSTEM (Dr. Mo Edition)
                     <div id="thermalLabelPreview" class="thermal-label-preview">
                         
                         <!-- Header: Pharmacy & Date -->
-                        <div style="display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 1.5px solid #000; padding-bottom: 2px; margin-bottom: 2px;">
+                        <div style="display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 1.5px solid #000; padding-bottom: 2px;">
                             <div style="text-align: right; line-height: 1.1;">
                                 <div id="prevPharmName" style="font-weight: 900; font-size: 11px; color: #000;">${pharmacyName}</div>
-                                <div id="prevPharmPhone" style="font-size: 8px; font-weight: bold; color: #333;">هاتف: ${pharmacyPhone}</div>
+                                <div id="prevPharmPhone" style="font-size: 8px; font-weight: bold; color: #333;">هاتف: <span dir="ltr">${pharmacyPhone}</span></div>
                             </div>
-                            <div style="text-align: left; font-size: 8px; font-weight: bold; color: #000; line-height: 1.1;">
+                            <div style="text-align: left; font-size: 8px; font-weight: bold; color: #000; line-height: 1.1;" dir="ltr">
                                 ${dateStr}
                             </div>
                         </div>
 
-                        <!-- Main Row: Queue Box + Patient Info -->
-                        <div style="display: flex; gap: 8px; align-items: center; margin: 2px 0;">
-                            <!-- Big bold queue number box (replaces handwriting 1865) -->
-                            <div style="border: 2px solid #000; border-radius: 6px; padding: 1px 6px; text-align: center; min-width: 65px; background: #fff; flex-shrink: 0;">
-                                <div style="font-size: 7px; font-weight: 900; letter-spacing: 0.5px; border-bottom: 1px solid #000; padding-bottom: 1px; text-transform: uppercase;">QUEUE #</div>
-                                <div style="font-size: 24px; font-weight: 900; line-height: 1.1; font-family: Impact, Arial Black, sans-serif;">
-                                    ${queueNum}
-                                </div>
+                        <!-- Patient Info & Rx (Compact Row) -->
+                        <div style="display: flex; justify-content: space-between; align-items: center; padding: 1px 0 2px 0; border-bottom: 1px dashed #aaa;">
+                            <div style="font-size: 10px; font-weight: 900; color: #000; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 65%;">
+                                👤 ${patientName}
                             </div>
+                            ${rxNumbers ? `
+                            <div style="font-size: 8.5px; font-weight: bold; color: #222; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" dir="ltr">
+                                Rx: ${rxNumbers}
+                            </div>
+                            ` : ''}
+                        </div>
 
-                            <!-- Patient Name & Rx -->
-                            <div style="flex: 1; min-width: 0; line-height: 1.25; text-align: right;">
-                                <div style="font-size: 11px; font-weight: 900; color: #000; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
-                                    👤 ${patientName}
-                                </div>
-                                ${rxNumbers ? `
-                                <div style="font-size: 8.5px; font-weight: bold; color: #222; margin-top: 1px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
-                                    📋 Rx: ${rxNumbers}
-                                </div>
-                                ` : ''}
+                        <!-- Center: Big Queue Number + Barcode (No 'QUEUE #' text!) -->
+                        <div style="text-align: center; margin: 2px 0;">
+                            <div style="font-size: 38px; font-weight: 900; line-height: 1; font-family: Impact, 'Arial Black', -apple-system, sans-serif; letter-spacing: 1px; color: #000;">
+                                ${queueNum}
                             </div>
+                            ${queueSvg ? `
+                            <div style="margin-top: 2px; display: flex; justify-content: center;">
+                                ${queueSvg}
+                            </div>
+                            ` : ''}
                         </div>
 
                         <!-- Barcode 1: National ID (Full width, centered) -->
@@ -10310,7 +10313,7 @@ SMART IMPORT SYSTEM (Dr. Mo Edition)
         const prevName = document.getElementById('prevPharmName');
         const prevPhone = document.getElementById('prevPharmPhone');
         if (prevName) prevName.textContent = newName;
-        if (prevPhone) prevPhone.textContent = 'هاتف: ' + newPhone;
+        if (prevPhone) prevPhone.innerHTML = 'هاتف: <span dir="ltr">' + newPhone + '</span>';
 
         if (window.currentPrintLabelData) {
             window.currentPrintLabelData.pharmacyName = newName;
@@ -10380,31 +10383,35 @@ SMART IMPORT SYSTEM (Dr. Mo Edition)
                 <div style="display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 1.5px solid #000; padding-bottom: 2px;">
                     <div style="text-align: right; line-height: 1.1;">
                         <div style="font-weight: 900; font-size: 11px; color: #000;">${d.pharmacyName}</div>
-                        <div style="font-size: 8px; font-weight: bold; color: #333;">هاتف: ${d.pharmacyPhone}</div>
+                        <div style="font-size: 8px; font-weight: bold; color: #333;">هاتف: <span dir="ltr">${d.pharmacyPhone}</span></div>
                     </div>
-                    <div style="text-align: left; font-size: 8px; font-weight: bold; color: #000; line-height: 1.1;">
+                    <div style="text-align: left; font-size: 8px; font-weight: bold; color: #000; line-height: 1.1;" dir="ltr">
                         ${d.dateStr}
                     </div>
                 </div>
 
-                <!-- Queue Number + Details -->
-                <div style="display: flex; gap: 8px; align-items: center; margin: 2px 0;">
-                    <div style="border: 2px solid #000; border-radius: 6px; padding: 1px 6px; text-align: center; min-width: 65px; flex-shrink: 0;">
-                        <div style="font-size: 7px; font-weight: 900; letter-spacing: 0.5px; border-bottom: 1px solid #000; padding-bottom: 1px; text-transform: uppercase;">QUEUE #</div>
-                        <div style="font-size: 24px; font-weight: 900; line-height: 1.1; font-family: Impact, Arial Black, sans-serif;">
-                            ${d.queueNum}
-                        </div>
+                <!-- Patient Info & Rx (Compact Row) -->
+                <div style="display: flex; justify-content: space-between; align-items: center; padding: 1px 0 2px 0; border-bottom: 1px dashed #aaa;">
+                    <div style="font-size: 10px; font-weight: 900; color: #000; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 65%;">
+                        👤 ${d.patientName}
                     </div>
-                    <div style="flex: 1; min-width: 0; line-height: 1.25; text-align: right;">
-                        <div style="font-size: 11px; font-weight: 900; color: #000; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
-                            👤 ${d.patientName}
-                        </div>
-                        ${d.rxNumbers ? `
-                        <div style="font-size: 8.5px; font-weight: bold; color: #222; margin-top: 1px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
-                            📋 Rx: ${d.rxNumbers}
-                        </div>
-                        ` : ''}
+                    ${d.rxNumbers ? `
+                    <div style="font-size: 8.5px; font-weight: bold; color: #222; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" dir="ltr">
+                        Rx: ${d.rxNumbers}
                     </div>
+                    ` : ''}
+                </div>
+
+                <!-- Center: Big Queue Number + Barcode (No 'QUEUE #' text!) -->
+                <div style="text-align: center; margin: 2px 0;">
+                    <div style="font-size: 38px; font-weight: 900; line-height: 1; font-family: Impact, 'Arial Black', -apple-system, sans-serif; letter-spacing: 1px; color: #000;">
+                        ${d.queueNum}
+                    </div>
+                    ${d.queueSvg ? `
+                    <div style="margin-top: 2px; display: flex; justify-content: center;">
+                        ${d.queueSvg}
+                    </div>
+                    ` : ''}
                 </div>
 
                 <!-- Barcode 1: National ID (Full width, centered) -->
