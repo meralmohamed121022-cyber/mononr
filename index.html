@@ -4204,6 +4204,95 @@
             font-weight: 600;
             opacity: 0.9;
         }
+
+        /* ========================================================
+           📋 سجل المحذوفين والمستلمين من الطابور (Queue History)
+        ======================================================== */
+        .history-card-item {
+            background: #ffffff;
+            border: 1.5px solid #e2e8f0;
+            border-radius: 12px;
+            padding: 12px 14px;
+            margin-bottom: 10px;
+            transition: all 0.2s ease;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.03);
+            text-align: right;
+        }
+        .history-card-item:hover {
+            box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+            border-color: #cbd5e1;
+        }
+        .history-card-item.dispensed {
+            border-right: 5px solid #10b981;
+            background: #fbfdfc;
+        }
+        .history-card-item.removed {
+            border-right: 5px solid #ef4444;
+            background: #fffdfd;
+        }
+        .history-qnum-badge {
+            font-size: 16px;
+            font-weight: 900;
+            color: #0f172a;
+            font-family: monospace;
+            background: #f1f5f9;
+            padding: 4px 12px;
+            border-radius: 8px;
+            border: 1px solid #cbd5e1;
+            display: inline-block;
+        }
+        .history-status-tag {
+            font-size: 11px;
+            font-weight: 800;
+            padding: 3px 10px;
+            border-radius: 20px;
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+        }
+        .history-status-tag.dispensed {
+            background: #e8f5e9;
+            color: #2e7d32;
+            border: 1px solid #c8e6c9;
+        }
+        .history-status-tag.removed {
+            background: #ffebee;
+            color: #c62828;
+            border: 1px solid #ffcdd2;
+        }
+
+        /* ========================================================
+           🖨️ طباعة ليبل الطابور الحراري Zebra GK420t (3x2 inches)
+        ======================================================== */
+        .thermal-label-preview-wrapper {
+            background: #f1f5f9;
+            padding: 15px;
+            border-radius: 12px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin: 10px 0;
+            border: 1px dashed #cbd5e1;
+        }
+        .thermal-label-preview {
+            width: 3in;
+            height: 2in;
+            background: #ffffff;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.18);
+            border: 1px solid #333;
+            box-sizing: border-box;
+            padding: 4px 6px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            color: #000;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+            overflow: hidden;
+            position: relative;
+        }
+        .thermal-label-preview * {
+            box-sizing: border-box;
+        }
         
         .custom-prompt-overlay {
             display: none;
@@ -4706,9 +4795,18 @@
 
                 <div class="dispensing-table-container" style="margin-top: 20px;">
                     <div
-                        style="display: flex; justify-content: space-between; align-items: center; padding: 15px 20px; border-bottom: 1px solid #eee; background: #fcfcfc; border-radius: 12px 12px 0 0;">
-                        <div style="font-size: 14px; font-weight: 700; color: var(--primary);">📋 Queue List <span
-                                id="queueCount" class="patient-badge">0</span></div>
+                        style="display: flex; justify-content: space-between; align-items: center; padding: 15px 20px; border-bottom: 1px solid #eee; background: #fcfcfc; border-radius: 12px 12px 0 0; gap: 10px; flex-wrap: wrap;">
+                        <div style="display: flex; align-items: center; gap: 12px; flex-wrap: wrap;">
+                            <div style="font-size: 14px; font-weight: 700; color: var(--primary);">📋 Queue List <span
+                                    id="queueCount" class="patient-badge">0</span></div>
+                            <button onclick="openDispensedHistoryModal()" class="btn-action" 
+                                    style="padding: 6px 14px; background: linear-gradient(135deg, #334155, #1e293b); color: white; border: none; border-radius: 8px; font-weight: 800; font-size: 12px; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; box-shadow: 0 2px 6px rgba(0,0,0,0.15);" 
+                                    title="عرض سجل أرقام الطابور المحذوفة والمستلمة">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+                                <span>سجل المحذوفين / الاستلام</span>
+                                <span id="dispensedHistoryBadge" style="background: #ef4444; color: white; padding: 1px 7px; border-radius: 10px; font-size: 10px; font-weight: 900;">0</span>
+                            </button>
+                        </div>
                         <div style="position: relative; width: 250px;">
                             <input type="text" id="queueFilterInput" placeholder="Filter current list..."
                                 onkeyup="filterQueue()"
@@ -4743,6 +4841,7 @@
                                         onkeyup="filterQueue()"
                                         style="width: 100%; margin-top: 5px; padding: 2px 4px; font-size: 10px; border: 1px solid #ddd; border-radius: 4px; font-weight: normal; box-sizing: border-box;">
                                 </th>
+                                <th width="50">Print</th>
                                 <th width="80">Done</th>
                             </tr>
                         </thead>
@@ -5836,6 +5935,7 @@
         appInitialized = true;
         // 1. الإعدادات الأولية للعناصر (التاريخ والوصفة الأولى)
         loadBlockedIds();
+        loadDispensedQueueHistory();
         document.getElementById('dispensingDate').valueAsDate = new Date();
         addPrescription();
 
@@ -8854,6 +8954,7 @@ SMART IMPORT SYSTEM (Dr. Mo Edition)
     }
     // 4. رسم الجدول (نسخة الـ Turbo - تعديل الاسم المباشر + أداء فائق السرعة)
     function renderDispensingQueue(filterText) {
+        if (typeof updateHistoryBadge === 'function') updateHistoryBadge();
         const tbody = document.getElementById('dispensingQueueBody');
         const emptyMsg = document.getElementById('emptyDispenseMsg');
         const countBadge = document.getElementById('queueCount');
@@ -8928,7 +9029,7 @@ SMART IMPORT SYSTEM (Dr. Mo Edition)
                 emptyMsg.style.display = 'block';
             } else {
                 emptyMsg.style.display = 'none';
-                tbody.innerHTML = `<tr><td colspan="7" style="text-align:center; padding:20px; color:#aaa">No matches found</td></tr>`;
+                tbody.innerHTML = `<tr><td colspan="8" style="text-align:center; padding:20px; color:#aaa">No matches found</td></tr>`;
             }
             return;
         }
@@ -9020,6 +9121,17 @@ SMART IMPORT SYSTEM (Dr. Mo Edition)
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"></path></svg>
                     </a>
                 </div>
+            </td>
+
+            <td style="text-align: center;">
+                <button onclick="openPrintLabelModal('${p.id}')" title="طباعة ليبل Zebra 3x2" 
+                        style="background: #f1f5f9; border: 1.5px solid #cbd5e1; border-radius: 6px; width: 30px; height: 30px; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; color: #1e293b; transition: all 0.2s ease;">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <polyline points="6 9 6 2 18 2 18 9"></polyline>
+                        <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path>
+                        <rect x="6" y="14" width="12" height="8"></rect>
+                    </svg>
+                </button>
             </td>
 
             <td style="text-align: center;">
@@ -9491,6 +9603,9 @@ SMART IMPORT SYSTEM (Dr. Mo Edition)
 
         // استدعاء المودال بتصميمك
         confirmAction(deleteArtHtml, async () => {
+            // تسجيل في سجل المحذوفين
+            if (patient) recordQueueHistoryItem(patient, 'removed');
+
             // 1. تحديث محلي سريع (Optimistic UI)
             dispensingQueue = dispensingQueue.filter(p => String(p.id) !== pId);
             renderDispensingQueue(document.getElementById('queueFilterInput')?.value || '');
@@ -9513,6 +9628,9 @@ SMART IMPORT SYSTEM (Dr. Mo Edition)
     }
     // 6. تنفيذ الحذف (تحديث السيرفر)
     async function executeRemoval(patientId) {
+        const patient = dispensingQueue.find(p => String(p.id) === String(patientId));
+        if (patient) recordQueueHistoryItem(patient, 'removed');
+
         // تحديث الواجهة
         dispensingQueue = dispensingQueue.filter(p => String(p.id) !== String(patientId));
         filterQueue();
@@ -9602,6 +9720,10 @@ SMART IMPORT SYSTEM (Dr. Mo Edition)
         patient.inQueue = false; // خروجه من القائمة
 
         try {
+            // تسجيل في سجل المستلمين والصرف قبل الحذف
+            const qPatient = dispensingQueue.find(p => String(p.id) === pId) || patient;
+            if (qPatient) recordQueueHistoryItem(qPatient, 'dispensed');
+
             // تحديث البيانات في سوبابيز (بما فيها إخراجه من القائمة)
             await supabaseClient
                 .from('patients')
@@ -9630,6 +9752,703 @@ SMART IMPORT SYSTEM (Dr. Mo Edition)
             showModal('<span style="color:var(--danger)">❌ Error</span>', '<p>Data not saved.</p>', '<button class="btn-primary" onclick="closeModal()">OK</button>');
         }
     }
+
+    // =========================================================================
+    // 📋 نظام سجل المحذوفين والمستلمين من الطابور (Dispensed & Removed Queue History)
+    // =========================================================================
+    let dispensedQueueHistory = [];
+
+    function loadDispensedQueueHistory() {
+        try {
+            const saved = localStorage.getItem('mono_dispensed_queue_history');
+            if (saved) {
+                dispensedQueueHistory = JSON.parse(saved);
+            }
+        } catch (e) {
+            dispensedQueueHistory = [];
+        }
+        updateHistoryBadge();
+    }
+
+    function saveDispensedQueueHistory() {
+        try {
+            if (dispensedQueueHistory.length > 1000) {
+                dispensedQueueHistory = dispensedQueueHistory.slice(0, 1000);
+            }
+            localStorage.setItem('mono_dispensed_queue_history', JSON.stringify(dispensedQueueHistory));
+        } catch (e) {
+            console.error("Error saving queue history", e);
+        }
+        updateHistoryBadge();
+    }
+
+    function updateHistoryBadge() {
+        const badge = document.getElementById('dispensedHistoryBadge');
+        if (badge) {
+            badge.textContent = dispensedQueueHistory.length;
+        }
+    }
+
+    function recordQueueHistoryItem(patient, actionType = 'dispensed') {
+        if (!patient) return;
+        const now = new Date();
+        const dateFormatted = now.toLocaleDateString('en-GB') + ' ' + now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+
+        const historyEntry = {
+            historyId: 'hist_' + Date.now() + '_' + Math.random().toString(36).substr(2, 5),
+            patientId: String(patient.id || ''),
+            queueNumber: (patient.queueNumber !== undefined && patient.queueNumber !== null && patient.queueNumber !== '') ? patient.queueNumber : '-',
+            nationalId: String(patient.nationalId || ''),
+            patientName: String(patient.patientName || ''),
+            phoneNumber: String(patient.phoneNumber || ''),
+            prescriptions: JSON.parse(JSON.stringify(patient.prescriptions || [])),
+            drugs_list: JSON.parse(JSON.stringify(patient.drugs_list || [])),
+            cardColor: patient.cardColor || '',
+            actionType: actionType, // 'dispensed' | 'removed'
+            timestamp: Date.now(),
+            dateFormatted: dateFormatted
+        };
+
+        dispensedQueueHistory.unshift(historyEntry);
+        saveDispensedQueueHistory();
+    }
+
+    function openDispensedHistoryModal(filter = 'all') {
+        window.currentHistoryFilter = filter;
+        
+        const modalContent = `
+            <div style="padding: 4px;" dir="auto">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; flex-wrap: wrap; gap: 8px;">
+                    <div>
+                        <h3 style="margin: 0; font-size: 17px; color: #1e293b; font-weight: 900;">📋 أرشيف الطابور (المحذوفين والمستلمين)</h3>
+                        <p style="margin: 3px 0 0; font-size: 12px; color: #64748b;">سجل احتياطي للتأكد من استلام العميل للأدوية أو استرجاع رقم تم حذفه</p>
+                    </div>
+                    <span style="font-size: 12px; font-weight: 800; background: #e2e8f0; color: #334155; padding: 4px 12px; border-radius: 20px;">
+                        إجمالي الأرشيف: <b id="histModalTotal">${dispensedQueueHistory.length}</b>
+                    </span>
+                </div>
+
+                <!-- Search Input -->
+                <div style="margin-bottom: 10px;">
+                    <input type="text" id="histSearchInput" placeholder="🔍 بحث برقم الانتظار، رقم الهوية، الاسم، أو الجوال..." 
+                           class="form-input" style="width: 100%; box-sizing: border-box; padding: 9px 14px; font-size: 13px; font-weight: 600;" 
+                           oninput="filterDispensedHistory()">
+                </div>
+
+                <!-- Filter Chips -->
+                <div style="display: flex; gap: 6px; margin-bottom: 12px; flex-wrap: wrap;">
+                    <button type="button" class="alarm-preset-btn ${filter === 'all' ? 'active' : ''}" onclick="setHistoryFilter('all', this)">
+                        الكل (${dispensedQueueHistory.length})
+                    </button>
+                    <button type="button" class="alarm-preset-btn ${filter === 'dispensed' ? 'active' : ''}" onclick="setHistoryFilter('dispensed', this)" style="border-color: #a7f3d0; color: #065f46;">
+                        ✅ تم الصرف (${dispensedQueueHistory.filter(h => h.actionType === 'dispensed').length})
+                    </button>
+                    <button type="button" class="alarm-preset-btn ${filter === 'removed' ? 'active' : ''}" onclick="setHistoryFilter('removed', this)" style="border-color: #fecaca; color: #991b1b;">
+                        🗑️ تم الحذف (${dispensedQueueHistory.filter(h => h.actionType === 'removed').length})
+                    </button>
+                </div>
+
+                <!-- Items Container -->
+                <div id="historyItemsContainer" style="max-height: 420px; overflow-y: auto; padding-right: 4px;">
+                    <!-- Filled by filterDispensedHistory() -->
+                </div>
+            </div>
+        `;
+
+        const actionsHtml = `
+            <div style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
+                <button class="btn-secondary" onclick="clearAllQueueHistory()" style="background: #fee2e2; border-color: #fca5a5; color: #dc2626; font-size: 12px; font-weight: 800; padding: 9px 14px;">
+                    🗑️ مسح السجل بالكامل
+                </button>
+                <button class="btn-secondary" onclick="closeModal()" style="padding: 9px 24px; font-weight: bold;">
+                    إغلاق
+                </button>
+            </div>
+        `;
+
+        showModal(
+            '<span style="color: #1e293b; display: flex; align-items: center; gap: 6px;">📋 سجل الطابور الاحتياطي</span>',
+            modalContent,
+            actionsHtml,
+            'modal-lg'
+        );
+
+        setTimeout(() => {
+            filterDispensedHistory();
+        }, 50);
+    }
+
+    function setHistoryFilter(filter, btn) {
+        window.currentHistoryFilter = filter;
+        const parent = btn.parentElement;
+        if (parent) {
+            parent.querySelectorAll('.alarm-preset-btn').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+        }
+        filterDispensedHistory();
+    }
+
+    function filterDispensedHistory() {
+        const container = document.getElementById('historyItemsContainer');
+        if (!container) return;
+
+        const searchTerm = (document.getElementById('histSearchInput')?.value || '').trim().toLowerCase();
+        const filter = window.currentHistoryFilter || 'all';
+
+        let list = dispensedQueueHistory;
+        if (filter === 'dispensed') {
+            list = list.filter(h => h.actionType === 'dispensed');
+        } else if (filter === 'removed') {
+            list = list.filter(h => h.actionType === 'removed');
+        }
+
+        if (searchTerm) {
+            list = list.filter(h => {
+                const qStr = String(h.queueNumber || '');
+                const nStr = String(h.nationalId || '');
+                const nameStr = String(h.patientName || '').toLowerCase();
+                const phStr = String(h.phoneNumber || '');
+                const rxStr = (h.prescriptions || []).map(r => r.number).join(' ').toLowerCase();
+                return qStr.includes(searchTerm) || nStr.includes(searchTerm) || nameStr.includes(searchTerm) || phStr.includes(searchTerm) || rxStr.includes(searchTerm);
+            });
+        }
+
+        if (list.length === 0) {
+            container.innerHTML = `
+                <div style="text-align: center; padding: 35px 20px; color: #94a3b8;">
+                    <div style="font-size: 34px; margin-bottom: 8px;">📭</div>
+                    <div style="font-size: 14px; font-weight: bold;">لا توجد عناصر مطابقة في السجل</div>
+                </div>
+            `;
+            return;
+        }
+
+        let html = '';
+        list.forEach(item => {
+            const isDispensed = item.actionType === 'dispensed';
+            const rxText = (item.prescriptions || []).map(r => r.number).filter(Boolean).join(', ');
+            const drugsCount = (item.drugs_list && item.drugs_list.length) ? item.drugs_list.length : 0;
+
+            html += `
+            <div class="history-card-item ${isDispensed ? 'dispensed' : 'removed'}">
+                <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 8px; margin-bottom: 6px; flex-wrap: wrap;">
+                    <div style="display: flex; align-items: center; gap: 8px;">
+                        <span class="history-qnum-badge"># ${item.queueNumber}</span>
+                        <span class="history-status-tag ${isDispensed ? 'dispensed' : 'removed'}">
+                            ${isDispensed ? '✅ تم الصرف والاستلام' : '🗑️ تم الحذف من الطابور'}
+                        </span>
+                    </div>
+                    <div style="font-size: 11px; color: #64748b; font-weight: 600;">
+                        🕒 ${item.dateFormatted}
+                    </div>
+                </div>
+
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 8px; margin: 8px 0; font-size: 12px;">
+                    <div>
+                        <span style="color: #64748b; font-size: 10px; display: block;">المريض:</span>
+                        <b style="color: #0f172a; font-size: 13px;">${item.patientName || 'بدون اسم'}</b>
+                    </div>
+                    <div>
+                        <span style="color: #64748b; font-size: 10px; display: block;">رقم الهوية:</span>
+                        <b style="color: #0f172a; font-family: monospace; font-size: 13px;">${item.nationalId || '-'}</b>
+                    </div>
+                    <div>
+                        <span style="color: #64748b; font-size: 10px; display: block;">رقم الجوال:</span>
+                        <div style="display: flex; align-items: center; gap: 6px;">
+                            <span style="color: #0284c7; font-family: monospace; font-weight: bold;">${item.phoneNumber || '-'}</span>
+                            ${item.phoneNumber ? `
+                            <a href="https://wa.me/${item.phoneNumber.replace(/^0/, '966')}" target="_blank" style="text-decoration: none; color: #10b981; font-size: 14px;" title="واتساب">💬</a>
+                            <a href="tel:${item.phoneNumber}" style="text-decoration: none; color: #0284c7; font-size: 13px;" title="اتصال">📞</a>
+                            ` : ''}
+                        </div>
+                    </div>
+                    <div>
+                        <span style="color: #64748b; font-size: 10px; display: block;">الوصفات والأدوية:</span>
+                        <span style="color: #475569; font-weight: 600; font-size: 11px;">
+                            ${rxText ? `Rx: ${rxText}` : 'لا توجد وصفات'} 
+                            ${drugsCount > 0 ? `• (${drugsCount} أدوية)` : ''}
+                        </span>
+                    </div>
+                </div>
+
+                <!-- History Actions -->
+                <div style="display: flex; justify-content: space-between; align-items: center; border-top: 1px dashed #e2e8f0; padding-top: 6px; margin-top: 6px; gap: 6px;">
+                    <div style="display: flex; gap: 6px;">
+                        <button type="button" onclick="restoreFromQueueHistory('${item.historyId}')" 
+                                style="background: #e0f2fe; color: #0369a1; border: 1px solid #bae6fd; border-radius: 6px; padding: 4px 10px; font-size: 11px; font-weight: 800; cursor: pointer; display: inline-flex; align-items: center; gap: 4px; transition: 0.15s;">
+                            🔄 إعادة للطابور
+                        </button>
+                        <button type="button" onclick="openPrintLabelModalFromHistory('${item.historyId}')" 
+                                style="background: #f1f5f9; color: #1e293b; border: 1px solid #cbd5e1; border-radius: 6px; padding: 4px 10px; font-size: 11px; font-weight: 800; cursor: pointer; display: inline-flex; align-items: center; gap: 4px;">
+                            🖨️ طباعة تيكت
+                        </button>
+                    </div>
+                    <button type="button" onclick="deleteSingleHistoryItem('${item.historyId}')" 
+                            style="background: transparent; border: none; color: #ef4444; font-size: 12px; cursor: pointer; padding: 4px 8px;" title="حذف من السجل">
+                        🗑️
+                    </button>
+                </div>
+            </div>
+            `;
+        });
+
+        container.innerHTML = html;
+    }
+
+    async function restoreFromQueueHistory(historyId) {
+        const item = dispensedQueueHistory.find(h => h.historyId === historyId);
+        if (!item) return;
+
+        // Check if already in queue
+        const alreadyInQueue = dispensingQueue.some(q => String(q.id) === String(item.patientId));
+        if (alreadyInQueue) {
+            showToast('⚠️ المريض موجود بالفعل في الطابور حالياً!');
+            return;
+        }
+
+        let patient = patients.find(p => String(p.id) === String(item.patientId));
+        if (!patient) {
+            patient = {
+                id: item.patientId,
+                nationalId: item.nationalId,
+                patientName: item.patientName,
+                phoneNumber: item.phoneNumber,
+                prescriptions: item.prescriptions || [],
+                drugs_list: item.drugs_list || [],
+                cardColor: item.cardColor || ''
+            };
+            patients.push(patient);
+        }
+
+        patient.inQueue = true;
+        patient.queueNumber = (item.queueNumber && item.queueNumber !== '-') ? item.queueNumber : (dispensingQueue.length + 1);
+
+        dispensingQueue.push(patient);
+        dispensingQueue.sort((a, b) => (parseInt(a.queueNumber) || 0) - (parseInt(b.queueNumber) || 0));
+
+        try {
+            await supabaseClient
+                .from('patients')
+                .update({
+                    in_queue: true,
+                    queue_number: patient.queueNumber
+                })
+                .eq('id', patient.id);
+        } catch (e) {
+            console.error("Error restoring to queue in Supabase", e);
+        }
+
+        renderDispensingQueue(document.getElementById('queueFilterInput')?.value || '');
+        displayPatients();
+        showToast(`✅ تمت إعادة #${patient.queueNumber} (${patient.patientName || patient.nationalId}) إلى الطابور`);
+        
+        filterDispensedHistory();
+    }
+
+    function deleteSingleHistoryItem(historyId) {
+        dispensedQueueHistory = dispensedQueueHistory.filter(h => h.historyId !== historyId);
+        saveDispensedQueueHistory();
+        filterDispensedHistory();
+        showToast('تم الحذف من السجل');
+    }
+
+    function clearAllQueueHistory() {
+        if (!confirm('هل أنت متأكد من تفريغ سجل المحذوفين والمستلمين بالكامل؟')) return;
+        dispensedQueueHistory = [];
+        saveDispensedQueueHistory();
+        filterDispensedHistory();
+        showToast('تم مسح السجل بالكامل 🗑️');
+    }
+
+    // =========================================================================
+    // 🖨️ نظام طباعة ليبل الطابور والباركود الحراري (Zebra GK420t - 3" x 2")
+    // =========================================================================
+
+    function generateCode128Svg(text, options = {}) {
+        if (!text) return '';
+        const cleanText = String(text).trim();
+        if (!cleanText) return '';
+
+        const width = options.width || 1.05;
+        const height = options.height || 26;
+        const showText = options.showText !== false;
+        const fontSize = options.fontSize || 9;
+
+        const patterns = [
+            "212222","222122","222221","121223","121322","131222","122213","122312","132212","221213",
+            "221312","231212","112232","122132","122231","113222","123122","123221","223211","221132",
+            "221231","213212","223112","312131","311222","321122","321221","312212","322112","322211",
+            "212123","212321","232121","111323","131123","131321","112313","132113","132311","211313",
+            "231113","231311","112133","112331","132131","113123","113321","133121","313121","211331",
+            "231131","213113","213311","213131","311123","311321","331121","312113","312311","332111",
+            "314111","221411","431111","111224","111422","121124","121421","141122","141221","112214",
+            "112412","122114","122411","142112","142211","241211","221114","413111","241112","134111",
+            "111242","121142","121241","114212","124112","124211","411212","421112","421211","212141",
+            "214121","412121","111143","111341","131141","114113","114311","411113","411311","113141",
+            "114131","311141","411131","211412","211214","211232","2331112"
+        ];
+
+        const startCode = 104; // Start B
+        const codes = [startCode];
+        let checksum = startCode;
+
+        for (let i = 0; i < cleanText.length; i++) {
+            const charCode = cleanText.charCodeAt(i);
+            let val = charCode - 32;
+            if (val < 0 || val > 95) val = 0;
+            codes.push(val);
+            checksum += val * (i + 1);
+        }
+
+        checksum = checksum % 103;
+        codes.push(checksum);
+        codes.push(106); // Stop
+
+        let modules = "";
+        for (let i = 0; i < codes.length; i++) {
+            const p = patterns[codes[i]];
+            for (let j = 0; j < p.length; j++) {
+                const count = parseInt(p[j], 10);
+                const isBar = (j % 2 === 0);
+                modules += (isBar ? "1" : "0").repeat(count);
+            }
+        }
+
+        const totalModules = modules.length;
+        const svgWidth = totalModules * width;
+        const totalHeight = showText ? (height + fontSize + 3) : height;
+
+        let rects = "";
+        let curX = 0;
+        let barWidth = 0;
+
+        for (let i = 0; i < modules.length; i++) {
+            if (modules[i] === "1") {
+                barWidth += width;
+            } else {
+                if (barWidth > 0) {
+                    rects += `<rect x="${curX.toFixed(1)}" y="0" width="${barWidth.toFixed(1)}" height="${height}" fill="#000"/>`;
+                    barWidth = 0;
+                }
+                curX = (i + 1) * width;
+            }
+        }
+        if (barWidth > 0) {
+            rects += `<rect x="${curX.toFixed(1)}" y="0" width="${barWidth.toFixed(1)}" height="${height}" fill="#000"/>`;
+        }
+
+        let textElement = "";
+        if (showText) {
+            textElement = `<text x="${(svgWidth / 2).toFixed(1)}" y="${(height + fontSize + 1).toFixed(1)}" font-family="monospace, monospace" font-size="${fontSize}" font-weight="900" text-anchor="middle" fill="#000">${cleanText}</text>`;
+        }
+
+        return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${svgWidth.toFixed(1)} ${totalHeight}" width="${svgWidth.toFixed(1)}" height="${totalHeight}" style="display:block; margin:0 auto; max-width:100%;">${rects}${textElement}</svg>`;
+    }
+
+    function openPrintLabelModal(target) {
+        let p = null;
+        if (typeof target === 'object' && target !== null) {
+            p = target;
+        } else {
+            const pIdStr = String(target);
+            p = dispensingQueue.find(q => String(q.id) === pIdStr) || 
+                patients.find(pt => String(pt.id) === pIdStr) ||
+                dispensedQueueHistory.find(h => String(h.patientId) === pIdStr || h.historyId === pIdStr);
+        }
+
+        if (!p) {
+            showToast('❌ لم يتم العثور على بيانات المريض للطباعة');
+            return;
+        }
+
+        const queueNum = (p.queueNumber !== undefined && p.queueNumber !== null && p.queueNumber !== '') ? p.queueNumber : '---';
+        const patientName = p.patientName || 'بدون اسم';
+        const nationalId = String(p.nationalId || '').trim();
+        const phoneNumber = String(p.phoneNumber || '').trim();
+        const rxNumbers = (p.prescriptions || []).map(r => r.number).filter(Boolean).join(', ') || '';
+
+        const pharmacyName = localStorage.getItem('mono_pharmacy_name') || 'صيدلية الدواء 66';
+        const pharmacyPhone = localStorage.getItem('mono_pharmacy_phone') || '03-5322900';
+
+        const now = new Date();
+        const dateStr = now.toLocaleDateString('en-GB') + ' ' + now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+
+        const phoneSvg = phoneNumber ? generateCode128Svg(phoneNumber, { width: 1.15, height: 21, fontSize: 8.5 }) : '<div style="font-size:9px; color:#888; padding:3px;">لا يوجد رقم جوال</div>';
+        const idSvg = nationalId ? generateCode128Svg(nationalId, { width: 1.15, height: 21, fontSize: 8.5 }) : '<div style="font-size:9px; color:#888; padding:3px;">لا يوجد رقم هوية</div>';
+
+        window.currentPrintLabelData = {
+            queueNum,
+            patientName,
+            nationalId,
+            phoneNumber,
+            rxNumbers,
+            pharmacyName,
+            pharmacyPhone,
+            dateStr,
+            phoneSvg,
+            idSvg
+        };
+
+        const modalContent = `
+            <div style="padding: 4px;" dir="auto">
+                <div style="text-align: center; margin-bottom: 8px;">
+                    <h3 style="margin: 0; font-size: 16px; color: #1e293b; font-weight: 900;">
+                        🖨️ طباعة تيكت الطابور (Zebra GK420t - 3" x 2")
+                    </h3>
+                    <p style="margin: 3px 0 0; font-size: 12px; color: #64748b;">
+                        معاينة مطابقة تماماً للملصق الحراري بمقاس 3 في 2 بوصة مع باركود الجوال والهوية
+                    </p>
+                </div>
+
+                <!-- Thermal Label 3x2 Preview -->
+                <div class="thermal-label-preview-wrapper">
+                    <div id="thermalLabelPreview" class="thermal-label-preview">
+                        
+                        <!-- Header: Pharmacy & Date -->
+                        <div style="display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 1.5px solid #000; padding-bottom: 2px; margin-bottom: 2px;">
+                            <div style="text-align: right; line-height: 1.1;">
+                                <div id="prevPharmName" style="font-weight: 900; font-size: 11px; color: #000;">${pharmacyName}</div>
+                                <div id="prevPharmPhone" style="font-size: 8px; font-weight: bold; color: #333;">هاتف: ${pharmacyPhone}</div>
+                            </div>
+                            <div style="text-align: left; font-size: 8px; font-weight: bold; color: #000; line-height: 1.1;">
+                                ${dateStr}
+                            </div>
+                        </div>
+
+                        <!-- Main Row: Queue Box + Patient Info -->
+                        <div style="display: flex; gap: 8px; align-items: center; margin: 2px 0;">
+                            <!-- Big bold queue number box (replaces handwriting 1865) -->
+                            <div style="border: 2px solid #000; border-radius: 6px; padding: 1px 6px; text-align: center; min-width: 65px; background: #fff; flex-shrink: 0;">
+                                <div style="font-size: 7px; font-weight: 900; letter-spacing: 0.5px; border-bottom: 1px solid #000; padding-bottom: 1px; text-transform: uppercase;">QUEUE #</div>
+                                <div style="font-size: 24px; font-weight: 900; line-height: 1.1; font-family: Impact, Arial Black, sans-serif;">
+                                    ${queueNum}
+                                </div>
+                            </div>
+
+                            <!-- Patient Name & Rx -->
+                            <div style="flex: 1; min-width: 0; line-height: 1.25; text-align: right;">
+                                <div style="font-size: 11px; font-weight: 900; color: #000; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+                                    👤 ${patientName}
+                                </div>
+                                ${rxNumbers ? `
+                                <div style="font-size: 8.5px; font-weight: bold; color: #222; margin-top: 1px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+                                    📋 Rx: ${rxNumbers}
+                                </div>
+                                ` : ''}
+                            </div>
+                        </div>
+
+                        <!-- Barcode 1: National ID (Full width, centered) -->
+                        <div style="text-align: center; border-top: 1px solid #000; padding-top: 2px; margin-top: 1px;">
+                            <div style="font-size: 7.5px; font-weight: 900; line-height: 1; letter-spacing: 0.5px; margin-bottom: 1px;">رقم الهوية (NATIONAL ID)</div>
+                            <div id="prevIdBarcode">${idSvg}</div>
+                        </div>
+
+                        <!-- Barcode 2: Mobile Number (Full width, centered, separated) -->
+                        <div style="text-align: center; border-top: 1px dashed #777; padding-top: 2px; margin-top: 1px;">
+                            <div style="font-size: 7.5px; font-weight: 900; line-height: 1; letter-spacing: 0.5px; margin-bottom: 1px;">رقم الجوال (MOBILE NUMBER)</div>
+                            <div id="prevPhoneBarcode">${phoneSvg}</div>
+                        </div>
+
+                    </div>
+                </div>
+
+                <!-- Pharmacy branch settings toggle -->
+                <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 8px 12px; margin-top: 6px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; cursor: pointer;" onclick="const el = document.getElementById('pharmacyEditFields'); el.style.display = (el.style.display === 'none' || !el.style.display) ? 'grid' : 'none';">
+                        <span style="font-size: 11px; font-weight: 800; color: #475569;">⚙️ تخصيص اسم الصيدلية ورقم الفرع</span>
+                        <span style="font-size: 11px; color: #0284c7; font-weight: bold;">تعديل ▾</span>
+                    </div>
+                    <div id="pharmacyEditFields" style="display: none; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 8px;">
+                        <div>
+                            <label style="font-size: 10px; font-weight: bold; color: #64748b;">اسم الصيدلية / الفرع:</label>
+                            <input type="text" id="labelInputPharmName" value="${pharmacyName}" class="form-input" style="padding: 4px 8px; font-size: 11px;" oninput="updateLabelPharmacySettings()">
+                        </div>
+                        <div>
+                            <label style="font-size: 10px; font-weight: bold; color: #64748b;">هاتف الصيدلية:</label>
+                            <input type="text" id="labelInputPharmPhone" value="${pharmacyPhone}" class="form-input" style="padding: 4px 8px; font-size: 11px;" oninput="updateLabelPharmacySettings()">
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+
+        const actionsHtml = `
+            <div style="display: flex; gap: 8px; width: 100%;">
+                <button class="btn-secondary" onclick="closeModal()" style="flex: 1; padding: 11px;">إلغاء</button>
+                <button class="btn-primary" onclick="executePrintThermalLabel()" style="flex: 2; padding: 11px; background: linear-gradient(135deg, #0f172a, #1e293b); border: none; font-weight: 900; font-size: 13px; display: inline-flex; align-items: center; justify-content: center; gap: 6px; box-shadow: 0 4px 12px rgba(15,23,42,0.3);">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 6 2 18 2 18 9"></polyline><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path><rect x="6" y="14" width="12" height="8"></rect></svg>
+                    <span>🖨️ طباعة الآن (Print)</span>
+                </button>
+            </div>
+        `;
+
+        showModal(
+            '<span style="color: #0f172a; display: flex; align-items: center; gap: 6px;">🏷️ تيكت الطابور الحراري</span>',
+            modalContent,
+            actionsHtml
+        );
+    }
+
+    function openPrintLabelModalFromHistory(historyId) {
+        const item = dispensedQueueHistory.find(h => h.historyId === historyId);
+        if (!item) return;
+        openPrintLabelModal(item);
+    }
+
+    function updateLabelPharmacySettings() {
+        const nameInput = document.getElementById('labelInputPharmName');
+        const phoneInput = document.getElementById('labelInputPharmPhone');
+        if (!nameInput || !phoneInput) return;
+
+        const newName = nameInput.value.trim() || 'صيدلية الدواء 66';
+        const newPhone = phoneInput.value.trim() || '03-5322900';
+
+        localStorage.setItem('mono_pharmacy_name', newName);
+        localStorage.setItem('mono_pharmacy_phone', newPhone);
+
+        const prevName = document.getElementById('prevPharmName');
+        const prevPhone = document.getElementById('prevPharmPhone');
+        if (prevName) prevName.textContent = newName;
+        if (prevPhone) prevPhone.textContent = 'هاتف: ' + newPhone;
+
+        if (window.currentPrintLabelData) {
+            window.currentPrintLabelData.pharmacyName = newName;
+            window.currentPrintLabelData.pharmacyPhone = newPhone;
+        }
+    }
+
+    function executePrintThermalLabel() {
+        if (!window.currentPrintLabelData) return;
+        const d = window.currentPrintLabelData;
+
+        let printFrame = document.getElementById('thermalPrintIframe');
+        if (!printFrame) {
+            printFrame = document.createElement('iframe');
+            printFrame.id = 'thermalPrintIframe';
+            printFrame.style.position = 'fixed';
+            printFrame.style.right = '0';
+            printFrame.style.bottom = '0';
+            printFrame.style.width = '0';
+            printFrame.style.height = '0';
+            printFrame.style.border = '0';
+            document.body.appendChild(printFrame);
+        }
+
+        const labelHtml = `
+        <!DOCTYPE html>
+        <html lang="ar">
+        <head>
+            <meta charset="utf-8">
+            <title>Label #${d.queueNum}</title>
+            <style>
+                @page {
+                    size: 3in 2in;
+                    margin: 0;
+                }
+                * {
+                    box-sizing: border-box;
+                    margin: 0;
+                    padding: 0;
+                }
+                html, body {
+                    width: 3in;
+                    height: 2in;
+                    margin: 0;
+                    padding: 0;
+                    background: #fff;
+                    color: #000;
+                    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+                    -webkit-print-color-adjust: exact;
+                    print-color-adjust: exact;
+                    overflow: hidden;
+                }
+                .label-body {
+                    width: 3in;
+                    height: 2in;
+                    box-sizing: border-box;
+                    padding: 4px 6px;
+                    display: flex;
+                    flex-direction: column;
+                    justify-content: space-between;
+                }
+            </style>
+        </head>
+        <body>
+            <div class="label-body">
+                <!-- Header -->
+                <div style="display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 1.5px solid #000; padding-bottom: 2px;">
+                    <div style="text-align: right; line-height: 1.1;">
+                        <div style="font-weight: 900; font-size: 11px; color: #000;">${d.pharmacyName}</div>
+                        <div style="font-size: 8px; font-weight: bold; color: #333;">هاتف: ${d.pharmacyPhone}</div>
+                    </div>
+                    <div style="text-align: left; font-size: 8px; font-weight: bold; color: #000; line-height: 1.1;">
+                        ${d.dateStr}
+                    </div>
+                </div>
+
+                <!-- Queue Number + Details -->
+                <div style="display: flex; gap: 8px; align-items: center; margin: 2px 0;">
+                    <div style="border: 2px solid #000; border-radius: 6px; padding: 1px 6px; text-align: center; min-width: 65px; flex-shrink: 0;">
+                        <div style="font-size: 7px; font-weight: 900; letter-spacing: 0.5px; border-bottom: 1px solid #000; padding-bottom: 1px; text-transform: uppercase;">QUEUE #</div>
+                        <div style="font-size: 24px; font-weight: 900; line-height: 1.1; font-family: Impact, Arial Black, sans-serif;">
+                            ${d.queueNum}
+                        </div>
+                    </div>
+                    <div style="flex: 1; min-width: 0; line-height: 1.25; text-align: right;">
+                        <div style="font-size: 11px; font-weight: 900; color: #000; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+                            👤 ${d.patientName}
+                        </div>
+                        ${d.rxNumbers ? `
+                        <div style="font-size: 8.5px; font-weight: bold; color: #222; margin-top: 1px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+                            📋 Rx: ${d.rxNumbers}
+                        </div>
+                        ` : ''}
+                    </div>
+                </div>
+
+                <!-- Barcode 1: National ID (Full width, centered) -->
+                <div style="text-align: center; border-top: 1px solid #000; padding-top: 2px; margin-top: 1px;">
+                    <div style="font-size: 7.5px; font-weight: 900; line-height: 1; letter-spacing: 0.5px; margin-bottom: 1px;">رقم الهوية (NATIONAL ID)</div>
+                    <div>${d.idSvg}</div>
+                </div>
+
+                <!-- Barcode 2: Mobile Number (Full width, centered, separated) -->
+                <div style="text-align: center; border-top: 1px dashed #777; padding-top: 2px; margin-top: 1px;">
+                    <div style="font-size: 7.5px; font-weight: 900; line-height: 1; letter-spacing: 0.5px; margin-bottom: 1px;">رقم الجوال (MOBILE NUMBER)</div>
+                    <div>${d.phoneSvg}</div>
+                </div>
+            </div>
+        </body>
+        </html>
+        `;
+
+        const frameDoc = printFrame.contentWindow.document;
+        frameDoc.open();
+        frameDoc.write(labelHtml);
+        frameDoc.close();
+
+        setTimeout(() => {
+            printFrame.contentWindow.focus();
+            printFrame.contentWindow.print();
+        }, 250);
+    }
+
+    // ربط دوال السجل والطباعة بـ window
+    window.openDispensedHistoryModal = openDispensedHistoryModal;
+    window.setHistoryFilter = setHistoryFilter;
+    window.filterDispensedHistory = filterDispensedHistory;
+    window.restoreFromQueueHistory = restoreFromQueueHistory;
+    window.deleteSingleHistoryItem = deleteSingleHistoryItem;
+    window.clearAllQueueHistory = clearAllQueueHistory;
+    window.openPrintLabelModal = openPrintLabelModal;
+    window.openPrintLabelModalFromHistory = openPrintLabelModalFromHistory;
+    window.updateLabelPharmacySettings = updateLabelPharmacySettings;
+    window.executePrintThermalLabel = executePrintThermalLabel;
+    window.generateCode128Svg = generateCode128Svg;
+    window.loadDispensedQueueHistory = loadDispensedQueueHistory;
+    window.recordQueueHistoryItem = recordQueueHistoryItem;
+    window.updateHistoryBadge = updateHistoryBadge;
 
     // إغلاق البحث
     document.addEventListener('click', function (e) {
