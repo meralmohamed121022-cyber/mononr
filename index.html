@@ -4799,6 +4799,12 @@
                         <div style="display: flex; align-items: center; gap: 12px; flex-wrap: wrap;">
                             <div style="font-size: 14px; font-weight: 700; color: var(--primary);">📋 Queue List <span
                                     id="queueCount" class="patient-badge">0</span></div>
+                            <button id="btnPrintSelectedQueue" onclick="printSelectedQueueLabels()" class="btn-action" 
+                                    style="display: none; padding: 6px 14px; background: linear-gradient(135deg, #0284c7, #0369a1); color: white; border: none; border-radius: 8px; font-weight: 800; font-size: 12px; cursor: pointer; align-items: center; gap: 6px; box-shadow: 0 2px 6px rgba(2,132,199,0.35); transition: all 0.2s;" 
+                                    title="طباعة تيكتات العناصر المحددة دفعة واحدة">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 6 2 18 2 18 9"></polyline><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path><rect x="6" y="14" width="12" height="8"></rect></svg>
+                                <span>🖨️ طباعة المحدد (<span id="selectedQueueCount">0</span>)</span>
+                            </button>
                             <button onclick="openDispensedHistoryModal()" class="btn-action" 
                                     style="padding: 6px 14px; background: linear-gradient(135deg, #334155, #1e293b); color: white; border: none; border-radius: 8px; font-weight: 800; font-size: 12px; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; box-shadow: 0 2px 6px rgba(0,0,0,0.15);" 
                                     title="عرض سجل أرقام الطابور المحذوفة والمستلمة">
@@ -4816,6 +4822,9 @@
                     <table class="dispensing-table">
                         <thead>
                             <tr>
+                                <th width="35" style="text-align: center; vertical-align: middle;">
+                                    <input type="checkbox" id="selectAllQueue" title="تحديد الكل" onchange="toggleSelectAllQueue(this)" style="cursor: pointer; width: 16px; height: 16px; accent-color: #0284c7;">
+                                </th>
                                 <th width="40">✖</th>
                                 <th width="80">
                                     #<br>
@@ -9075,7 +9084,7 @@ SMART IMPORT SYSTEM (Dr. Mo Edition)
                 emptyMsg.style.display = 'block';
             } else {
                 emptyMsg.style.display = 'none';
-                tbody.innerHTML = `<tr><td colspan="8" style="text-align:center; padding:20px; color:#aaa">No matches found</td></tr>`;
+                tbody.innerHTML = `<tr><td colspan="9" style="text-align:center; padding:20px; color:#aaa">No matches found</td></tr>`;
             }
             return;
         }
@@ -9101,6 +9110,10 @@ SMART IMPORT SYSTEM (Dr. Mo Edition)
             class="${p.cardColor === 'blue' ? 'color-blue' : ''} ${isBlocked ? 'queue-row-blocked' : ''}" 
             style="transition: background 0.2s; position: relative; ${isBlocked ? 'background: #fff5f5 !important; border-right: 4px solid #ef4444;' : ''}">
             
+            <td style="text-align: center; vertical-align: middle;">
+                <input type="checkbox" class="queue-select-checkbox" data-id="${p.id}" onchange="updateQueueSelectionCount()" style="cursor: pointer; width: 16px; height: 16px; accent-color: #0284c7;">
+            </td>
+
             <td style="text-align: center;">
                 <button class="btn-remove-queue" onclick="confirmRemoveFromQueue('${p.id}')" 
                         style="background: #FFEBEE; border:none; width:24px; height:24px; border-radius:6px; cursor:pointer; display:inline-flex; align-items:center; justify-content:center;">
@@ -9190,6 +9203,9 @@ SMART IMPORT SYSTEM (Dr. Mo Edition)
         }
 
         tbody.innerHTML = rowsHtml;
+        if (typeof updateQueueSelectionCount === 'function') {
+            updateQueueSelectionCount();
+        }
     }
     async function updatePatientNameInline(patientId, newName) {
         const pId = String(patientId);
@@ -10053,20 +10069,46 @@ SMART IMPORT SYSTEM (Dr. Mo Edition)
             const drugsCount = (item.drugs_list && item.drugs_list.length) ? item.drugs_list.length : 0;
 
             html += `
-            <div class="history-card-item ${isDispensed ? 'dispensed' : 'removed'}">
-                <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 8px; margin-bottom: 6px; flex-wrap: wrap;">
-                    <div style="display: flex; align-items: center; gap: 8px;">
-                        <span class="history-qnum-badge"># ${item.queueNumber}</span>
+            <div class="history-card-item ${isDispensed ? 'dispensed' : 'removed'}" style="padding: 10px 14px; margin-bottom: 8px;">
+                <!-- Main Header / Overview Row (Always Visible) -->
+                <div style="display: flex; justify-content: space-between; align-items: center; gap: 8px; flex-wrap: wrap;">
+                    <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
+                        <span class="history-qnum-badge" style="font-size: 17px; font-weight: 900; padding: 4px 12px; color: #0f172a; background: #f8fafc; border: 2px solid ${isDispensed ? '#10b981' : '#ef4444'};">
+                            # ${item.queueNumber}
+                        </span>
                         <span class="history-status-tag ${isDispensed ? 'dispensed' : 'removed'}">
-                            ${isDispensed ? '✅ تم الصرف والاستلام' : '🗑️ تم الحذف من الطابور'}
+                            ${isDispensed ? '✅ تم الصرف' : '🗑️ تم الحذف'}
+                        </span>
+                        <span style="font-size: 11px; color: #64748b; font-weight: 700;">
+                            🕒 ${item.dateFormatted}
                         </span>
                     </div>
-                    <div style="font-size: 11px; color: #64748b; font-weight: 600;">
-                        🕒 ${item.dateFormatted}
+
+                    <div style="display: flex; align-items: center; gap: 6px;">
+                        <button type="button" id="hist-toggle-btn-${item.historyId}" onclick="toggleHistoryDetails('${item.historyId}')" 
+                                style="background: #f1f5f9; color: #0284c7; border: 1px solid #cbd5e1; border-radius: 6px; padding: 4px 10px; font-size: 11px; font-weight: 800; cursor: pointer; display: inline-flex; align-items: center; gap: 4px;" 
+                                title="إظهار / إخفاء تفاصيل المريض">
+                            تفاصيل <span style="font-size: 10px;">▼</span>
+                        </button>
+                        <button type="button" onclick="restoreFromQueueHistory('${item.historyId}')" 
+                                style="background: #e0f2fe; color: #0369a1; border: 1px solid #bae6fd; border-radius: 6px; padding: 4px 10px; font-size: 11px; font-weight: 800; cursor: pointer; display: inline-flex; align-items: center; gap: 4px;"
+                                title="إعادة إلى الطابور">
+                            🔄 إعادة
+                        </button>
+                        <button type="button" onclick="openPrintLabelModalFromHistory('${item.historyId}')" 
+                                style="background: #f1f5f9; color: #1e293b; border: 1px solid #cbd5e1; border-radius: 6px; padding: 4px 10px; font-size: 11px; font-weight: 800; cursor: pointer; display: inline-flex; align-items: center; gap: 4px;"
+                                title="طباعة تيكت">
+                            🖨️
+                        </button>
+                        <button type="button" onclick="deleteSingleHistoryItem('${item.historyId}')" 
+                                style="background: transparent; border: none; color: #ef4444; font-size: 13px; cursor: pointer; padding: 4px 6px;" title="حذف نهائي من السجل">
+                            🗑️
+                        </button>
                     </div>
                 </div>
 
-                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 8px; margin: 8px 0; font-size: 12px;">
+                <!-- Hidden Collapsible Details (Patient Name, ID, Mobile, Rx, Drugs) -->
+                <div id="hist-details-${item.historyId}" style="display: none; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 8px; margin-top: 10px; padding: 10px; background: #f8fafc; border: 1px dashed #cbd5e1; border-radius: 8px; font-size: 12px;">
                     <div>
                         <span style="color: #64748b; font-size: 10px; display: block;">المريض:</span>
                         <b style="color: #0f172a; font-size: 13px;">${item.patientName || 'بدون اسم'}</b>
@@ -10093,29 +10135,24 @@ SMART IMPORT SYSTEM (Dr. Mo Edition)
                         </span>
                     </div>
                 </div>
-
-                <!-- History Actions -->
-                <div style="display: flex; justify-content: space-between; align-items: center; border-top: 1px dashed #e2e8f0; padding-top: 6px; margin-top: 6px; gap: 6px;">
-                    <div style="display: flex; gap: 6px;">
-                        <button type="button" onclick="restoreFromQueueHistory('${item.historyId}')" 
-                                style="background: #e0f2fe; color: #0369a1; border: 1px solid #bae6fd; border-radius: 6px; padding: 4px 10px; font-size: 11px; font-weight: 800; cursor: pointer; display: inline-flex; align-items: center; gap: 4px; transition: 0.15s;">
-                            🔄 إعادة للطابور
-                        </button>
-                        <button type="button" onclick="openPrintLabelModalFromHistory('${item.historyId}')" 
-                                style="background: #f1f5f9; color: #1e293b; border: 1px solid #cbd5e1; border-radius: 6px; padding: 4px 10px; font-size: 11px; font-weight: 800; cursor: pointer; display: inline-flex; align-items: center; gap: 4px;">
-                            🖨️ طباعة تيكت
-                        </button>
-                    </div>
-                    <button type="button" onclick="deleteSingleHistoryItem('${item.historyId}')" 
-                            style="background: transparent; border: none; color: #ef4444; font-size: 12px; cursor: pointer; padding: 4px 8px;" title="حذف من السجل">
-                        🗑️
-                    </button>
-                </div>
             </div>
             `;
         });
 
         container.innerHTML = html;
+    }
+
+    function toggleHistoryDetails(historyId) {
+        const details = document.getElementById(`hist-details-${historyId}`);
+        const btn = document.getElementById(`hist-toggle-btn-${historyId}`);
+        if (!details) return;
+        const isHidden = (details.style.display === 'none' || !details.style.display);
+        details.style.display = isHidden ? 'grid' : 'none';
+        if (btn) {
+            btn.innerHTML = isHidden 
+                ? 'إخفاء <span style="font-size: 10px;">▴</span>' 
+                : 'تفاصيل <span style="font-size: 10px;">▾</span>';
+        }
     }
 
     async function restoreFromQueueHistory(historyId) {
@@ -10282,6 +10319,79 @@ SMART IMPORT SYSTEM (Dr. Mo Edition)
         return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${svgWidth.toFixed(1)} ${totalHeight}" width="${svgWidth.toFixed(1)}" height="${totalHeight}" style="display:block; margin:0 auto; max-width:100%;">${rects}${textElement}</svg>`;
     }
 
+    function generateSingleThermalLabelBody(d) {
+        if (!d) return '';
+        const queueNum = (d.queueNumber !== undefined && d.queueNumber !== null && d.queueNumber !== '') ? d.queueNumber : (d.queueNum || '---');
+        const patientName = d.patientName || 'بدون اسم';
+        const nationalId = String(d.nationalId || '').trim();
+        const phoneNumber = String(d.phoneNumber || '').trim();
+        const rxNumbers = (d.prescriptions && Array.isArray(d.prescriptions)) 
+            ? d.prescriptions.map(r => r.number).filter(Boolean).join(', ') 
+            : (d.rxNumbers || '');
+
+        const pharmacyName = d.pharmacyName || localStorage.getItem('mono_pharmacy_name') || 'صيدلية الدواء 66';
+        const pharmacyPhone = d.pharmacyPhone || localStorage.getItem('mono_pharmacy_phone') || '03-5322900';
+
+        const now = new Date();
+        const dateStr = d.dateStr || (now.toLocaleDateString('en-GB') + ' ' + now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }));
+
+        const idSvg = d.idSvg || (nationalId ? generateCode128Svg(nationalId, { width: 1.25, height: 28, fontSize: 9 }) : '<div style="font-size:9px; color:#888; padding:3px;">لا يوجد رقم هوية</div>');
+        const queueSvg = d.queueSvg || ((queueNum && queueNum !== '---') ? generateCode128Svg(String(queueNum), { width: 1.2, height: 32, showText: false }) : '');
+
+        return `
+        <div class="label-body">
+            <!-- Header: Pharmacy & Date -->
+            <div style="display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 1.5px solid #000; padding-bottom: 2px;">
+                <div style="text-align: right; line-height: 1.1;">
+                    <div style="font-weight: 900; font-size: 11px; color: #000;">${pharmacyName}</div>
+                    <div style="font-size: 8px; font-weight: bold; color: #333;">هاتف: <span dir="ltr">${pharmacyPhone}</span></div>
+                </div>
+                <div style="text-align: left; font-size: 8px; font-weight: bold; color: #000; line-height: 1.1;" dir="ltr">
+                    ${dateStr}
+                </div>
+            </div>
+
+            <!-- Patient Info & Mobile & Rx (Compact Row) -->
+            <div style="display: flex; justify-content: space-between; align-items: center; padding: 2px 0; border-bottom: 1px dashed #aaa;">
+                <div style="font-size: 10.5px; font-weight: 900; color: #000; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 45%;">
+                    👤 ${patientName}
+                </div>
+                ${phoneNumber ? `
+                <div style="font-size: 10px; font-weight: 900; color: #000; white-space: nowrap;" dir="ltr">
+                    📱 ${phoneNumber}
+                </div>
+                ` : ''}
+                ${rxNumbers ? `
+                <div style="font-size: 9px; font-weight: bold; color: #222; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" dir="ltr">
+                    Rx: ${rxNumbers}
+                </div>
+                ` : ''}
+            </div>
+
+            <!-- Middle Row: Big Queue Number in Center + Queue Barcode on Side -->
+            <div style="display: flex; align-items: center; justify-content: space-between; padding: 2px 6px; margin: 3px 0;">
+                <!-- Queue Barcode on Side (Left) -->
+                <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; min-width: 85px;">
+                    ${queueSvg}
+                </div>
+
+                <!-- Big Bold Queue Number in Center -->
+                <div style="flex: 1; text-align: center;">
+                    <div style="font-size: 54px; font-weight: 900; line-height: 1; font-family: Impact, 'Arial Black', -apple-system, sans-serif; letter-spacing: 1px; color: #000;">
+                        ${queueNum}
+                    </div>
+                </div>
+            </div>
+
+            <!-- Barcode: National ID (Full width, centered) -->
+            <div style="text-align: center; border-top: 1.5px solid #000; padding-top: 3px; margin-top: 2px;">
+                <div style="font-size: 8px; font-weight: 900; line-height: 1; letter-spacing: 0.5px; margin-bottom: 2px;">رقم الهوية (NATIONAL ID)</div>
+                <div>${idSvg}</div>
+            </div>
+        </div>
+        `;
+    }
+
     function openPrintLabelModal(target) {
         let p = null;
         if (typeof target === 'object' && target !== null) {
@@ -10328,17 +10438,14 @@ SMART IMPORT SYSTEM (Dr. Mo Edition)
 
         const modalContent = `
             <div style="padding: 4px;" dir="auto">
-                <div style="text-align: center; margin-bottom: 8px;">
+                <div style="text-align: center; margin-bottom: 10px;">
                     <h3 style="margin: 0; font-size: 16px; color: #1e293b; font-weight: 900;">
-                        🖨️ طباعة تيكت الطابور (Zebra GK420t - 3" x 2")
+                        🖨️ تيكت الطابور (#${queueNum})
                     </h3>
-                    <p style="margin: 3px 0 0; font-size: 12px; color: #64748b;">
-                        معاينة مطابقة تماماً للملصق الحراري بمقاس 3 في 2 بوصة مع رقم الانتظار الكبير وباركوداته
-                    </p>
                 </div>
 
                 <!-- Thermal Label 3x2 Preview -->
-                <div class="thermal-label-preview-wrapper">
+                <div class="thermal-label-preview-wrapper" style="padding: 10px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px;">
                     <div id="thermalLabelPreview" class="thermal-label-preview">
                         
                         <!-- Header: Pharmacy & Date -->
@@ -10392,39 +10499,22 @@ SMART IMPORT SYSTEM (Dr. Mo Edition)
 
                     </div>
                 </div>
-
-                <!-- Pharmacy branch settings toggle -->
-                <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 8px 12px; margin-top: 6px;">
-                    <div style="display: flex; justify-content: space-between; align-items: center; cursor: pointer;" onclick="const el = document.getElementById('pharmacyEditFields'); el.style.display = (el.style.display === 'none' || !el.style.display) ? 'grid' : 'none';">
-                        <span style="font-size: 11px; font-weight: 800; color: #475569;">⚙️ تخصيص اسم الصيدلية ورقم الفرع</span>
-                        <span style="font-size: 11px; color: #0284c7; font-weight: bold;">تعديل ▾</span>
-                    </div>
-                    <div id="pharmacyEditFields" style="display: none; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 8px;">
-                        <div>
-                            <label style="font-size: 10px; font-weight: bold; color: #64748b;">اسم الصيدلية / الفرع:</label>
-                            <input type="text" id="labelInputPharmName" value="${pharmacyName}" class="form-input" style="padding: 4px 8px; font-size: 11px;" oninput="updateLabelPharmacySettings()">
-                        </div>
-                        <div>
-                            <label style="font-size: 10px; font-weight: bold; color: #64748b;">هاتف الصيدلية:</label>
-                            <input type="text" id="labelInputPharmPhone" value="${pharmacyPhone}" class="form-input" style="padding: 4px 8px; font-size: 11px;" oninput="updateLabelPharmacySettings()">
-                        </div>
-                    </div>
-                </div>
             </div>
         `;
 
         const actionsHtml = `
-            <div style="display: flex; gap: 8px; width: 100%;">
-                <button class="btn-secondary" onclick="closeModal()" style="flex: 1; padding: 11px;">إلغاء</button>
-                <button class="btn-primary" onclick="executePrintThermalLabel()" style="flex: 2; padding: 11px; background: linear-gradient(135deg, #0f172a, #1e293b); border: none; font-weight: 900; font-size: 13px; display: inline-flex; align-items: center; justify-content: center; gap: 6px; box-shadow: 0 4px 12px rgba(15,23,42,0.3);">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 6 2 18 2 18 9"></polyline><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path><rect x="6" y="14" width="12" height="8"></rect></svg>
+            <div style="display: flex; gap: 10px; width: 100%;">
+                <button class="btn-secondary" onclick="closeModal()" style="flex: 1; padding: 13px; font-size: 13px; font-weight: 800;">إلغاء</button>
+                <button class="btn-primary" onclick="executePrintThermalLabel()" 
+                        style="flex: 2.5; padding: 14px 20px; background: linear-gradient(135deg, #059669, #10b981); color: #ffffff; border: none; border-radius: 10px; font-weight: 900; font-size: 16px; display: inline-flex; align-items: center; justify-content: center; gap: 10px; box-shadow: 0 4px 15px rgba(16,185,129,0.35); cursor: pointer; transition: transform 0.1s, box-shadow 0.2s;">
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 6 2 18 2 18 9"></polyline><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path><rect x="6" y="14" width="12" height="8"></rect></svg>
                     <span>🖨️ طباعة الآن (Print)</span>
                 </button>
             </div>
         `;
 
         showModal(
-            '<span style="color: #0f172a; display: flex; align-items: center; gap: 6px;">🏷️ تيكت الطابور الحراري</span>',
+            '<span style="color: #0f172a; display: flex; align-items: center; gap: 6px; font-weight: 800;">🏷️ معاينة تيكت الطابور الحراري</span>',
             modalContent,
             actionsHtml
         );
@@ -10475,6 +10565,8 @@ SMART IMPORT SYSTEM (Dr. Mo Edition)
             document.body.appendChild(printFrame);
         }
 
+        const bodyHtml = generateSingleThermalLabelBody(d);
+
         const labelHtml = `
         <!DOCTYPE html>
         <html lang="ar">
@@ -10515,56 +10607,7 @@ SMART IMPORT SYSTEM (Dr. Mo Edition)
             </style>
         </head>
         <body>
-            <div class="label-body">
-                <!-- Header -->
-                <div style="display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 1.5px solid #000; padding-bottom: 2px;">
-                    <div style="text-align: right; line-height: 1.1;">
-                        <div style="font-weight: 900; font-size: 11px; color: #000;">${d.pharmacyName}</div>
-                        <div style="font-size: 8px; font-weight: bold; color: #333;">هاتف: <span dir="ltr">${d.pharmacyPhone}</span></div>
-                    </div>
-                    <div style="text-align: left; font-size: 8px; font-weight: bold; color: #000; line-height: 1.1;" dir="ltr">
-                        ${d.dateStr}
-                    </div>
-                </div>
-
-                <!-- Patient Info & Mobile & Rx (Compact Row) -->
-                <div style="display: flex; justify-content: space-between; align-items: center; padding: 2px 0; border-bottom: 1px dashed #aaa;">
-                    <div style="font-size: 10.5px; font-weight: 900; color: #000; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 45%;">
-                        👤 ${d.patientName}
-                    </div>
-                    ${d.phoneNumber ? `
-                    <div style="font-size: 10px; font-weight: 900; color: #000; white-space: nowrap;" dir="ltr">
-                        📱 ${d.phoneNumber}
-                    </div>
-                    ` : ''}
-                    ${d.rxNumbers ? `
-                    <div style="font-size: 9px; font-weight: bold; color: #222; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" dir="ltr">
-                        Rx: ${d.rxNumbers}
-                    </div>
-                    ` : ''}
-                </div>
-
-                <!-- Middle Row: Big Queue Number in Center + Queue Barcode on Side -->
-                <div style="display: flex; align-items: center; justify-content: space-between; padding: 2px 6px; margin: 3px 0;">
-                    <!-- Queue Barcode on Side (Left) -->
-                    <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; min-width: 85px;">
-                        ${d.queueSvg}
-                    </div>
-
-                    <!-- Big Bold Queue Number in Center -->
-                    <div style="flex: 1; text-align: center;">
-                        <div style="font-size: 54px; font-weight: 900; line-height: 1; font-family: Impact, 'Arial Black', -apple-system, sans-serif; letter-spacing: 1px; color: #000;">
-                            ${d.queueNum}
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Barcode: National ID (Full width, centered) -->
-                <div style="text-align: center; border-top: 1.5px solid #000; padding-top: 3px; margin-top: 2px;">
-                    <div style="font-size: 8px; font-weight: 900; line-height: 1; letter-spacing: 0.5px; margin-bottom: 2px;">رقم الهوية (NATIONAL ID)</div>
-                    <div>${d.idSvg}</div>
-                </div>
-            </div>
+            ${bodyHtml}
         </body>
         </html>
         `;
@@ -10580,10 +10623,130 @@ SMART IMPORT SYSTEM (Dr. Mo Edition)
         }, 250);
     }
 
+    // ========================================================
+    // 🖨️ دوال التحديد المتعدد والطباعة الجماعية للطابور
+    // ========================================================
+
+    function toggleSelectAllQueue(master) {
+        const checkboxes = document.querySelectorAll('.queue-select-checkbox');
+        checkboxes.forEach(cb => cb.checked = master.checked);
+        updateQueueSelectionCount();
+    }
+
+    function updateQueueSelectionCount() {
+        const checked = document.querySelectorAll('.queue-select-checkbox:checked');
+        const total = document.querySelectorAll('.queue-select-checkbox');
+        const master = document.getElementById('selectAllQueue');
+        if (master) {
+            master.checked = total.length > 0 && checked.length === total.length;
+            master.indeterminate = checked.length > 0 && checked.length < total.length;
+        }
+        const btn = document.getElementById('btnPrintSelectedQueue');
+        const countSpan = document.getElementById('selectedQueueCount');
+        if (countSpan) countSpan.textContent = checked.length;
+        if (btn) {
+            btn.style.display = checked.length > 0 ? 'inline-flex' : 'none';
+        }
+    }
+
+    function printSelectedQueueLabels() {
+        const checkedBoxes = Array.from(document.querySelectorAll('.queue-select-checkbox:checked'));
+        if (checkedBoxes.length === 0) {
+            showToast('⚠️ يرجى تحديد تيكت واحد على الأقل للطباعة');
+            return;
+        }
+
+        const selectedIds = checkedBoxes.map(cb => cb.getAttribute('data-id'));
+        const selectedPatients = dispensingQueue.filter(p => selectedIds.includes(String(p.id)));
+
+        if (selectedPatients.length === 0) {
+            showToast('⚠️ لم يتم العثور على بيانات العناصر المحددة');
+            return;
+        }
+
+        let printFrame = document.getElementById('thermalPrintIframe');
+        if (!printFrame) {
+            printFrame = document.createElement('iframe');
+            printFrame.id = 'thermalPrintIframe';
+            printFrame.style.position = 'fixed';
+            printFrame.style.right = '0';
+            printFrame.style.bottom = '0';
+            printFrame.style.width = '0';
+            printFrame.style.height = '0';
+            printFrame.style.border = '0';
+            document.body.appendChild(printFrame);
+        }
+
+        const labelsHtml = selectedPatients.map(p => generateSingleThermalLabelBody(p)).join('\n');
+
+        const fullDocumentHtml = `
+        <!DOCTYPE html>
+        <html lang="ar">
+        <head>
+            <meta charset="utf-8">
+            <title>طباعة ملصقات (${selectedPatients.length})</title>
+            <style>
+                @page {
+                    size: 3in 2in;
+                    margin: 0;
+                }
+                * {
+                    box-sizing: border-box;
+                    margin: 0;
+                    padding: 0;
+                }
+                html, body {
+                    width: 3in;
+                    margin: 0;
+                    padding: 0;
+                    background: #fff;
+                    color: #000;
+                    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+                    -webkit-print-color-adjust: exact;
+                    print-color-adjust: exact;
+                }
+                .label-body {
+                    width: 3in;
+                    height: 2in;
+                    box-sizing: border-box;
+                    padding: 4px 6px;
+                    display: flex;
+                    flex-direction: column;
+                    justify-content: space-between;
+                    page-break-after: always;
+                    break-after: page;
+                    overflow: hidden;
+                }
+                .label-body:last-child {
+                    page-break-after: auto;
+                    break-after: auto;
+                }
+            </style>
+        </head>
+        <body>
+            ${labelsHtml}
+        </body>
+        </html>
+        `;
+
+        const frameDoc = printFrame.contentWindow.document;
+        frameDoc.open();
+        frameDoc.write(fullDocumentHtml);
+        frameDoc.close();
+
+        showToast(`🖨️ جاري إرسال ${selectedPatients.length} تيكت للطابعة...`);
+
+        setTimeout(() => {
+            printFrame.contentWindow.focus();
+            printFrame.contentWindow.print();
+        }, 300);
+    }
+
     // ربط دوال السجل والطباعة بـ window
     window.openDispensedHistoryModal = openDispensedHistoryModal;
     window.setHistoryFilter = setHistoryFilter;
     window.filterDispensedHistory = filterDispensedHistory;
+    window.toggleHistoryDetails = toggleHistoryDetails;
     window.restoreFromQueueHistory = restoreFromQueueHistory;
     window.deleteSingleHistoryItem = deleteSingleHistoryItem;
     window.clearAllQueueHistory = clearAllQueueHistory;
@@ -10591,6 +10754,14 @@ SMART IMPORT SYSTEM (Dr. Mo Edition)
     window.openPrintLabelModalFromHistory = openPrintLabelModalFromHistory;
     window.updateLabelPharmacySettings = updateLabelPharmacySettings;
     window.executePrintThermalLabel = executePrintThermalLabel;
+    window.generateSingleThermalLabelBody = generateSingleThermalLabelBody;
+    window.toggleSelectAllQueue = toggleSelectAllQueue;
+    window.updateQueueSelectionCount = updateQueueSelectionCount;
+    window.printSelectedQueueLabels = printSelectedQueueLabels;
+    window.generateCode128Svg = generateCode128Svg;
+    window.loadDispensedQueueHistory = loadDispensedQueueHistory;
+    window.recordQueueHistoryItem = recordQueueHistoryItem;
+    window.updateHistoryBadge = updateHistoryBadge;
     window.generateCode128Svg = generateCode128Svg;
     window.loadDispensedQueueHistory = loadDispensedQueueHistory;
     window.recordQueueHistoryItem = recordQueueHistoryItem;
