@@ -5029,11 +5029,9 @@
 
     function loadBlockedIds() {
         try {
-            const key = 'mono_blocked_patients_' + (currentUser && currentUser.id ? currentUser.id : 'default');
+            const u = (currentUser && currentUser.id) ? currentUser.id : 'default';
+            const key = 'mono_blocked_patients_' + u;
             let stored = localStorage.getItem(key);
-            if (!stored) {
-                stored = localStorage.getItem('mono_blocked_patients');
-            }
             if (stored) {
                 blockedPatientsList = JSON.parse(stored);
             } else {
@@ -5048,9 +5046,9 @@
 
     function saveBlockedIds() {
         try {
-            const key = 'mono_blocked_patients_' + (currentUser && currentUser.id ? currentUser.id : 'default');
+            const u = (currentUser && currentUser.id) ? currentUser.id : 'default';
+            const key = 'mono_blocked_patients_' + u;
             localStorage.setItem(key, JSON.stringify(blockedPatientsList));
-            localStorage.setItem('mono_blocked_patients', JSON.stringify(blockedPatientsList));
         } catch (e) {
             console.error('Error saving blocked patients to localStorage:', e);
         }
@@ -5595,7 +5593,17 @@
 
             document.getElementById('pharmacyInfo').textContent = pharmacy.pharmacy_name || pharmacy.pharmacy_code;
 
+            // مسح أي بيانات سابقة من الذاكرة لضمان العزل التام بين الصيدليات
+            patients = [];
+            dispensingQueue = [];
+            dispensedQueueHistory = [];
+            blockedPatientsList = [];
+            if (window.selectedQueuePatientIds) window.selectedQueuePatientIds.clear();
+            updateHistoryBadge();
+
             await loadPatientsFromSupabase();
+            loadBlockedIds();
+            await loadDispensedQueueHistory();
 
             document.getElementById('authPage').style.display = 'none';
             document.getElementById('mainApp').style.display = 'block';
@@ -5619,9 +5627,14 @@
     function handleLogout() {
         confirmAction('Are you sure you want to logout?', function () {
             currentUser = null;
+            window.currentUser = null;
             localStorage.removeItem('monoCurrentUser');
             patients = [];
             dispensingQueue = [];
+            dispensedQueueHistory = [];
+            blockedPatientsList = [];
+            if (window.selectedQueuePatientIds) window.selectedQueuePatientIds.clear();
+            updateHistoryBadge();
             document.getElementById('mainApp').style.display = 'none';
             document.getElementById('authPage').style.display = 'flex';
             document.getElementById('loginForm').reset();
@@ -5910,6 +5923,12 @@
     // APP INITIALIZATION
     // ============================================
     document.addEventListener('DOMContentLoaded', function () {
+        // تنظيف المفاتيح العامة القديمة لمنع تسريب بيانات بين الصيدليات
+        try {
+            localStorage.removeItem('mono_dispensed_queue_history');
+            localStorage.removeItem('mono_blocked_patients');
+        } catch (e) {}
+
         const savedUser = localStorage.getItem('monoCurrentUser');
 
         if (savedUser) {
@@ -5946,11 +5965,13 @@
     });
     let appInitialized = false;
     function initializeApp() {
+        // تحميل بيانات الصيدلية المسجلة حالياً دائماً لضمان العزل التام
+        loadBlockedIds();
+        loadDispensedQueueHistory();
+
         if (appInitialized) return;
         appInitialized = true;
         // 1. الإعدادات الأولية للعناصر (التاريخ والوصفة الأولى)
-        loadBlockedIds();
-        loadDispensedQueueHistory();
         document.getElementById('dispensingDate').valueAsDate = new Date();
         addPrescription();
 
@@ -9824,21 +9845,36 @@ SMART IMPORT SYSTEM (Dr. Mo Edition)
     // =========================================================================
     let dispensedQueueHistory = [];
 
+    function getQueueHistoryStorageKey() {
+        const u = (typeof currentUser !== 'undefined' && currentUser && currentUser.id) ? currentUser.id : 'default';
+        return 'mono_dispensed_queue_history_' + u;
+    }
+
     async function loadDispensedQueueHistory() {
-        // 1. قراءة فورية من التخزين المحلي (Offline / Instant)
+        const user = (typeof currentUser !== 'undefined' && currentUser) ? currentUser : window.currentUser;
+        const key = getQueueHistoryStorageKey();
+
+        // تنظيف المفتاح العام القديم لعدم خلط البيانات بين الصيدليات
         try {
-            const saved = localStorage.getItem('mono_dispensed_queue_history');
+            localStorage.removeItem('mono_dispensed_queue_history');
+            localStorage.removeItem('mono_blocked_patients');
+        } catch (e) {}
+
+        // 1. قراءة فورية من التخزين المحلي الخاص بهذه الصيدلية فقط
+        try {
+            const saved = localStorage.getItem(key);
             if (saved) {
                 dispensedQueueHistory = JSON.parse(saved);
+            } else {
+                dispensedQueueHistory = [];
             }
         } catch (e) {
             dispensedQueueHistory = [];
         }
         updateHistoryBadge();
 
-        // 2. مزامنة سحابية من Supabase لو مسجل دخول والجدول منشأ
+        // 2. مزامنة سحابية من Supabase خاصة بالصيدلية الحالية حصراً
         const client = (typeof supabaseClient !== 'undefined' && supabaseClient) ? supabaseClient : window.supabaseClient;
-        const user = (typeof currentUser !== 'undefined' && currentUser) ? currentUser : window.currentUser;
 
         if (client && user && user.id) {
             try {
@@ -9850,24 +9886,24 @@ SMART IMPORT SYSTEM (Dr. Mo Edition)
                     .limit(500);
 
                 if (!error && Array.isArray(data)) {
-                    if (data.length > 0) {
-                        dispensedQueueHistory = data.map(row => ({
-                            historyId: String(row.id),
-                            patientId: String(row.patient_id || ''),
-                            queueNumber: (row.queue_number !== undefined && row.queue_number !== null) ? row.queue_number : '-',
-                            nationalId: String(row.national_id || ''),
-                            patientName: String(row.patient_name || ''),
-                            phoneNumber: String(row.phone_number || ''),
-                            prescriptions: Array.isArray(row.prescriptions) ? row.prescriptions : (typeof row.prescriptions === 'string' ? JSON.parse(row.prescriptions || '[]') : []),
-                            drugs_list: Array.isArray(row.drugs_list) ? row.drugs_list : (typeof row.drugs_list === 'string' ? JSON.parse(row.drugs_list || '[]') : []),
-                            cardColor: row.cardcolor || row.card_color || '',
-                            actionType: row.action_type || 'dispensed',
-                            timestamp: new Date(row.created_at).getTime(),
-                            dateFormatted: row.date_formatted || (new Date(row.created_at).toLocaleDateString('en-GB') + ' ' + new Date(row.created_at).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }))
-                        }));
-                        saveDispensedQueueHistory();
-                        updateHistoryBadge();
-                    }
+                    // تحويل السجلات السحابية وتعيينها للسجل (وإن كانت فارغة تصبح فارغة لهذه الصيدلية)
+                    dispensedQueueHistory = data.map(row => ({
+                        historyId: String(row.id),
+                        patientId: String(row.patient_id || ''),
+                        queueNumber: (row.queue_number !== undefined && row.queue_number !== null) ? row.queue_number : '-',
+                        nationalId: String(row.national_id || ''),
+                        patientName: String(row.patient_name || ''),
+                        phoneNumber: String(row.phone_number || ''),
+                        prescriptions: Array.isArray(row.prescriptions) ? row.prescriptions : (typeof row.prescriptions === 'string' ? JSON.parse(row.prescriptions || '[]') : []),
+                        drugs_list: Array.isArray(row.drugs_list) ? row.drugs_list : (typeof row.drugs_list === 'string' ? JSON.parse(row.drugs_list || '[]') : []),
+                        cardColor: row.cardcolor || row.card_color || '',
+                        actionType: row.action_type || 'dispensed',
+                        timestamp: new Date(row.created_at).getTime(),
+                        dateFormatted: row.date_formatted || (new Date(row.created_at).toLocaleDateString('en-GB') + ' ' + new Date(row.created_at).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }))
+                    }));
+                    saveDispensedQueueHistory();
+                    updateHistoryBadge();
+                    if (typeof filterDispensedHistory === 'function') filterDispensedHistory();
                 } else if (error) {
                     console.warn("Error loading queue_history from Supabase:", error);
                 }
@@ -9879,10 +9915,11 @@ SMART IMPORT SYSTEM (Dr. Mo Edition)
 
     function saveDispensedQueueHistory() {
         try {
+            const key = getQueueHistoryStorageKey();
             if (dispensedQueueHistory.length > 1000) {
                 dispensedQueueHistory = dispensedQueueHistory.slice(0, 1000);
             }
-            localStorage.setItem('mono_dispensed_queue_history', JSON.stringify(dispensedQueueHistory));
+            localStorage.setItem(key, JSON.stringify(dispensedQueueHistory));
         } catch (e) {
             console.error("Error saving queue history", e);
         }
@@ -10333,8 +10370,11 @@ SMART IMPORT SYSTEM (Dr. Mo Edition)
             ? d.prescriptions.map(r => r.number).filter(Boolean).join(', ') 
             : (d.rxNumbers || '');
 
-        const pharmacyName = d.pharmacyName || localStorage.getItem('mono_pharmacy_name') || 'صيدلية الدواء 66';
-        const pharmacyPhone = d.pharmacyPhone || localStorage.getItem('mono_pharmacy_phone') || '03-5322900';
+        const defaultPharmName = (currentUser && (currentUser.pharmacy_name || currentUser.pharmacy_code)) 
+            ? (currentUser.pharmacy_name || ('صيدلية ' + currentUser.pharmacy_code)) 
+            : 'صيدلية الدواء';
+        const pharmacyName = d.pharmacyName || defaultPharmName;
+        const pharmacyPhone = d.pharmacyPhone || '03-5322900';
 
         const now = new Date();
         const dateStr = d.dateStr || (now.toLocaleDateString('en-GB') + ' ' + now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }));
@@ -10418,8 +10458,11 @@ SMART IMPORT SYSTEM (Dr. Mo Edition)
         const phoneNumber = String(p.phoneNumber || '').trim();
         const rxNumbers = (p.prescriptions || []).map(r => r.number).filter(Boolean).join(', ') || '';
 
-        const pharmacyName = localStorage.getItem('mono_pharmacy_name') || 'صيدلية الدواء 66';
-        const pharmacyPhone = localStorage.getItem('mono_pharmacy_phone') || '03-5322900';
+        const defaultPharmName = (currentUser && (currentUser.pharmacy_name || currentUser.pharmacy_code)) 
+            ? (currentUser.pharmacy_name || ('صيدلية ' + currentUser.pharmacy_code)) 
+            : 'صيدلية الدواء';
+        const pharmacyName = defaultPharmName;
+        const pharmacyPhone = '03-5322900';
 
         const now = new Date();
         const dateStr = now.toLocaleDateString('en-GB') + ' ' + now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
