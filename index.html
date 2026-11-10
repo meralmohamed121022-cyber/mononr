@@ -5871,6 +5871,9 @@
                 const qNum = freshlySaved ? freshlySaved.queueNumber : null;
                 showToast(qNum ? `✅ Added to Queue #${qNum}` : '✅ Added to Queue');
                 switchTab('dispensed');
+                if (typeof directPrintThermalLabel === 'function' && freshlySaved) {
+                    directPrintThermalLabel(freshlySaved);
+                }
             } else {
                 showToast('✅ Added to Main List');
                 switchTab('patients');
@@ -9098,6 +9101,7 @@ SMART IMPORT SYSTEM (Dr. Mo Edition)
             const finalNum = p.queueNumber || (i + 1);
             const drugCount = (p.drugs_list && p.drugs_list.length) ? p.drugs_list.length : 0;
             const isBlocked = isBlockedNationalId(p.nationalId);
+            const isSelected = window.selectedQueuePatientIds && window.selectedQueuePatientIds.has(String(p.id));
 
             // بناء البادجات الخاصة بالوصفات
             let rxHtml = '';
@@ -9111,7 +9115,7 @@ SMART IMPORT SYSTEM (Dr. Mo Edition)
             style="transition: background 0.2s; position: relative; ${isBlocked ? 'background: #fff5f5 !important; border-right: 4px solid #ef4444;' : ''}">
             
             <td style="text-align: center; vertical-align: middle;">
-                <input type="checkbox" class="queue-select-checkbox" data-id="${p.id}" onchange="updateQueueSelectionCount()" style="cursor: pointer; width: 16px; height: 16px; accent-color: #0284c7;">
+                <input type="checkbox" class="queue-select-checkbox" data-id="${p.id}" ${isSelected ? 'checked' : ''} onchange="toggleQueueItemSelection('${p.id}', this.checked)" style="cursor: pointer; width: 16px; height: 16px; accent-color: #0284c7;">
             </td>
 
             <td style="text-align: center;">
@@ -10624,40 +10628,155 @@ SMART IMPORT SYSTEM (Dr. Mo Edition)
     }
 
     // ========================================================
-    // 🖨️ دوال التحديد المتعدد والطباعة الجماعية للطابور
+    // 🖨️ دوال التحديد المتعدد والطباعة المباشرة والجماعية للطابور
     // ========================================================
 
+    window.selectedQueuePatientIds = window.selectedQueuePatientIds || new Set();
+
+    function toggleQueueItemSelection(patientId, isChecked) {
+        if (!window.selectedQueuePatientIds) window.selectedQueuePatientIds = new Set();
+        const pId = String(patientId);
+        if (isChecked) {
+            window.selectedQueuePatientIds.add(pId);
+        } else {
+            window.selectedQueuePatientIds.delete(pId);
+        }
+        updateQueueSelectionCount();
+    }
+
     function toggleSelectAllQueue(master) {
-        const checkboxes = document.querySelectorAll('.queue-select-checkbox');
-        checkboxes.forEach(cb => cb.checked = master.checked);
+        if (!window.selectedQueuePatientIds) window.selectedQueuePatientIds = new Set();
+        const visibleCheckboxes = document.querySelectorAll('.queue-select-checkbox');
+        visibleCheckboxes.forEach(cb => {
+            cb.checked = master.checked;
+            const pId = cb.getAttribute('data-id');
+            if (pId) {
+                if (master.checked) window.selectedQueuePatientIds.add(String(pId));
+                else window.selectedQueuePatientIds.delete(String(pId));
+            }
+        });
         updateQueueSelectionCount();
     }
 
     function updateQueueSelectionCount() {
-        const checked = document.querySelectorAll('.queue-select-checkbox:checked');
-        const total = document.querySelectorAll('.queue-select-checkbox');
-        const master = document.getElementById('selectAllQueue');
-        if (master) {
-            master.checked = total.length > 0 && checked.length === total.length;
-            master.indeterminate = checked.length > 0 && checked.length < total.length;
+        if (!window.selectedQueuePatientIds) window.selectedQueuePatientIds = new Set();
+
+        // تنظيف أي IDs تم حذفها أو صرفها من الطابور
+        const activeIds = new Set(dispensingQueue.map(p => String(p.id)));
+        for (const id of Array.from(window.selectedQueuePatientIds)) {
+            if (!activeIds.has(id)) {
+                window.selectedQueuePatientIds.delete(id);
+            }
         }
-        const btn = document.getElementById('btnPrintSelectedQueue');
+
+        const count = window.selectedQueuePatientIds.size;
         const countSpan = document.getElementById('selectedQueueCount');
-        if (countSpan) countSpan.textContent = checked.length;
+        if (countSpan) countSpan.textContent = count;
+
+        const btn = document.getElementById('btnPrintSelectedQueue');
         if (btn) {
-            btn.style.display = checked.length > 0 ? 'inline-flex' : 'none';
+            btn.style.display = count > 0 ? 'inline-flex' : 'none';
+        }
+
+        // تحديث حالة مربع تحديد الكل بناءً على العناصر المعروضة حالياً
+        const visibleCheckboxes = document.querySelectorAll('.queue-select-checkbox');
+        const master = document.getElementById('selectAllQueue');
+        if (master && visibleCheckboxes.length > 0) {
+            const allChecked = Array.from(visibleCheckboxes).every(cb => cb.checked);
+            const someChecked = Array.from(visibleCheckboxes).some(cb => cb.checked);
+            master.checked = allChecked;
+            master.indeterminate = !allChecked && (someChecked || count > 0);
+        } else if (master) {
+            master.checked = count > 0 && dispensingQueue.length > 0 && count === dispensingQueue.length;
+            master.indeterminate = count > 0 && count < dispensingQueue.length;
         }
     }
 
+    function directPrintThermalLabel(patientData) {
+        if (!patientData) return;
+
+        let printFrame = document.getElementById('thermalPrintIframe');
+        if (!printFrame) {
+            printFrame = document.createElement('iframe');
+            printFrame.id = 'thermalPrintIframe';
+            printFrame.style.position = 'fixed';
+            printFrame.style.right = '0';
+            printFrame.style.bottom = '0';
+            printFrame.style.width = '0';
+            printFrame.style.height = '0';
+            printFrame.style.border = '0';
+            document.body.appendChild(printFrame);
+        }
+
+        const bodyHtml = generateSingleThermalLabelBody(patientData);
+        const qNum = patientData.queueNumber || patientData.queueNum || '';
+
+        const labelHtml = `
+        <!DOCTYPE html>
+        <html lang="ar">
+        <head>
+            <meta charset="utf-8">
+            <title>Label #${qNum}</title>
+            <style>
+                @page {
+                    size: 3in 2in;
+                    margin: 0;
+                }
+                * {
+                    box-sizing: border-box;
+                    margin: 0;
+                    padding: 0;
+                }
+                html, body {
+                    width: 3in;
+                    height: 2in;
+                    margin: 0;
+                    padding: 0;
+                    background: #fff;
+                    color: #000;
+                    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+                    -webkit-print-color-adjust: exact;
+                    print-color-adjust: exact;
+                    overflow: hidden;
+                }
+                .label-body {
+                    width: 3in;
+                    height: 2in;
+                    box-sizing: border-box;
+                    padding: 4px 6px;
+                    display: flex;
+                    flex-direction: column;
+                    justify-content: space-between;
+                }
+            </style>
+        </head>
+        <body>
+            ${bodyHtml}
+        </body>
+        </html>
+        `;
+
+        const frameDoc = printFrame.contentWindow.document;
+        frameDoc.open();
+        frameDoc.write(labelHtml);
+        frameDoc.close();
+
+        setTimeout(() => {
+            printFrame.contentWindow.focus();
+            printFrame.contentWindow.print();
+        }, 250);
+    }
+
     function printSelectedQueueLabels() {
-        const checkedBoxes = Array.from(document.querySelectorAll('.queue-select-checkbox:checked'));
-        if (checkedBoxes.length === 0) {
+        if (!window.selectedQueuePatientIds) window.selectedQueuePatientIds = new Set();
+
+        if (window.selectedQueuePatientIds.size === 0) {
             showToast('⚠️ يرجى تحديد تيكت واحد على الأقل للطباعة');
             return;
         }
 
-        const selectedIds = checkedBoxes.map(cb => cb.getAttribute('data-id'));
-        const selectedPatients = dispensingQueue.filter(p => selectedIds.includes(String(p.id)));
+        // جلب جميع المرضى المحددين وفق ترتيب الطابور
+        const selectedPatients = dispensingQueue.filter(p => window.selectedQueuePatientIds.has(String(p.id)));
 
         if (selectedPatients.length === 0) {
             showToast('⚠️ لم يتم العثور على بيانات العناصر المحددة');
@@ -10754,14 +10873,12 @@ SMART IMPORT SYSTEM (Dr. Mo Edition)
     window.openPrintLabelModalFromHistory = openPrintLabelModalFromHistory;
     window.updateLabelPharmacySettings = updateLabelPharmacySettings;
     window.executePrintThermalLabel = executePrintThermalLabel;
+    window.directPrintThermalLabel = directPrintThermalLabel;
     window.generateSingleThermalLabelBody = generateSingleThermalLabelBody;
+    window.toggleQueueItemSelection = toggleQueueItemSelection;
     window.toggleSelectAllQueue = toggleSelectAllQueue;
     window.updateQueueSelectionCount = updateQueueSelectionCount;
     window.printSelectedQueueLabels = printSelectedQueueLabels;
-    window.generateCode128Svg = generateCode128Svg;
-    window.loadDispensedQueueHistory = loadDispensedQueueHistory;
-    window.recordQueueHistoryItem = recordQueueHistoryItem;
-    window.updateHistoryBadge = updateHistoryBadge;
     window.generateCode128Svg = generateCode128Svg;
     window.loadDispensedQueueHistory = loadDispensedQueueHistory;
     window.recordQueueHistoryItem = recordQueueHistoryItem;
@@ -11933,6 +12050,11 @@ SMART IMPORT SYSTEM (Dr. Mo Edition)
             const fridgeStatus = assignedColor === 'blue' ? '❄️ Fridge' : '📦 Normal';
             showToast(`✅ #${nextNumber} Added (${fridgeStatus}) 🚀`);
 
+            // 🔥 طباعة التيكت الحراري فوراً ومباشرة بدون شاشة معاينة
+            if (typeof directPrintThermalLabel === 'function') {
+                directPrintThermalLabel(finalPatientEntry);
+            }
+
             console.log(`✅ Added to queue with ID: ${savedId} as #${nextNumber} [Color: ${assignedColor}]`);
             return nextNumber;
 
@@ -12095,6 +12217,11 @@ SMART IMPORT SYSTEM (Dr. Mo Edition)
             updateStats();
             displayPatients();
             renderDispensingQueue(document.getElementById('queueFilterInput')?.value || '');
+
+            // 🔥 طباعة التيكت الحراري فوراً ومباشرة بدون شاشة معاينة
+            if (typeof directPrintThermalLabel === 'function') {
+                directPrintThermalLabel(newPatient);
+            }
 
         } catch (err) {
             console.error('Quick Add Error:', err);
@@ -12535,6 +12662,12 @@ SMART IMPORT SYSTEM (Dr. Mo Edition)
             document.getElementById('dispenseSearchInput').value = '';
 
             switchTab('dispensed');
+
+            // 🔥 طباعة التيكت الحراري فوراً ومباشرة بدون شاشة معاينة
+            const addedVersion = dispensingQueue.find(p => String(p.id) === String(newPatient.id)) || newPatient;
+            if (typeof directPrintThermalLabel === 'function' && addedVersion) {
+                directPrintThermalLabel(addedVersion);
+            }
 
         } catch (err) {
             console.error(err);
