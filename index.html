@@ -4580,7 +4580,14 @@
                             <span style="font-size: 18px; margin-right: 8px;">📅</span> Dispensing Date
                         </label>
                         <div style="display: flex; gap: 8px;">
-                            <input type="date" class="form-input" id="dispensingDate" style="flex: 1;">
+                            <div style="position: relative; flex: 1; min-width: 0;">
+                                <input type="text" class="form-input" id="dispensingDate-display" readonly
+                                       style="width: 100%; font-weight: 800; text-align: center; cursor: pointer; letter-spacing: 0.5px; background: #fff;"
+                                       placeholder="DD - MMM - YYYY">
+                                <input type="date" class="form-input" id="dispensingDate" 
+                                       onchange="syncFormattedDate(this, 'dispensingDate-display'); calculateNextRefill();"
+                                       style="position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; cursor: pointer; z-index: 2;">
+                            </div>
                             <button type="button" onclick="setDateToToday('dispensingDate')"
                                 style="background: var(--primary); color: white; border: none; border-radius: 12px; padding: 0 15px; font-size: 11px; font-weight: 800; cursor: pointer; transition: 0.3s; white-space: nowrap; box-shadow: 0 4px 12px var(--shadow);"
                                 onmouseover="this.style.opacity='0.9'" onmouseout="this.style.opacity='1'">
@@ -4593,8 +4600,14 @@
                             <span style="font-size: 18px; margin-right: 8px;">🔄</span> Next Refill Date
                         </label>
                         <div style="display: flex; gap: 8px;">
-                            <input type="date" class="form-input" id="nextRefillDate" onclick="this.showPicker()"
-                                style="flex: 1;">
+                            <div style="position: relative; flex: 1; min-width: 0;">
+                                <input type="text" class="form-input" id="nextRefillDate-display" readonly
+                                       style="width: 100%; font-weight: 800; text-align: center; cursor: pointer; letter-spacing: 0.5px; color: #0984e3; background: #fff;"
+                                       placeholder="DD - MMM - YYYY">
+                                <input type="date" class="form-input" id="nextRefillDate" 
+                                       onchange="syncFormattedDate(this, 'nextRefillDate-display')"
+                                       style="position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; cursor: pointer; z-index: 2;">
+                            </div>
                             <button type="button" onclick="setDateToToday('nextRefillDate')"
                                 style="background: var(--secondary); color: white; border: none; border-radius: 12px; padding: 0 15px; font-size: 11px; font-weight: 800; cursor: pointer; transition: 0.3s; white-space: nowrap; box-shadow: 0 4px 12px rgba(0, 184, 148, 0.3);"
                                 onmouseover="this.style.opacity='0.9'" onmouseout="this.style.opacity='1'">
@@ -4687,8 +4700,18 @@
                         oninput="searchPatients()">
                 </div>
                 <div class="date-filter">
-                    <input type="date" id="filterDateFrom" onchange="applyDateFilter()">
-                    <input type="date" id="filterDateTo" onchange="applyDateFilter()">
+                    <div style="position: relative; height: 100%;">
+                        <input type="text" id="filterDateFrom-display" readonly placeholder="من تاريخ (DD-MMM-YYYY)"
+                            style="width: 100%; height: 100%; padding: 10px; border: 2px solid var(--border); border-radius: 10px; font-size: 13px; font-weight: 700; background: #fff; text-align: center; color: #1e293b; pointer-events: none; box-sizing: border-box;">
+                        <input type="date" id="filterDateFrom" onchange="syncFormattedDate(this, 'filterDateFrom-display'); applyDateFilter();"
+                            style="position: absolute; inset: 0; opacity: 0; width: 100%; height: 100%; cursor: pointer; z-index: 2;">
+                    </div>
+                    <div style="position: relative; height: 100%;">
+                        <input type="text" id="filterDateTo-display" readonly placeholder="إلى تاريخ (DD-MMM-YYYY)"
+                            style="width: 100%; height: 100%; padding: 10px; border: 2px solid var(--border); border-radius: 10px; font-size: 13px; font-weight: 700; background: #fff; text-align: center; color: #1e293b; pointer-events: none; box-sizing: border-box;">
+                        <input type="date" id="filterDateTo" onchange="syncFormattedDate(this, 'filterDateTo-display'); applyDateFilter();"
+                            style="position: absolute; inset: 0; opacity: 0; width: 100%; height: 100%; cursor: pointer; z-index: 2;">
+                    </div>
                     <button class="btn-reset-filter" onclick="resetFilters()" title="Reset Filters">
                         <i class="icon-reset"></i>
                     </button>
@@ -4983,6 +5006,48 @@
             if (typeof showToast === 'function') showToast('⚠️ Failed to load drugs list');
         }
     }
+
+    // ============================================================
+    // 📅 نظام تنسيق التاريخ الموحد القياسي (Day First - 3-Letter English Month)
+    // ============================================================
+    const SHORT_ENG_MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+
+    function formatFullDate(dateVal) {
+        if (!dateVal || String(dateVal).trim() === '' || dateVal === '-') return '-';
+        try {
+            const raw = String(dateVal).trim().split('T')[0];
+            const parts = raw.split('-');
+            if (parts.length === 3 && parts[0].length === 4) {
+                // YYYY-MM-DD
+                const y = parts[0];
+                const m = parseInt(parts[1], 10);
+                const d = parseInt(parts[2], 10);
+                const mName = SHORT_ENG_MONTHS[m - 1] || parts[1];
+                const dStr = String(d).padStart(2, '0');
+                return `${dStr} - ${mName} - ${y}`;
+            }
+            const dObj = new Date(dateVal);
+            if (!isNaN(dObj.getTime())) {
+                const d = String(dObj.getDate()).padStart(2, '0');
+                const mName = SHORT_ENG_MONTHS[dObj.getMonth()];
+                const y = dObj.getFullYear();
+                return `${d} - ${mName} - ${y}`;
+            }
+            return String(dateVal);
+        } catch (e) {
+            return String(dateVal);
+        }
+    }
+    window.formatFullDate = formatFullDate;
+
+    function syncFormattedDate(dateInput, displayId) {
+        if (!dateInput) return;
+        const displayEl = document.getElementById(displayId);
+        if (displayEl && typeof formatFullDate === 'function') {
+            displayEl.value = formatFullDate(dateInput.value);
+        }
+    }
+    window.syncFormattedDate = syncFormattedDate;
 
     // --- بقية الدوال (initDrugsSearch, initializeApp, إلخ...) تبدأ من هنا ---
     function showModal(title, content, actions, customClass = '') {
@@ -5335,7 +5400,7 @@
                 <span style="font-size: 18px;">🚫</span>
                 <span>العميل رافض الصرف من الفرع بتاعنا</span>
             </div>
-            <span style="font-size: 11px; opacity: 0.85;">${blockedItem.date ? new Date(blockedItem.date).toLocaleDateString('ar-SA') : ''}</span>
+            <span style="font-size: 11px; opacity: 0.85;">${blockedItem.date ? formatFullDate(blockedItem.date) : ''}</span>
         </div>
 
         <div style="padding: 12px; background: #fffdfd; border-radius: 10px; border: 1px dashed #fab1a0; margin: 10px 0; color: #636e72; font-size: 12px;" dir="auto">
@@ -5399,8 +5464,8 @@
                     ${patient.imported ? '<span style="float:right; font-size:10px; background:rgba(255,255,255,0.6); padding:2px 6px; border-radius:4px; color:#E65100;">IMPORTED</span>' : ''}
                 </div>
                 <div style="font-size: 12px; color: #636E72; margin-bottom: 10px;">
-                    <strong>Dispensing:</strong> ${patient.dispensingDate}<br>
-                    <strong>Next Refill:</strong> ${patient.nextRefillDate}
+                    <strong>Dispensing:</strong> ${formatFullDate(patient.dispensingDate)}<br>
+                    <strong>Next Refill:</strong> ${formatFullDate(patient.nextRefillDate)}
                 </div>
                 <div class="card-prescriptions">
                     <strong style="font-size: 11px; color: var(--primary);">Prescriptions:</strong><br>
@@ -6112,7 +6177,14 @@
                                     cardColor: payload.new.cardcolor || '',
                                     actionType: payload.new.action_type || 'dispensed',
                                     timestamp: new Date(payload.new.created_at).getTime(),
-                                    dateFormatted: payload.new.date_formatted || (new Date(payload.new.created_at).toLocaleDateString('en-GB') + ' ' + new Date(payload.new.created_at).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }))
+                                    dateFormatted: payload.new.date_formatted || (() => {
+                                        const cd = new Date(payload.new.created_at);
+                                        const dN = String(cd.getDate()).padStart(2, '0');
+                                        const mN = SHORT_ENG_MONTHS[cd.getMonth()] || '';
+                                        const yN = cd.getFullYear();
+                                        const tS = cd.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+                                        return `${dN} - ${mN} - ${yN} ${tS}`;
+                                    })()
                                 });
                                 saveDispensedQueueHistory();
                                 if (typeof filterDispensedHistory === 'function') filterDispensedHistory();
@@ -6156,11 +6228,23 @@
     }
 
     function calculateNextRefill() {
-        let dispensingDate = document.getElementById('dispensingDate').value;
-        if (dispensingDate) {
-            let date = new Date(dispensingDate);
+        let dispEl = document.getElementById('dispensingDate');
+        let nextEl = document.getElementById('nextRefillDate');
+        let dispVal = dispEl ? dispEl.value : '';
+
+        if (dispVal) {
+            let date = new Date(dispVal);
             date.setDate(date.getDate() + selectedRefillDays);
-            document.getElementById('nextRefillDate').value = date.toISOString().split('T')[0];
+            const iso = date.toISOString().split('T')[0];
+            if (nextEl) nextEl.value = iso;
+            const nextDisp = document.getElementById('nextRefillDate-display');
+            if (nextDisp && typeof formatFullDate === 'function') {
+                nextDisp.value = formatFullDate(iso);
+            }
+        }
+        const dispDisp = document.getElementById('dispensingDate-display');
+        if (dispEl && dispDisp && dispVal && typeof formatFullDate === 'function') {
+            dispDisp.value = formatFullDate(dispVal);
         }
     }
 
@@ -6687,7 +6771,7 @@
                 if (!dateKey.includes('Manual')) {
                     const d = new Date(dateKey);
                     if (!isNaN(d)) {
-                        displayHeader = `📅 ${d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })} <small style="opacity:0.6; margin-left:10px;">🕒 ${d.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}</small>`;
+                        displayHeader = `📅 ${formatFullDate(d)} <small style="opacity:0.6; margin-left:10px;">🕒 ${d.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}</small>`;
                     }
                 } else {
                     displayHeader = `📁 Manual / Old Entry`;
@@ -6937,26 +7021,43 @@
     </div>
     `;
 
-        // --- [ لوحة التحكم السريع في التواريخ - مع أزرار TODAY ] ---
+        // --- [ لوحة التحكم السريع في التواريخ - مع أزرار TODAY وعرض التاريخ DD - MMM - YYYY ] ---
+        const pDispenseVal = patient.dispensingDate || new Date().toISOString().split('T')[0];
+        const pNextVal = patient.nextRefillDate || '';
+
         let quickDatePanel = `
         <div style="background: #f8f9fa; padding: 10px; border-radius: 10px; border: 1px solid #eee; box-shadow: inset 0 1px 3px rgba(0,0,0,0.05); box-sizing: border-box; width: 100%; display: flex; flex-direction: column; gap: 8px;">
             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
                 <div style="min-width: 0;">
                     <span style="font-size: 9px; font-weight: 800; color: #95a5a6; display: block; margin-bottom: 3px; text-transform: uppercase;">Dispensing Date</span>
-                    <div style="display: flex; gap: 4px;">
-                        <input type="date" id="q-dispense-${patient.id}" value="${patient.dispensingDate || new Date().toISOString().split('T')[0]}" 
-                               style="width: 100%; min-width: 0; border: 1px solid #ddd; border-radius: 6px; padding: 5px 6px; font-size: 11px; font-weight: 700; outline: none; background: #fff;">
+                    <div style="display: flex; gap: 4px; align-items: stretch;">
+                        <div style="position: relative; flex: 1; min-width: 0;">
+                            <input type="text" id="q-dispense-${patient.id}-display" 
+                                   value="${formatFullDate(pDispenseVal)}" 
+                                   readonly
+                                   style="width: 100%; min-width: 0; border: 1px solid #ddd; border-radius: 6px; padding: 5px 6px; font-size: 11px; font-weight: 800; color: #2d3436; outline: none; background: #fff; text-align: center; cursor: pointer; letter-spacing: 0.3px; box-sizing: border-box; height: 28px;">
+                            <input type="date" id="q-dispense-${patient.id}" value="${pDispenseVal}" 
+                                   onchange="syncFormattedDate(this, 'q-dispense-${patient.id}-display')"
+                                   style="position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; cursor: pointer; z-index: 2;">
+                        </div>
                         <button onclick="setDateToToday('q-dispense-${patient.id}')" 
-                                style="background: var(--primary); color: white; border: none; border-radius: 6px; padding: 0 8px; font-size: 10px; font-weight: 900; cursor: pointer; flex-shrink: 0;" title="Set to Today">T</button>
+                                style="background: var(--primary); color: white; border: none; border-radius: 6px; padding: 0 8px; font-size: 10px; font-weight: 900; cursor: pointer; flex-shrink: 0; height: 28px;" title="Set to Today">T</button>
                     </div>
                 </div>
                 <div style="min-width: 0;">
                     <span style="font-size: 9px; font-weight: 800; color: #95a5a6; display: block; margin-bottom: 3px; text-transform: uppercase;">Next Refill</span>
-                    <div style="display: flex; gap: 4px;">
-                        <input type="date" id="q-next-${patient.id}" value="${patient.nextRefillDate}" 
-                               style="width: 100%; min-width: 0; border: 1.5px solid var(--primary); border-radius: 6px; padding: 5px 6px; font-weight: 800; color: #0984e3; outline: none; background: #fff; font-size: 11px;">
+                    <div style="display: flex; gap: 4px; align-items: stretch;">
+                        <div style="position: relative; flex: 1; min-width: 0;">
+                            <input type="text" id="q-next-${patient.id}-display" 
+                                   value="${formatFullDate(pNextVal)}" 
+                                   readonly
+                                   style="width: 100%; min-width: 0; border: 1.5px solid var(--primary); border-radius: 6px; padding: 5px 6px; font-weight: 900; color: #0984e3; outline: none; background: #fff; font-size: 11px; text-align: center; cursor: pointer; letter-spacing: 0.3px; box-sizing: border-box; height: 28px;">
+                            <input type="date" id="q-next-${patient.id}" value="${pNextVal}" 
+                                   onchange="syncFormattedDate(this, 'q-next-${patient.id}-display')"
+                                   style="position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; cursor: pointer; z-index: 2;">
+                        </div>
                         <button onclick="setDateToToday('q-next-${patient.id}')" 
-                                style="background: var(--secondary); color: white; border: none; border-radius: 6px; padding: 0 8px; font-size: 10px; font-weight: 900; cursor: pointer; flex-shrink: 0;" title="Set to Today">T</button>
+                                style="background: var(--secondary); color: white; border: none; border-radius: 6px; padding: 0 8px; font-size: 10px; font-weight: 900; cursor: pointer; flex-shrink: 0; height: 28px;" title="Set to Today">T</button>
                     </div>
                 </div>
             </div>
@@ -7172,7 +7273,13 @@
         if (dispenseInput && nextInput) {
             let date = new Date(dispenseInput.value);
             date.setDate(date.getDate() + days); // الحساب بنظام 24 يوم للشهر
-            nextInput.value = date.toISOString().split('T')[0];
+            const iso = date.toISOString().split('T')[0];
+            nextInput.value = iso;
+
+            const nextDisplay = document.getElementById(`q-next-${patientId}-display`);
+            if (nextDisplay && typeof formatFullDate === 'function') {
+                nextDisplay.value = formatFullDate(iso);
+            }
 
             // --- تأثير تغيير لون الزرار النشط ---
             const btnGroup = btnElement.parentElement;
@@ -7189,6 +7296,10 @@
             // فلاش بصري بسيط للتأكيد
             nextInput.style.backgroundColor = '#e3f2fd';
             setTimeout(() => nextInput.style.backgroundColor = '#fff', 300);
+            if (nextDisplay) {
+                nextDisplay.style.backgroundColor = '#e3f2fd';
+                setTimeout(() => nextDisplay.style.backgroundColor = '#fff', 300);
+            }
         }
     }
     function getRefillStatus(nextRefillDate) {
@@ -7529,8 +7640,8 @@
             </div>
             
             <div style="font-size: 13px; color: #636E72; margin-bottom: 15px; padding-left: 10px; line-height: 1.8;">
-                <strong style="color: #2D3436;">Dispensing Date:</strong> ${patient.dispensingDate}<br>
-                <strong style="color: #2D3436;">Next Refill:</strong> ${patient.nextRefillDate}
+                <strong style="color: #2D3436;">Dispensing Date:</strong> ${formatFullDate(patient.dispensingDate)}<br>
+                <strong style="color: #2D3436;">Next Refill:</strong> ${formatFullDate(patient.nextRefillDate)}
                 <span style="display: inline-block; background: #F8F9FE; padding: 4px 10px; border-radius: 12px; font-size: 11px; font-weight: 700; margin-left: 8px;">${getDaysUntilRefill(patient.nextRefillDate)}</span>
             </div>
             
@@ -7601,7 +7712,7 @@
                             await navigator.share({
                                 files: [file],
                                 title: 'Patient Card',
-                                text: `Patient: ${patient.nationalId}\nNext Refill: ${patient.nextRefillDate}\n\nPrescriptions:\n${patient.prescriptions.map(p => '- ' + p.number).join('\n')}`
+                                text: `Patient: ${patient.nationalId}\nNext Refill: ${formatFullDate(patient.nextRefillDate)}\n\nPrescriptions:\n${patient.prescriptions.map(p => '- ' + p.number).join('\n')}`
                             });
                         } catch (error) {
                             if (error.name !== 'AbortError') {
@@ -7642,7 +7753,7 @@
 
         // Open WhatsApp with text
         setTimeout(() => {
-            const message = `*Patient Card* 🏥\n\n📋 ID: ${patient.nationalId}\n📅 Dispensing: ${patient.dispensingDate}\n🔄 Next Refill: ${patient.nextRefillDate}\n\n💊 Prescriptions (${patient.prescriptions.length}):\n${patient.prescriptions.map((p, i) => `${i + 1}. ${p.number}`).join('\n')}\n\n${patient.generalNote ? `📝 Note: ${patient.generalNote}\n\n` : ''}Please check the downloaded image for QR codes! 📲`;
+            const message = `*Patient Card* 🏥\n\n📋 ID: ${patient.nationalId}\n📅 Dispensing: ${formatFullDate(patient.dispensingDate)}\n🔄 Next Refill: ${formatFullDate(patient.nextRefillDate)}\n\n💊 Prescriptions (${patient.prescriptions.length}):\n${patient.prescriptions.map((p, i) => `${i + 1}. ${p.number}`).join('\n')}\n\n${patient.generalNote ? `📝 Note: ${patient.generalNote}\n\n` : ''}Please check the downloaded image for QR codes! 📲`;
 
             const whatsappUrl = `https://api.whatsapp.com/send?text=${encodeURIComponent(message)}`;
             window.open(whatsappUrl, '_blank');
@@ -7656,7 +7767,7 @@
 
     function fallbackWhatsAppShare(blob, patient) {
         const url = URL.createObjectURL(blob);
-        const message = `*Patient Card*\n\n📋 ID: ${patient.nationalId}\n📅 Next Refill: ${patient.nextRefillDate}\n💊 Prescriptions: ${patient.prescriptions.map(p => p.number).join(', ')}`;
+        const message = `*Patient Card*\n\n📋 ID: ${patient.nationalId}\n📅 Next Refill: ${formatFullDate(patient.nextRefillDate)}\n💊 Prescriptions: ${patient.prescriptions.map(p => p.number).join(', ')}`;
 
         const whatsappUrl = `https://api.whatsapp.com/send?text=${encodeURIComponent(message)}`;
         window.open(whatsappUrl, '_blank');
@@ -7756,7 +7867,7 @@
         patients.forEach((patient, idx) => {
             text += `[${idx + 1}] Patient ID: ${patient.nationalId}\n`;
             if (patient.phoneNumber) text += `    Phone: ${patient.phoneNumber}\n`;
-            text += `    Dispensing: ${patient.dispensingDate} | Next Refill: ${patient.nextRefillDate}\n`;
+            text += `    Dispensing: ${formatFullDate(patient.dispensingDate)} | Next Refill: ${formatFullDate(patient.nextRefillDate)}\n`;
             text += `    Prescriptions:\n`;
             patient.prescriptions.forEach((presc, i) => {
                 text += `      - ${presc.number} ${presc.note ? '(' + presc.note + ')' : ''}\n`;
@@ -8223,7 +8334,7 @@ SMART IMPORT SYSTEM (Dr. Mo Edition)
                         <input type="checkbox" class="import-check-new import-check-pull" data-type="reimport" data-id="${p.nationalId}" data-rx="${rxNum}" checked>
                         <b>${p.nationalId}</b>
                         <span style="background: #fff3e0; color: #e67e22; padding: 2px 8px; border-radius: 6px; font-family: monospace; font-weight: bold; font-size: 11px;">Rx: ${rxNum}</span>
-                        <span style="color: #636e72; font-size: 11px;">📅 الصرف: <b>${p.dispensingDate || '-'}</b> ➔ الريفيل: <b style="color: #e67e22;">${p.nextRefillDate}</b></span>
+                        <span style="color: #636e72; font-size: 11px;">📅 الصرف: <b>${formatFullDate(p.dispensingDate)}</b> ➔ الريفيل: <b style="color: #e67e22;">${formatFullDate(p.nextRefillDate)}</b></span>
                         <span style="color:#e67e22; margin-left:auto; font-weight: bold;">➔ RESET STATE</span>
                     </div>`;
             }).join('')}
@@ -8242,7 +8353,7 @@ SMART IMPORT SYSTEM (Dr. Mo Edition)
                         <input type="checkbox" class="import-check-new import-check-brand" data-type="brand_new" data-id="${p.nationalId}" data-rx="${rxNum}" checked>
                         <b>${p.nationalId}</b>
                         <span style="background: #e8f5e9; color: #2e7d32; padding: 2px 8px; border-radius: 6px; font-family: monospace; font-weight: bold; font-size: 11px;">Rx: ${rxNum}</span>
-                        <span style="color: #636e72; font-size: 11px;">📅 الصرف: <b>${p.dispensingDate || '-'}</b> ➔ الريفيل: <b style="color: #27ae60;">${p.nextRefillDate}</b></span>
+                        <span style="color: #636e72; font-size: 11px;">📅 الصرف: <b>${formatFullDate(p.dispensingDate)}</b> ➔ الريفيل: <b style="color: #27ae60;">${formatFullDate(p.nextRefillDate)}</b></span>
                         <span style="color:#27ae60; margin-left:auto; font-weight: bold;">+ ADD NEW</span>
                     </div>`;
             }).join('')}
@@ -8268,7 +8379,7 @@ SMART IMPORT SYSTEM (Dr. Mo Edition)
             html += `<div style="border: 2px solid #dfe4ea; border-radius: 12px; margin-bottom: 15px; overflow: hidden;">
             ${sectionHeader('✅ ALREADY ACTIVE (No Action)', activeEntries.length, '#f1f2f6', null)}
             <div style="max-height: 150px; overflow-y: auto; background: #fafafa; font-size: 11px;">
-                ${activeEntries.map(p => `<div style="padding: 8px 15px; border-bottom: 1px solid #eee; color:#666;">ID: ${p.nationalId} | <span style="color:var(--primary); font-weight:bold;">Next Refill: ${p.nextDate}</span></div>`).join('')}
+                ${activeEntries.map(p => `<div style="padding: 8px 15px; border-bottom: 1px solid #eee; color:#666;">ID: ${p.nationalId} | <span style="color:var(--primary); font-weight:bold;">Next Refill: ${formatFullDate(p.nextDate)}</span></div>`).join('')}
             </div>
         </div>`;
         }
@@ -9830,9 +9941,15 @@ SMART IMPORT SYSTEM (Dr. Mo Edition)
             `
         <div style="text-align: center; padding: 15px;">
             <p style="margin-bottom: 15px; color: #2D3436; font-weight:600;">Update Next Refill Date:</p>
-            <input type="date" id="modalNewRefillDate" class="form-input" 
-                   value="${defaultDateStr}" 
-                   style="font-size: 18px; padding: 15px; text-align: center; font-weight: 800; color: var(--primary); border: 2px solid var(--primary);">
+            <div style="position: relative; max-width: 320px; margin: 0 auto;">
+                <input type="text" id="modalNewRefillDate-display" class="form-input" 
+                       value="${formatFullDate(defaultDateStr)}" readonly
+                       style="font-size: 18px; padding: 15px; text-align: center; font-weight: 800; color: var(--primary); border: 2px solid var(--primary); cursor: pointer; letter-spacing: 0.5px; background: #fff;">
+                <input type="date" id="modalNewRefillDate" class="form-input" 
+                       value="${defaultDateStr}" 
+                       onchange="syncFormattedDate(this, 'modalNewRefillDate-display')"
+                       style="position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; cursor: pointer; z-index: 2;">
+            </div>
         </div>
         `,
             `
@@ -9960,7 +10077,14 @@ SMART IMPORT SYSTEM (Dr. Mo Edition)
                         cardColor: row.cardcolor || row.card_color || '',
                         actionType: row.action_type || 'dispensed',
                         timestamp: new Date(row.created_at).getTime(),
-                        dateFormatted: row.date_formatted || (new Date(row.created_at).toLocaleDateString('en-GB') + ' ' + new Date(row.created_at).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }))
+                        dateFormatted: row.date_formatted || (() => {
+                            const cd = new Date(row.created_at);
+                            const dN = String(cd.getDate()).padStart(2, '0');
+                            const mN = SHORT_ENG_MONTHS[cd.getMonth()] || '';
+                            const yN = cd.getFullYear();
+                            const tS = cd.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+                            return `${dN} - ${mN} - ${yN} ${tS}`;
+                        })()
                     }));
                     updateHistoryBadge();
                     if (typeof filterDispensedHistory === 'function') filterDispensedHistory();
@@ -9988,7 +10112,11 @@ SMART IMPORT SYSTEM (Dr. Mo Edition)
     async function recordQueueHistoryItem(patient, actionType = 'dispensed') {
         if (!patient) return;
         const now = new Date();
-        const dateFormatted = now.toLocaleDateString('en-GB') + ' ' + now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+        const dNum = String(now.getDate()).padStart(2, '0');
+        const mName = SHORT_ENG_MONTHS[now.getMonth()];
+        const yNum = now.getFullYear();
+        const timeStr = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+        const dateFormatted = `${dNum} - ${mName} - ${yNum} ${timeStr}`;
 
         const historyEntry = {
             historyId: 'hist_' + Date.now() + '_' + Math.random().toString(36).substr(2, 5),
@@ -10429,7 +10557,11 @@ SMART IMPORT SYSTEM (Dr. Mo Edition)
         const pharmacyPhone = d.pharmacyPhone || '03-5322900';
 
         const now = new Date();
-        const dateStr = d.dateStr || (now.toLocaleDateString('en-GB') + ' ' + now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }));
+        const dNum = String(now.getDate()).padStart(2, '0');
+        const mName = SHORT_ENG_MONTHS[now.getMonth()];
+        const yNum = now.getFullYear();
+        const timeStr = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+        const dateStr = d.dateStr || `${dNum}-${mName}-${yNum} ${timeStr}`;
 
         const idSvg = d.idSvg || (nationalId ? generateCode128Svg(nationalId, { width: 1.25, height: 28, fontSize: 9 }) : '<div style="font-size:9px; color:#888; padding:3px;">لا يوجد رقم هوية</div>');
         const queueSvg = d.queueSvg || ((queueNum && queueNum !== '---') ? generateCode128Svg(String(queueNum), { width: 1.2, height: 32, showText: false }) : '');
@@ -10517,7 +10649,11 @@ SMART IMPORT SYSTEM (Dr. Mo Edition)
         const pharmacyPhone = '03-5322900';
 
         const now = new Date();
-        const dateStr = now.toLocaleDateString('en-GB') + ' ' + now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+        const dNum = String(now.getDate()).padStart(2, '0');
+        const mName = SHORT_ENG_MONTHS[now.getMonth()];
+        const yNum = now.getFullYear();
+        const timeStr = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+        const dateStr = `${dNum}-${mName}-${yNum} ${timeStr}`;
 
         const idSvg = nationalId ? generateCode128Svg(nationalId, { width: 1.25, height: 28, fontSize: 9 }) : '<div style="font-size:9px; color:#888; padding:3px;">لا يوجد رقم هوية</div>';
         const queueSvg = (queueNum && queueNum !== '---') ? generateCode128Svg(String(queueNum), { width: 1.2, height: 32, showText: false }) : '';
@@ -11461,6 +11597,10 @@ SMART IMPORT SYSTEM (Dr. Mo Edition)
         // مسح التواريخ
         document.getElementById('filterDateFrom').value = '';
         document.getElementById('filterDateTo').value = '';
+        const fFromDisp = document.getElementById('filterDateFrom-display');
+        if (fFromDisp) fFromDisp.value = '';
+        const fToDisp = document.getElementById('filterDateTo-display');
+        if (fToDisp) fToDisp.value = '';
 
         // مسح شريط البحث
         document.getElementById('searchInput').value = '';
@@ -11910,8 +12050,8 @@ SMART IMPORT SYSTEM (Dr. Mo Edition)
                     ${patient.imported ? '<span style="float:right; font-size:10px; background:rgba(255,255,255,0.6); padding:2px 6px; border-radius:4px; color:#E65100;">IMPORTED</span>' : ''}
                 </div>
                 <div style="font-size: 12px; color: #636E72; margin-bottom: 10px;">
-                    <strong>Dispensing:</strong> ${patient.dispensingDate}<br>
-                    <strong>Next Refill:</strong> ${patient.nextRefillDate}
+                    <strong>Dispensing:</strong> ${formatFullDate(patient.dispensingDate)}<br>
+                    <strong>Next Refill:</strong> ${formatFullDate(patient.nextRefillDate)}
                 </div>
                 <div class="card-prescriptions">
                     <strong style="font-size: 11px; color: var(--primary);">Prescriptions:</strong><br>
@@ -13310,9 +13450,16 @@ SMART IMPORT SYSTEM (Dr. Mo Edition)
                         <span>📅</span>
                         <span>اليوم والتاريخ (Date):</span>
                     </div>
-                    <input type="date" id="alarmModalDate" class="alarm-modal-input" value="${initialDate}" onchange="updateAlarmModalPreview()">
+                    <div style="position: relative; width: 100%;">
+                        <input type="text" id="alarmModalDate-display" class="alarm-modal-input" 
+                               value="${formatFullDate(initialDate)}" readonly
+                               style="font-weight: 800; text-align: center; cursor: pointer; letter-spacing: 0.5px; background: #fff;">
+                        <input type="date" id="alarmModalDate" class="alarm-modal-input" value="${initialDate}" 
+                               onchange="syncFormattedDate(this, 'alarmModalDate-display'); updateAlarmModalPreview();"
+                               style="position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; cursor: pointer; z-index: 2;">
+                    </div>
                     
-                    <div class="alarm-preset-group">
+                    <div class="alarm-preset-group" style="margin-top: 6px;">
                         <button type="button" class="alarm-preset-btn" onclick="setAlarmModalPresetDate('today')">
                             📅 اليوم
                         </button>
@@ -13321,7 +13468,7 @@ SMART IMPORT SYSTEM (Dr. Mo Edition)
                         </button>
                         ${patient.nextRefillDate ? `
                         <button type="button" class="alarm-preset-btn" onclick="setAlarmModalPresetDate('refill', '${patient.nextRefillDate}')" title="تاريخ الصرف القادم للمريض">
-                            🔄 تاريخ الصرف (${patient.nextRefillDate})
+                            🔄 تاريخ الصرف (${formatFullDate(patient.nextRefillDate)})
                         </button>
                         ` : ''}
                         <button type="button" class="alarm-preset-btn" onclick="setAlarmModalPresetDate('plus7')">
@@ -13415,6 +13562,7 @@ SMART IMPORT SYSTEM (Dr. Mo Edition)
         } else if (type === 'refill' && extraVal) {
             dateInput.value = extraVal;
         }
+        syncFormattedDate(dateInput, 'alarmModalDate-display');
         updateAlarmModalPreview();
     }
 
@@ -13484,10 +13632,9 @@ SMART IMPORT SYSTEM (Dr. Mo Edition)
 
             // Arabic day and date
             const days = ['الأحد', 'الاثنين', 'الثلاثاء', 'الأربعاء', 'الخميس', 'الجمعة', 'السبت'];
-            const months = ['يناير', 'فبراير', 'مارس', 'أبريل', 'مايو', 'يونيو', 'يوليو', 'أغسطس', 'سبتمبر', 'أكتوبر', 'نوفمبر', 'ديسمبر'];
             const dayName = days[targetDate.getDay()] || '';
-            const monthName = months[m - 1] || '';
-            previewDateEl.textContent = `${dayName}، ${d} ${monthName} ${y}`;
+            const mNameEng = SHORT_ENG_MONTHS[m - 1] || '';
+            previewDateEl.textContent = `${dayName}، ${d} - ${mNameEng} - ${y}`;
 
             // Time difference from now
             const now = new Date();
@@ -13647,7 +13794,13 @@ SMART IMPORT SYSTEM (Dr. Mo Edition)
         if (dispenseInput && nextInput) {
             let date = new Date(dispenseInput.value);
             date.setDate(date.getDate() + days);
-            nextInput.value = date.toISOString().split('T')[0];
+            const iso = date.toISOString().split('T')[0];
+            nextInput.value = iso;
+
+            const nextDisplay = document.getElementById(`q-next-${patientId}-display`);
+            if (nextDisplay && typeof formatFullDate === 'function') {
+                nextDisplay.value = formatFullDate(iso);
+            }
 
             // --- إضافة تأثير اللون ---
             // 1. نجيب الحاوية اللي فيها الزراير دي بس
@@ -13666,6 +13819,10 @@ SMART IMPORT SYSTEM (Dr. Mo Edition)
             // فلاش صغير على حقل التاريخ للتأكيد
             nextInput.style.backgroundColor = '#e3f2fd';
             setTimeout(() => nextInput.style.backgroundColor = '#fff', 300);
+            if (nextDisplay) {
+                nextDisplay.style.backgroundColor = '#e3f2fd';
+                setTimeout(() => nextDisplay.style.backgroundColor = '#fff', 300);
+            }
         }
     }
     // 2. دالة التنفيذ النهائي وحفظ التواريخ الجديدة في سوبابيز
@@ -13767,6 +13924,13 @@ SMART IMPORT SYSTEM (Dr. Mo Edition)
         if (input) {
             const today = new Date().toISOString().split('T')[0];
             input.value = today;
+
+            const displayEl = document.getElementById(inputId + '-display');
+            if (displayEl && typeof formatFullDate === 'function') {
+                displayEl.value = formatFullDate(today);
+                displayEl.style.backgroundColor = '#e3f2fd';
+                setTimeout(() => displayEl.style.backgroundColor = '#fff', 300);
+            }
 
             // فلاش بصري بسيط للتأكيد
             input.style.backgroundColor = '#e3f2fd';
