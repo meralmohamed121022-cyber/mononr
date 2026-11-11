@@ -3938,6 +3938,18 @@
             color: white;
             border-color: #ef4444;
         }
+        .chip.chip-alarm {
+            background: #e0f2fe;
+            color: #0369a1;
+            border: 1px solid #7dd3fc;
+            font-weight: 800;
+        }
+        .chip.chip-alarm.active {
+            background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%);
+            color: white;
+            border-color: #0284c7;
+            box-shadow: 0 4px 12px rgba(2, 132, 199, 0.35);
+        }
         .queue-row-blocked {
             background: #fff5f5 !important;
             border-right: 4px solid #ef4444 !important;
@@ -4692,6 +4704,7 @@
                     <div class="chip" onclick="filterPatients('need_rx')">Need New RX</div>
                     <div class="chip" onclick="filterPatients('imported')">Imported</div>
                     <div class="chip chip-blocked" onclick="filterPatients('blocked')">🚫 Blocked (<span id="blockedFilterCount">0</span>)</div>
+                    <div class="chip chip-alarm" onclick="filterPatients('alarm')">⏰ Alarm (<span id="alarmFilterCount">0</span>)</div>
                 </div>
 
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
@@ -6535,6 +6548,10 @@
                 return isBlockedNationalId(p.nationalId);
             }
 
+            if (currentFilter === 'alarm') {
+                return !!(p.sensor_reminder && String(p.sensor_reminder).trim() !== '');
+            }
+
             if (currentFilter === 'need_rx') {
                 return isActualNeedRx;
             }
@@ -6551,15 +6568,28 @@
             return true; // All
         });
 
-        // 🎯 الترتيب الأساسي: من تاريخ الريفل الأقرب للأبعد
-        filteredPatients.sort((a, b) => {
-            const dateA = a.nextRefillDate ? new Date(a.nextRefillDate).getTime() : Infinity;
-            const dateB = b.nextRefillDate ? new Date(b.nextRefillDate).getTime() : Infinity;
-            if (currentFilter === 'overdue') {
-                return dateB - dateA; // الأقل أياماً أولاً (الأقرب لليوم)
-            }
-            return dateA - dateB;
-        });
+        // 🎯 الترتيب: حسب الأقرب موعداً للمنبه إذا كان فلتر alarm نشطاً، أو الأقرب لتاريخ الريفيل
+        if (currentFilter === 'alarm') {
+            filteredPatients.sort((a, b) => {
+                const isRingingA = window.currentlyRingingId === a.id;
+                const isRingingB = window.currentlyRingingId === b.id;
+                if (isRingingA && !isRingingB) return -1;
+                if (!isRingingA && isRingingB) return 1;
+
+                const timeA = a.sensor_reminder ? new Date(a.sensor_reminder).getTime() : Infinity;
+                const timeB = b.sensor_reminder ? new Date(b.sensor_reminder).getTime() : Infinity;
+                return timeA - timeB; // الأقرب في الموعد أولاً
+            });
+        } else {
+            filteredPatients.sort((a, b) => {
+                const dateA = a.nextRefillDate ? new Date(a.nextRefillDate).getTime() : Infinity;
+                const dateB = b.nextRefillDate ? new Date(b.nextRefillDate).getTime() : Infinity;
+                if (currentFilter === 'overdue') {
+                    return dateB - dateA; // الأقل أياماً أولاً (الأقرب لليوم)
+                }
+                return dateA - dateB;
+            });
+        }
 
         // 4. تطبيق فلتر التاريخ اليدوي
         if (dateFilterActive && dateFilterFrom && dateFilterTo) {
@@ -6576,6 +6606,11 @@
             let searchIds = fuseResults.map(r => r.item.id);
             filteredPatients = filteredPatients.filter(p => searchIds.includes(p.id));
             filteredPatients.sort((a, b) => {
+                if (currentFilter === 'alarm') {
+                    const timeA = a.sensor_reminder ? new Date(a.sensor_reminder).getTime() : Infinity;
+                    const timeB = b.sensor_reminder ? new Date(b.sensor_reminder).getTime() : Infinity;
+                    return timeA - timeB;
+                }
                 const dateA = a.nextRefillDate ? new Date(a.nextRefillDate).getTime() : Infinity;
                 const dateB = b.nextRefillDate ? new Date(b.nextRefillDate).getTime() : Infinity;
                 return currentFilter === 'overdue' ? dateB - dateA : dateA - dateB;
@@ -6598,14 +6633,25 @@
 
         // 7. عرض رسالة "لا توجد نتائج"
         if (filteredPatients.length === 0 && orphanBlocked.length === 0) {
+            let emptyMsg = searchTerm ? 'No matching results' : 'No patients match this filter';
+            let emptyIcon = `<div class="icon icon-search" style="width: 40px; height: 40px; border-width: 4px; color: #B2BEC3; margin: 0 auto;"></div>`;
+            if (currentFilter === 'alarm' && !searchTerm) {
+                emptyIcon = `<div style="font-size: 48px; margin-bottom: 10px;">⏰</div>`;
+                emptyMsg = 'لا توجد كروت بها منبه مضبوط حالياً';
+            }
             container.innerHTML = `
             <div class="no-data">
                 <div class="no-data-icon">
-                    <div class="icon icon-search" style="width: 40px; height: 40px; border-width: 4px; color: #B2BEC3; margin: 0 auto;"></div>
+                    ${emptyIcon}
                 </div>
                 <p style="font-size: 18px; font-weight: 700; color: #95A5A6;">
-                    ${searchTerm ? 'No matching results' : 'No patients match this filter'}
+                    ${emptyMsg}
                 </p>
+                ${currentFilter === 'alarm' && !searchTerm ? `
+                    <p style="font-size: 13px; color: #64748b; margin-top: 6px;">
+                        اضغط على زر <b>(+ ضبط موعد)</b> في أي كارت مريض لإضافة منبه له وسيظهر هنا تلقائياً
+                    </p>
+                ` : ''}
                 ${searchTerm && /^[1-4]?[0-9]{3,10}$/.test(searchTerm) ? `
                     <div style="margin-top: 15px;">
                         <button onclick="openBlockIdModal('${searchTerm}')" style="background: #ef4444; color: white; border: none; padding: 10px 20px; border-radius: 10px; cursor: pointer; font-weight: bold; font-size: 13px; box-shadow: 0 4px 12px rgba(239,68,68,0.25); display: inline-flex; align-items: center; gap: 6px;">
@@ -6665,6 +6711,23 @@
             });
 
         } else {
+            if (currentFilter === 'alarm' && filteredPatients.length > 0) {
+                const alarmHeader = document.createElement('div');
+                alarmHeader.style.cssText = 'background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%); border: 1.5px solid #7dd3fc; border-radius: 12px; padding: 12px 18px; margin-bottom: 16px; display: flex; align-items: center; justify-content: space-between; gap: 8px; flex-wrap: wrap; box-shadow: 0 4px 12px rgba(2, 132, 199, 0.08);';
+                alarmHeader.innerHTML = `
+                    <div style="display: flex; align-items: center; gap: 10px;">
+                        <span style="font-size: 22px;">⏰</span>
+                        <div>
+                            <div style="font-weight: 900; font-size: 14px; color: #0369a1;">قائمة كروت المرضى المضاف لها منبه (مرتبة حسب الأقرب موعداً)</div>
+                            <div style="font-size: 11px; color: #64748b; font-weight: 600;">عند إيقاف أي منبه، يُزال الكارت تلقائياً من هذه القائمة فوراً</div>
+                        </div>
+                    </div>
+                    <span style="font-size: 12px; font-weight: 800; background: #0284c7; color: white; padding: 4px 14px; border-radius: 20px; box-shadow: 0 2px 6px rgba(2, 132, 199, 0.3);">
+                        ${filteredPatients.length} كارت
+                    </span>
+                `;
+                container.appendChild(alarmHeader);
+            }
             filteredPatients.forEach(p => container.appendChild(createPatientCard(p, searchTerm)));
             orphanBlocked.forEach(b => container.appendChild(createOrphanBlockedCard(b, searchTerm)));
         }
@@ -6931,8 +6994,8 @@
                         <div style="font-size:9px; color:#ef4444; font-weight:700;">اضغط هنا للتحكم</div>
                     </div>
                 </div>
-                <button onclick="event.stopPropagation(); stopAlarmSound();" class="btn-alarm-stop" title="إيقاف الصوت">
-                    STOP 🔇
+                <button onclick="event.stopPropagation(); clearReminder('${patient.id}');" class="btn-alarm-stop" title="إيقاف الصوت والمنبه">
+                    STOP 🔕
                 </button>
             </div>`;
         } else if (hasAlarm) {
@@ -6952,7 +7015,7 @@
                 </div>
                 <div style="display:flex; align-items:center; gap:4px; flex-shrink:0;">
                     <span class="alarm-action-pill" title="تعديل المنبه">✏️ تعديل</span>
-                    <button onclick="event.stopPropagation(); deleteReminder('${patient.id}');" class="btn-alarm-del" title="حذف المنبه">🗑️</button>
+                    <button onclick="event.stopPropagation(); deleteReminder('${patient.id}');" class="btn-alarm-del" title="إيقاف وحذف المنبه" style="display:inline-flex; align-items:center; gap:2px; font-weight:800; font-size:10px; padding:3px 7px;">🔕 إيقاف</button>
                 </div>
             </div>`;
         } else {
@@ -7215,6 +7278,11 @@
         const elBlocked = document.getElementById('blockedFilterCount');
         if (elBlocked) elBlocked.innerText = blockedCount;
 
+        // تحديث عدد المنبهات النشطة
+        const alarmCount = validPatients.filter(p => !!(p.sensor_reminder && String(p.sensor_reminder).trim() !== '')).length;
+        const elAlarm = document.getElementById('alarmFilterCount');
+        if (elAlarm) elAlarm.innerText = alarmCount;
+
         // 2. تحديث الواجهة (البوكسات)
         const statsGrid = document.getElementById('statsGrid');
         if (statsGrid) {
@@ -7298,7 +7366,8 @@
                 (status === 'overdue' && chipText.includes('overdue')) ||
                 (status === 'need_rx' && chipText.includes('need new rx')) ||
                 (status === 'imported' && chipText.includes('imported')) ||
-                (status === 'blocked' && chipText.includes('blocked'))) {
+                (status === 'blocked' && chipText.includes('blocked')) ||
+                (status === 'alarm' && chipText.includes('alarm'))) {
                 chip.classList.add('active');
             }
         });
@@ -9852,28 +9921,21 @@ SMART IMPORT SYSTEM (Dr. Mo Edition)
 
     async function loadDispensedQueueHistory() {
         const user = (typeof currentUser !== 'undefined' && currentUser) ? currentUser : window.currentUser;
-        const key = getQueueHistoryStorageKey();
 
-        // تنظيف المفتاح العام القديم لعدم خلط البيانات بين الصيدليات
+        // تنظيف أي بيانات قديمة في التخزين المحلي نهائياً للاعتماد الكلي على سوبابيز
         try {
             localStorage.removeItem('mono_dispensed_queue_history');
-            localStorage.removeItem('mono_blocked_patients');
+            Object.keys(localStorage).forEach(k => {
+                if (k.startsWith('mono_dispensed_queue_history')) {
+                    localStorage.removeItem(k);
+                }
+            });
         } catch (e) {}
 
-        // 1. قراءة فورية من التخزين المحلي الخاص بهذه الصيدلية فقط
-        try {
-            const saved = localStorage.getItem(key);
-            if (saved) {
-                dispensedQueueHistory = JSON.parse(saved);
-            } else {
-                dispensedQueueHistory = [];
-            }
-        } catch (e) {
-            dispensedQueueHistory = [];
-        }
+        // الاعتماد الحصري والسحابي الكامل على Supabase
+        dispensedQueueHistory = [];
         updateHistoryBadge();
 
-        // 2. مزامنة سحابية من Supabase خاصة بالصيدلية الحالية حصراً
         const client = (typeof supabaseClient !== 'undefined' && supabaseClient) ? supabaseClient : window.supabaseClient;
 
         if (client && user && user.id) {
@@ -9886,7 +9948,6 @@ SMART IMPORT SYSTEM (Dr. Mo Edition)
                     .limit(500);
 
                 if (!error && Array.isArray(data)) {
-                    // تحويل السجلات السحابية وتعيينها للسجل (وإن كانت فارغة تصبح فارغة لهذه الصيدلية)
                     dispensedQueueHistory = data.map(row => ({
                         historyId: String(row.id),
                         patientId: String(row.patient_id || ''),
@@ -9901,28 +9962,19 @@ SMART IMPORT SYSTEM (Dr. Mo Edition)
                         timestamp: new Date(row.created_at).getTime(),
                         dateFormatted: row.date_formatted || (new Date(row.created_at).toLocaleDateString('en-GB') + ' ' + new Date(row.created_at).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }))
                     }));
-                    saveDispensedQueueHistory();
                     updateHistoryBadge();
                     if (typeof filterDispensedHistory === 'function') filterDispensedHistory();
                 } else if (error) {
-                    console.warn("Error loading queue_history from Supabase:", error);
+                    console.error("❌ Error loading queue_history from Supabase:", error);
                 }
             } catch (err) {
-                console.warn("Queue history cloud sync info:", err);
+                console.error("Queue history cloud sync error:", err);
             }
         }
     }
 
     function saveDispensedQueueHistory() {
-        try {
-            const key = getQueueHistoryStorageKey();
-            if (dispensedQueueHistory.length > 1000) {
-                dispensedQueueHistory = dispensedQueueHistory.slice(0, 1000);
-            }
-            localStorage.setItem(key, JSON.stringify(dispensedQueueHistory));
-        } catch (e) {
-            console.error("Error saving queue history", e);
-        }
+        // لا يوجد تخزين محلي نهائياً - التخزين سحابي مباشر على سوبابيز
         updateHistoryBadge();
     }
 
@@ -13727,7 +13779,11 @@ SMART IMPORT SYSTEM (Dr. Mo Edition)
         }
     }
     async function deleteReminder(patientId) {
-        if (!confirm('هل أنت متأكد من حذف هذا المنبه؟')) return;
+        if (!confirm('هل أنت متأكد من إيقاف وحذف هذا المنبه؟')) return;
+
+        if (window.currentlyRingingId === patientId) {
+            stopAlarmSound();
+        }
 
         try {
             await supabaseClient
@@ -13742,9 +13798,9 @@ SMART IMPORT SYSTEM (Dr. Mo Edition)
             }
 
             displayPatients();
-            showToast('🗑️ تم حذف المنبه');
+            showToast('🔕 تم إيقاف المنبه وإزالته بنجاح');
         } catch (err) {
-            showToast('❌ حدث خطأ أثناء حذف المنبه');
+            showToast('❌ حدث خطأ أثناء إيقاف المنبه');
         }
     }
     window.deleteReminder = deleteReminder;
