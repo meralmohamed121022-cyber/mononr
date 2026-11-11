@@ -4580,13 +4580,21 @@
                             <span style="font-size: 18px; margin-right: 8px;">📅</span> Dispensing Date
                         </label>
                         <div style="display: flex; gap: 8px;">
-                            <div style="position: relative; flex: 1; min-width: 0;">
-                                <input type="text" class="form-input" id="dispensingDate-display" readonly
-                                       style="width: 100%; font-weight: 800; text-align: center; cursor: pointer; letter-spacing: 0.5px; background: #fff;"
-                                       placeholder="DD - MMM - YYYY">
-                                <input type="date" class="form-input" id="dispensingDate" 
+                            <div style="position: relative; flex: 1; min-width: 0; display: flex; align-items: stretch; background: #fff; border: 2px solid var(--border); border-radius: 12px; overflow: hidden;">
+                                <input type="text" class="form-input" id="dispensingDate-display"
+                                       onfocus="this.select()"
+                                       onblur="handleDateTextInput(this, 'dispensingDate'); calculateNextRefill();"
+                                       onkeydown="if(event.key==='Enter') this.blur();"
+                                       ondblclick="triggerDatePicker('dispensingDate', 'dispensingDate-display')"
+                                       style="flex: 1; min-width: 0; border: none; font-weight: 800; text-align: center; letter-spacing: 0.5px; background: transparent; height: 42px;"
+                                       placeholder="DD - MMM - YYYY"
+                                       title="اكتب التاريخ مباشرة أو اضغط على 📅 للاختيار من التقويم">
+                                <button type="button" onclick="triggerDatePicker('dispensingDate', 'dispensingDate-display')"
+                                        style="background: #f8fafc; border: none; border-left: 1px solid var(--border); padding: 0 12px; cursor: pointer; font-size: 16px; color: #64748b;"
+                                        title="فتح التقويم للاختيار">📅</button>
+                                <input type="date" id="dispensingDate" tabindex="-1" aria-hidden="true"
                                        onchange="syncFormattedDate(this, 'dispensingDate-display'); calculateNextRefill();"
-                                       style="position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; cursor: pointer; z-index: 2;">
+                                       style="position: absolute; right: 0; bottom: 0; width: 0; height: 0; opacity: 0; pointer-events: none; border: none; padding: 0; margin: 0;">
                             </div>
                             <button type="button" onclick="setDateToToday('dispensingDate')"
                                 style="background: var(--primary); color: white; border: none; border-radius: 12px; padding: 0 15px; font-size: 11px; font-weight: 800; cursor: pointer; transition: 0.3s; white-space: nowrap; box-shadow: 0 4px 12px var(--shadow);"
@@ -4600,13 +4608,21 @@
                             <span style="font-size: 18px; margin-right: 8px;">🔄</span> Next Refill Date
                         </label>
                         <div style="display: flex; gap: 8px;">
-                            <div style="position: relative; flex: 1; min-width: 0;">
-                                <input type="text" class="form-input" id="nextRefillDate-display" readonly
-                                       style="width: 100%; font-weight: 800; text-align: center; cursor: pointer; letter-spacing: 0.5px; color: #0984e3; background: #fff;"
-                                       placeholder="DD - MMM - YYYY">
-                                <input type="date" class="form-input" id="nextRefillDate" 
+                            <div style="position: relative; flex: 1; min-width: 0; display: flex; align-items: stretch; background: #fff; border: 2px solid var(--border); border-radius: 12px; overflow: hidden;">
+                                <input type="text" class="form-input" id="nextRefillDate-display"
+                                       onfocus="this.select()"
+                                       onblur="handleDateTextInput(this, 'nextRefillDate')"
+                                       onkeydown="if(event.key==='Enter') this.blur();"
+                                       ondblclick="triggerDatePicker('nextRefillDate', 'nextRefillDate-display')"
+                                       style="flex: 1; min-width: 0; border: none; font-weight: 800; text-align: center; letter-spacing: 0.5px; color: #0984e3; background: transparent; height: 42px;"
+                                       placeholder="DD - MMM - YYYY"
+                                       title="اكتب التاريخ مباشرة أو اضغط على 📅 للاختيار من التقويم">
+                                <button type="button" onclick="triggerDatePicker('nextRefillDate', 'nextRefillDate-display')"
+                                        style="background: #f8fafc; border: none; border-left: 1px solid var(--border); padding: 0 12px; cursor: pointer; font-size: 16px; color: #0984e3;"
+                                        title="فتح التقويم للاختيار">📅</button>
+                                <input type="date" id="nextRefillDate" tabindex="-1" aria-hidden="true"
                                        onchange="syncFormattedDate(this, 'nextRefillDate-display')"
-                                       style="position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; cursor: pointer; z-index: 2;">
+                                       style="position: absolute; right: 0; bottom: 0; width: 0; height: 0; opacity: 0; pointer-events: none; border: none; padding: 0; margin: 0;">
                             </div>
                             <button type="button" onclick="setDateToToday('nextRefillDate')"
                                 style="background: var(--secondary); color: white; border: none; border-radius: 12px; padding: 0 15px; font-size: 11px; font-weight: 800; cursor: pointer; transition: 0.3s; white-space: nowrap; box-shadow: 0 4px 12px rgba(0, 184, 148, 0.3);"
@@ -4700,17 +4716,37 @@
                         oninput="searchPatients()">
                 </div>
                 <div class="date-filter">
-                    <div style="position: relative; height: 100%;">
-                        <input type="text" id="filterDateFrom-display" readonly placeholder="من تاريخ (DD-MMM-YYYY)"
-                            style="width: 100%; height: 100%; padding: 10px; border: 2px solid var(--border); border-radius: 10px; font-size: 13px; font-weight: 700; background: #fff; text-align: center; color: #1e293b; pointer-events: none; box-sizing: border-box;">
-                        <input type="date" id="filterDateFrom" onchange="syncFormattedDate(this, 'filterDateFrom-display'); applyDateFilter();"
-                            style="position: absolute; inset: 0; opacity: 0; width: 100%; height: 100%; cursor: pointer; z-index: 2;">
+                    <div style="position: relative; height: 100%; display: flex; align-items: stretch; background: #fff; border: 2px solid var(--border); border-radius: 10px; overflow: hidden;">
+                        <input type="text" id="filterDateFrom-display" 
+                            onfocus="this.select()"
+                            onblur="handleDateTextInput(this, 'filterDateFrom'); applyDateFilter();"
+                            onkeydown="if(event.key==='Enter') this.blur();"
+                            ondblclick="triggerDatePicker('filterDateFrom', 'filterDateFrom-display')"
+                            placeholder="من تاريخ (DD-MMM-YYYY)"
+                            title="اكتب التاريخ مباشرة أو اضغط على 📅 للاختيار من التقويم"
+                            style="flex: 1; min-width: 0; border: none; padding: 10px; font-size: 13px; font-weight: 700; background: transparent; text-align: center; color: #1e293b; outline: none; box-sizing: border-box; height: 100%;">
+                        <button type="button" onclick="triggerDatePicker('filterDateFrom', 'filterDateFrom-display')"
+                            style="background: #f8fafc; border: none; border-left: 1px solid var(--border); padding: 0 10px; cursor: pointer; font-size: 14px; color: #64748b;"
+                            title="فتح التقويم للاختيار">📅</button>
+                        <input type="date" id="filterDateFrom" tabindex="-1" aria-hidden="true"
+                            onchange="syncFormattedDate(this, 'filterDateFrom-display'); applyDateFilter();"
+                            style="position: absolute; right: 0; bottom: 0; width: 0; height: 0; opacity: 0; pointer-events: none; border: none; padding: 0; margin: 0;">
                     </div>
-                    <div style="position: relative; height: 100%;">
-                        <input type="text" id="filterDateTo-display" readonly placeholder="إلى تاريخ (DD-MMM-YYYY)"
-                            style="width: 100%; height: 100%; padding: 10px; border: 2px solid var(--border); border-radius: 10px; font-size: 13px; font-weight: 700; background: #fff; text-align: center; color: #1e293b; pointer-events: none; box-sizing: border-box;">
-                        <input type="date" id="filterDateTo" onchange="syncFormattedDate(this, 'filterDateTo-display'); applyDateFilter();"
-                            style="position: absolute; inset: 0; opacity: 0; width: 100%; height: 100%; cursor: pointer; z-index: 2;">
+                    <div style="position: relative; height: 100%; display: flex; align-items: stretch; background: #fff; border: 2px solid var(--border); border-radius: 10px; overflow: hidden;">
+                        <input type="text" id="filterDateTo-display" 
+                            onfocus="this.select()"
+                            onblur="handleDateTextInput(this, 'filterDateTo'); applyDateFilter();"
+                            onkeydown="if(event.key==='Enter') this.blur();"
+                            ondblclick="triggerDatePicker('filterDateTo', 'filterDateTo-display')"
+                            placeholder="إلى تاريخ (DD-MMM-YYYY)"
+                            title="اكتب التاريخ مباشرة أو اضغط على 📅 للاختيار من التقويم"
+                            style="flex: 1; min-width: 0; border: none; padding: 10px; font-size: 13px; font-weight: 700; background: transparent; text-align: center; color: #1e293b; outline: none; box-sizing: border-box; height: 100%;">
+                        <button type="button" onclick="triggerDatePicker('filterDateTo', 'filterDateTo-display')"
+                            style="background: #f8fafc; border: none; border-left: 1px solid var(--border); padding: 0 10px; cursor: pointer; font-size: 14px; color: #64748b;"
+                            title="فتح التقويم للاختيار">📅</button>
+                        <input type="date" id="filterDateTo" tabindex="-1" aria-hidden="true"
+                            onchange="syncFormattedDate(this, 'filterDateTo-display'); applyDateFilter();"
+                            style="position: absolute; right: 0; bottom: 0; width: 0; height: 0; opacity: 0; pointer-events: none; border: none; padding: 0; margin: 0;">
                     </div>
                     <button class="btn-reset-filter" onclick="resetFilters()" title="Reset Filters">
                         <i class="icon-reset"></i>
@@ -5039,6 +5075,144 @@
         }
     }
     window.formatFullDate = formatFullDate;
+
+    function parseUserDateInput(str) {
+        if (!str || typeof str !== 'string') return null;
+        str = str.trim();
+        if (!str || str === '-') return null;
+
+        const currentYear = new Date().getFullYear();
+
+        const monthNames = {
+            jan: 1, feb: 2, mar: 3, apr: 4, may: 5, jun: 6,
+            jul: 7, aug: 8, sep: 9, oct: 10, nov: 11, dec: 12
+        };
+        const arMonths = {
+            'يناير': 1, 'فبراير': 2, 'مارس': 3, 'ابريل': 4, 'أبريل': 4, 'مايو': 5, 'يونيو': 6,
+            'يوليو': 7, 'اغسطس': 8, 'أغسطس': 8, 'سبتمبر': 9, 'اكتوبر': 10, 'أكتوبر': 10, 'نوفمبر': 11, 'ديسمبر': 12
+        };
+
+        // 1. Format: DD - MMM - YYYY (e.g. 11 - Nov - 2026 or 11 Nov 2026 or 11-Nov-26)
+        const alphaMatch = str.match(/^(\d{1,2})[\s\-\/\.]+([a-zA-Z\u0621-\u064A]{3,})(?:[\s\-\/\.]+(\d{2,4}))?$/);
+        if (alphaMatch) {
+            const d = parseInt(alphaMatch[1], 10);
+            const mKey = alphaMatch[2].toLowerCase().substring(0, 3);
+            const m = monthNames[mKey] || arMonths[alphaMatch[2]] || null;
+            let y = alphaMatch[3] ? parseInt(alphaMatch[3], 10) : currentYear;
+            if (y < 100) y += 2000;
+            if (m && d >= 1 && d <= 31) {
+                return `${y}-${String(m).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+            }
+        }
+
+        // 2. Format: YYYY-MM-DD or YYYY/MM/DD
+        const isoMatch = str.match(/^(\d{4})[\s\-\/\.]+(\d{1,2})[\s\-\/\.]+(\d{1,2})$/);
+        if (isoMatch) {
+            let y = parseInt(isoMatch[1], 10);
+            let m = parseInt(isoMatch[2], 10);
+            let d = parseInt(isoMatch[3], 10);
+            if (m >= 1 && m <= 12 && d >= 1 && d <= 31) {
+                return `${y}-${String(m).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+            }
+        }
+
+        // 3. Format: DD-MM-YYYY or DD/MM/YYYY or DD.MM.YYYY or DD MM (current year)
+        const numMatch = str.match(/^(\d{1,2})[\s\-\/\.]+(\d{1,2})(?:[\s\-\/\.]+(\d{2,4}))?$/);
+        if (numMatch) {
+            let d = parseInt(numMatch[1], 10);
+            let m = parseInt(numMatch[2], 10);
+            let y = numMatch[3] ? parseInt(numMatch[3], 10) : currentYear;
+            if (y < 100) y += 2000;
+
+            if (m > 12 && d <= 12) {
+                const temp = m;
+                m = d;
+                d = temp;
+            }
+
+            if (m >= 1 && m <= 12 && d >= 1 && d <= 31) {
+                return `${y}-${String(m).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+            }
+        }
+
+        // 4. Try JS Date fallback
+        const parsedDate = new Date(str);
+        if (!isNaN(parsedDate.getTime())) {
+            const y = parsedDate.getFullYear();
+            const m = String(parsedDate.getMonth() + 1).padStart(2, '0');
+            const d = String(parsedDate.getDate()).padStart(2, '0');
+            return `${y}-${m}-${d}`;
+        }
+
+        return null;
+    }
+    window.parseUserDateInput = parseUserDateInput;
+
+    function handleDateTextInput(textInput, hiddenDateId) {
+        if (!textInput) return;
+        const hiddenInput = document.getElementById(hiddenDateId);
+        const rawVal = textInput.value.trim();
+
+        if (!rawVal) {
+            if (hiddenInput) {
+                hiddenInput.value = '';
+                hiddenInput.dispatchEvent(new Event('change'));
+            }
+            return;
+        }
+
+        const parsedIso = parseUserDateInput(rawVal);
+        if (parsedIso) {
+            if (hiddenInput) {
+                hiddenInput.value = parsedIso;
+                hiddenInput.dispatchEvent(new Event('change'));
+            }
+            textInput.value = formatFullDate(parsedIso);
+            const originalBorder = textInput.style.borderColor;
+            textInput.style.borderColor = '#10b981';
+            setTimeout(() => {
+                textInput.style.borderColor = originalBorder || '';
+            }, 600);
+        } else {
+            if (hiddenInput && hiddenInput.value) {
+                textInput.value = formatFullDate(hiddenInput.value);
+                if (typeof showToast === 'function') {
+                    showToast('⚠️ صيغة التاريخ: 15-11-2026 أو 15-Nov-2026');
+                }
+            }
+        }
+    }
+    window.handleDateTextInput = handleDateTextInput;
+
+    function triggerDatePicker(dateInputId, displayInputId) {
+        const dateInput = document.getElementById(dateInputId);
+        if (!dateInput) return;
+
+        if (displayInputId) {
+            const dispEl = document.getElementById(displayInputId);
+            if (dispEl && dispEl.value) {
+                const parsed = parseUserDateInput(dispEl.value);
+                if (parsed) dateInput.value = parsed;
+            }
+        }
+
+        if (typeof dateInput.showPicker === 'function') {
+            try {
+                dateInput.showPicker();
+                return;
+            } catch (err) {
+                console.log('showPicker call failed, attempting fallback', err);
+            }
+        }
+
+        try {
+            dateInput.focus();
+            dateInput.click();
+        } catch (e) {
+            console.error('Date picker trigger error:', e);
+        }
+    }
+    window.triggerDatePicker = triggerDatePicker;
 
     function syncFormattedDate(dateInput, displayId) {
         if (!dateInput) return;
@@ -6229,6 +6403,11 @@
 
     function calculateNextRefill() {
         let dispEl = document.getElementById('dispensingDate');
+        let dispDisp = document.getElementById('dispensingDate-display');
+        if (dispDisp && dispDisp.value && dispEl) {
+            const parsed = parseUserDateInput(dispDisp.value);
+            if (parsed) dispEl.value = parsed;
+        }
         let nextEl = document.getElementById('nextRefillDate');
         let dispVal = dispEl ? dispEl.value : '';
 
@@ -6242,7 +6421,6 @@
                 nextDisp.value = formatFullDate(iso);
             }
         }
-        const dispDisp = document.getElementById('dispensingDate-display');
         if (dispEl && dispDisp && dispVal && typeof formatFullDate === 'function') {
             dispDisp.value = formatFullDate(dispVal);
         }
@@ -6420,6 +6598,17 @@
         let scannerInput = document.getElementById('scannerInput') ? document.getElementById('scannerInput').value.trim() : "";
         let nationalId = document.getElementById('nationalId').value.trim();
         let phoneNumber = document.getElementById('phoneNumber').value.trim();
+        
+        const dispDisplay = document.getElementById('dispensingDate-display');
+        const nextDisplay = document.getElementById('nextRefillDate-display');
+        if (dispDisplay && dispDisplay.value) {
+            const p = parseUserDateInput(dispDisplay.value);
+            if (p) document.getElementById('dispensingDate').value = p;
+        }
+        if (nextDisplay && nextDisplay.value) {
+            const p = parseUserDateInput(nextDisplay.value);
+            if (p) document.getElementById('nextRefillDate').value = p;
+        }
         let dispensingDate = document.getElementById('dispensingDate').value;
         let nextRefillDate = document.getElementById('nextRefillDate').value;
 
@@ -7031,14 +7220,25 @@
                 <div style="min-width: 0;">
                     <span style="font-size: 9px; font-weight: 800; color: #95a5a6; display: block; margin-bottom: 3px; text-transform: uppercase;">Dispensing Date</span>
                     <div style="display: flex; gap: 4px; align-items: stretch;">
-                        <div style="position: relative; flex: 1; min-width: 0;">
+                        <div style="position: relative; flex: 1; min-width: 0; display: flex; align-items: stretch; background: #fff; border: 1.5px solid #cbd5e1; border-radius: 6px; box-shadow: 0 1px 2px rgba(0,0,0,0.05);">
                             <input type="text" id="q-dispense-${patient.id}-display" 
                                    value="${formatFullDate(pDispenseVal)}" 
-                                   readonly
-                                   style="width: 100%; min-width: 0; border: 1px solid #ddd; border-radius: 6px; padding: 5px 6px; font-size: 11px; font-weight: 800; color: #2d3436; outline: none; background: #fff; text-align: center; cursor: pointer; letter-spacing: 0.3px; box-sizing: border-box; height: 28px;">
-                            <input type="date" id="q-dispense-${patient.id}" value="${pDispenseVal}" 
+                                   onfocus="this.select()"
+                                   onblur="handleDateTextInput(this, 'q-dispense-${patient.id}')"
+                                   onkeydown="if(event.key==='Enter') this.blur();"
+                                   ondblclick="triggerDatePicker('q-dispense-${patient.id}', 'q-dispense-${patient.id}-display')"
+                                   placeholder="DD - MMM - YYYY"
+                                   title="اكتب التاريخ مباشرة أو اضغط على 📅 للاختيار من التقويم"
+                                   style="flex: 1; min-width: 0; border: none; padding: 4px 6px; font-size: 11px; font-weight: 800; color: #1e293b; outline: none; background: transparent; text-align: center; letter-spacing: 0.3px; height: 28px;">
+                            <button type="button" 
+                                    onclick="triggerDatePicker('q-dispense-${patient.id}', 'q-dispense-${patient.id}-display')" 
+                                    title="فتح التقويم للاختيار"
+                                    style="background: #f8fafc; border: none; border-left: 1px solid #e2e8f0; padding: 0 6px; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 13px; color: #64748b;">
+                                📅
+                            </button>
+                            <input type="date" id="q-dispense-${patient.id}" value="${pDispenseVal}" tabindex="-1" aria-hidden="true"
                                    onchange="syncFormattedDate(this, 'q-dispense-${patient.id}-display')"
-                                   style="position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; cursor: pointer; z-index: 2;">
+                                   style="position: absolute; right: 0; bottom: 0; width: 0; height: 0; opacity: 0; pointer-events: none; border: none; padding: 0; margin: 0;">
                         </div>
                         <button onclick="setDateToToday('q-dispense-${patient.id}')" 
                                 style="background: var(--primary); color: white; border: none; border-radius: 6px; padding: 0 8px; font-size: 10px; font-weight: 900; cursor: pointer; flex-shrink: 0; height: 28px;" title="Set to Today">T</button>
@@ -7047,14 +7247,25 @@
                 <div style="min-width: 0;">
                     <span style="font-size: 9px; font-weight: 800; color: #95a5a6; display: block; margin-bottom: 3px; text-transform: uppercase;">Next Refill</span>
                     <div style="display: flex; gap: 4px; align-items: stretch;">
-                        <div style="position: relative; flex: 1; min-width: 0;">
+                        <div style="position: relative; flex: 1; min-width: 0; display: flex; align-items: stretch; background: #fff; border: 1.5px solid var(--primary); border-radius: 6px; box-shadow: 0 1px 2px rgba(9, 132, 227, 0.1);">
                             <input type="text" id="q-next-${patient.id}-display" 
                                    value="${formatFullDate(pNextVal)}" 
-                                   readonly
-                                   style="width: 100%; min-width: 0; border: 1.5px solid var(--primary); border-radius: 6px; padding: 5px 6px; font-weight: 900; color: #0984e3; outline: none; background: #fff; font-size: 11px; text-align: center; cursor: pointer; letter-spacing: 0.3px; box-sizing: border-box; height: 28px;">
-                            <input type="date" id="q-next-${patient.id}" value="${pNextVal}" 
+                                   onfocus="this.select()"
+                                   onblur="handleDateTextInput(this, 'q-next-${patient.id}')"
+                                   onkeydown="if(event.key==='Enter') this.blur();"
+                                   ondblclick="triggerDatePicker('q-next-${patient.id}', 'q-next-${patient.id}-display')"
+                                   placeholder="DD - MMM - YYYY"
+                                   title="اكتب التاريخ مباشرة أو اضغط على 📅 للاختيار من التقويم"
+                                   style="flex: 1; min-width: 0; border: none; padding: 4px 6px; font-weight: 900; color: #0984e3; outline: none; background: transparent; font-size: 11px; text-align: center; letter-spacing: 0.3px; height: 28px;">
+                            <button type="button" 
+                                    onclick="triggerDatePicker('q-next-${patient.id}', 'q-next-${patient.id}-display')" 
+                                    title="فتح التقويم للاختيار"
+                                    style="background: #f0f7ff; border: none; border-left: 1px solid #c7e0f9; padding: 0 6px; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 13px; color: #0984e3;">
+                                📅
+                            </button>
+                            <input type="date" id="q-next-${patient.id}" value="${pNextVal}" tabindex="-1" aria-hidden="true"
                                    onchange="syncFormattedDate(this, 'q-next-${patient.id}-display')"
-                                   style="position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; cursor: pointer; z-index: 2;">
+                                   style="position: absolute; right: 0; bottom: 0; width: 0; height: 0; opacity: 0; pointer-events: none; border: none; padding: 0; margin: 0;">
                         </div>
                         <button onclick="setDateToToday('q-next-${patient.id}')" 
                                 style="background: var(--secondary); color: white; border: none; border-radius: 6px; padding: 0 8px; font-size: 10px; font-weight: 900; cursor: pointer; flex-shrink: 0; height: 28px;" title="Set to Today">T</button>
@@ -7271,7 +7482,12 @@
         const nextInput = document.getElementById(`q-next-${patientId}`);
 
         if (dispenseInput && nextInput) {
-            let date = new Date(dispenseInput.value);
+            const dispDisplay = document.getElementById(`q-dispense-${patientId}-display`);
+            if (dispDisplay && dispDisplay.value) {
+                const parsed = parseUserDateInput(dispDisplay.value);
+                if (parsed) dispenseInput.value = parsed;
+            }
+            let date = new Date(dispenseInput.value || new Date().toISOString().split('T')[0]);
             date.setDate(date.getDate() + days); // الحساب بنظام 24 يوم للشهر
             const iso = date.toISOString().split('T')[0];
             nextInput.value = iso;
@@ -7566,10 +7782,18 @@
         if (phoneNumberEl) phoneNumberEl.value = patient.phoneNumber || '';
         
         const dispensingDateEl = document.getElementById('dispensingDate');
-        if (dispensingDateEl) dispensingDateEl.value = patient.dispensingDate || '';
+        if (dispensingDateEl) {
+            dispensingDateEl.value = patient.dispensingDate || '';
+            const dispDisp = document.getElementById('dispensingDate-display');
+            if (dispDisp) dispDisp.value = formatFullDate(patient.dispensingDate);
+        }
         
         const nextRefillDateEl = document.getElementById('nextRefillDate');
-        if (nextRefillDateEl) nextRefillDateEl.value = patient.nextRefillDate || '';
+        if (nextRefillDateEl) {
+            nextRefillDateEl.value = patient.nextRefillDate || '';
+            const nextDisp = document.getElementById('nextRefillDate-display');
+            if (nextDisp) nextDisp.value = formatFullDate(patient.nextRefillDate);
+        }
         
         const generalNoteEl = document.getElementById('generalNote');
         if (generalNoteEl) generalNoteEl.value = patient.generalNote || '';
@@ -9941,14 +10165,23 @@ SMART IMPORT SYSTEM (Dr. Mo Edition)
             `
         <div style="text-align: center; padding: 15px;">
             <p style="margin-bottom: 15px; color: #2D3436; font-weight:600;">Update Next Refill Date:</p>
-            <div style="position: relative; max-width: 320px; margin: 0 auto;">
+            <div style="position: relative; max-width: 320px; margin: 0 auto; display: flex; align-items: stretch; background: #fff; border: 2px solid var(--primary); border-radius: 12px; overflow: hidden;">
                 <input type="text" id="modalNewRefillDate-display" class="form-input" 
-                       value="${formatFullDate(defaultDateStr)}" readonly
-                       style="font-size: 18px; padding: 15px; text-align: center; font-weight: 800; color: var(--primary); border: 2px solid var(--primary); cursor: pointer; letter-spacing: 0.5px; background: #fff;">
-                <input type="date" id="modalNewRefillDate" class="form-input" 
+                       value="${formatFullDate(defaultDateStr)}" 
+                       onfocus="this.select()"
+                       onblur="handleDateTextInput(this, 'modalNewRefillDate')"
+                       onkeydown="if(event.key==='Enter') this.blur();"
+                       ondblclick="triggerDatePicker('modalNewRefillDate', 'modalNewRefillDate-display')"
+                       placeholder="DD - MMM - YYYY"
+                       title="اكتب التاريخ مباشرة أو اضغط على 📅 للاختيار من التقويم"
+                       style="flex: 1; min-width: 0; font-size: 16px; padding: 12px; text-align: center; font-weight: 800; color: var(--primary); border: none; letter-spacing: 0.5px; background: transparent; height: 48px;">
+                <button type="button" onclick="triggerDatePicker('modalNewRefillDate', 'modalNewRefillDate-display')"
+                        style="background: #f0f7ff; border: none; border-left: 1px solid #c7e0f9; padding: 0 16px; cursor: pointer; font-size: 20px; color: var(--primary);"
+                        title="فتح التقويم للاختيار">📅</button>
+                <input type="date" id="modalNewRefillDate" tabindex="-1" aria-hidden="true"
                        value="${defaultDateStr}" 
                        onchange="syncFormattedDate(this, 'modalNewRefillDate-display')"
-                       style="position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; cursor: pointer; z-index: 2;">
+                       style="position: absolute; right: 0; bottom: 0; width: 0; height: 0; opacity: 0; pointer-events: none; border: none; padding: 0; margin: 0;">
             </div>
         </div>
         `,
@@ -9972,7 +10205,13 @@ SMART IMPORT SYSTEM (Dr. Mo Edition)
 
     // 10. الحفظ النهائي (تحديث السيرفر)
     async function confirmDispenseAndSave(patientId) {
-        const newDate = document.getElementById('modalNewRefillDate').value;
+        const dateDisp = document.getElementById('modalNewRefillDate-display');
+        const dateInput = document.getElementById('modalNewRefillDate');
+        if (dateDisp && dateDisp.value && dateInput) {
+            const parsed = parseUserDateInput(dateDisp.value);
+            if (parsed) dateInput.value = parsed;
+        }
+        const newDate = dateInput ? dateInput.value : '';
         if (!newDate) return;
 
         const confirmBtn = document.querySelector('.modal-actions .btn-primary');
@@ -13450,13 +13689,22 @@ SMART IMPORT SYSTEM (Dr. Mo Edition)
                         <span>📅</span>
                         <span>اليوم والتاريخ (Date):</span>
                     </div>
-                    <div style="position: relative; width: 100%;">
+                    <div style="position: relative; width: 100%; display: flex; align-items: stretch; background: #fff; border: 1.5px solid #cbd5e1; border-radius: 8px; overflow: hidden;">
                         <input type="text" id="alarmModalDate-display" class="alarm-modal-input" 
-                               value="${formatFullDate(initialDate)}" readonly
-                               style="font-weight: 800; text-align: center; cursor: pointer; letter-spacing: 0.5px; background: #fff;">
-                        <input type="date" id="alarmModalDate" class="alarm-modal-input" value="${initialDate}" 
+                               value="${formatFullDate(initialDate)}" 
+                               onfocus="this.select()"
+                               onblur="handleDateTextInput(this, 'alarmModalDate'); updateAlarmModalPreview();"
+                               onkeydown="if(event.key==='Enter') this.blur();"
+                               ondblclick="triggerDatePicker('alarmModalDate', 'alarmModalDate-display')"
+                               placeholder="DD - MMM - YYYY"
+                               title="اكتب التاريخ مباشرة أو اضغط على 📅 للاختيار من التقويم"
+                               style="flex: 1; min-width: 0; border: none; font-weight: 800; text-align: center; letter-spacing: 0.5px; background: transparent;">
+                        <button type="button" onclick="triggerDatePicker('alarmModalDate', 'alarmModalDate-display')"
+                                style="background: #f8fafc; border: none; border-left: 1px solid #cbd5e1; padding: 0 12px; cursor: pointer; font-size: 16px; color: #64748b;"
+                                title="فتح التقويم للاختيار">📅</button>
+                        <input type="date" id="alarmModalDate" tabindex="-1" aria-hidden="true" value="${initialDate}" 
                                onchange="syncFormattedDate(this, 'alarmModalDate-display'); updateAlarmModalPreview();"
-                               style="position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; cursor: pointer; z-index: 2;">
+                               style="position: absolute; right: 0; bottom: 0; width: 0; height: 0; opacity: 0; pointer-events: none; border: none; padding: 0; margin: 0;">
                     </div>
                     
                     <div class="alarm-preset-group" style="margin-top: 6px;">
@@ -13595,6 +13843,7 @@ SMART IMPORT SYSTEM (Dr. Mo Edition)
             dateInput.value = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`;
             timeInput.value = `${pad(now.getHours())}:${pad(now.getMinutes())}`;
         }
+        syncFormattedDate(dateInput, 'alarmModalDate-display');
         updateAlarmModalPreview();
     }
 
@@ -13670,9 +13919,15 @@ SMART IMPORT SYSTEM (Dr. Mo Edition)
     }
 
     async function saveAlarmFromModal(patientId) {
+        const dateDisp = document.getElementById('alarmModalDate-display');
         const dateInput = document.getElementById('alarmModalDate');
         const timeInput = document.getElementById('alarmModalTime');
         if (!dateInput || !timeInput) return;
+
+        if (dateDisp && dateDisp.value) {
+            const parsed = parseUserDateInput(dateDisp.value);
+            if (parsed) dateInput.value = parsed;
+        }
 
         const dateVal = dateInput.value;
         const timeVal = timeInput.value;
@@ -13792,7 +14047,12 @@ SMART IMPORT SYSTEM (Dr. Mo Edition)
         const nextInput = document.getElementById(`q-next-${patientId}`);
 
         if (dispenseInput && nextInput) {
-            let date = new Date(dispenseInput.value);
+            const dispDisplay = document.getElementById(`q-dispense-${patientId}-display`);
+            if (dispDisplay && dispDisplay.value) {
+                const parsed = parseUserDateInput(dispDisplay.value);
+                if (parsed) dispenseInput.value = parsed;
+            }
+            let date = new Date(dispenseInput.value || new Date().toISOString().split('T')[0]);
             date.setDate(date.getDate() + days);
             const iso = date.toISOString().split('T')[0];
             nextInput.value = iso;
@@ -13831,6 +14091,24 @@ SMART IMPORT SYSTEM (Dr. Mo Edition)
         const nextInput = document.getElementById(`q-next-${patientId}`);
 
         if (!dispInput || !nextInput) return;
+
+        // مراجعة ومزامنة أي قيم تمت كتابتها يدوياً في حقول العرض قبل الحفظ
+        const dispDisplay = document.getElementById(`q-dispense-${patientId}-display`);
+        const nextDisplay = document.getElementById(`q-next-${patientId}-display`);
+        if (dispDisplay && dispDisplay.value) {
+            const parsedDisp = parseUserDateInput(dispDisplay.value);
+            if (parsedDisp) {
+                dispInput.value = parsedDisp;
+                dispDisplay.value = formatFullDate(parsedDisp);
+            }
+        }
+        if (nextDisplay && nextDisplay.value) {
+            const parsedNext = parseUserDateInput(nextDisplay.value);
+            if (parsedNext) {
+                nextInput.value = parsedNext;
+                nextDisplay.value = formatFullDate(parsedNext);
+            }
+        }
 
         const dispDate = dispInput.value;
         const nextDate = nextInput.value;
