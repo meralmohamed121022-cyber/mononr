@@ -4582,10 +4582,8 @@
                         <div style="display: flex; gap: 8px;">
                             <div style="position: relative; flex: 1; min-width: 0; display: flex; align-items: stretch; background: #fff; border: 2px solid var(--border); border-radius: 12px; overflow: hidden;">
                                 <input type="text" class="form-input" id="dispensingDate-display"
-                                       onfocus="this.select()"
                                        onblur="handleDateTextInput(this, 'dispensingDate'); calculateNextRefill();"
                                        onkeydown="if(event.key==='Enter') this.blur();"
-                                       ondblclick="triggerDatePicker('dispensingDate', 'dispensingDate-display')"
                                        style="flex: 1; min-width: 0; border: none; font-weight: 800; text-align: center; letter-spacing: 0.5px; background: transparent; height: 42px;"
                                        placeholder="DD - MMM - YYYY"
                                        title="اكتب التاريخ مباشرة أو اضغط على 📅 للاختيار من التقويم">
@@ -4610,10 +4608,8 @@
                         <div style="display: flex; gap: 8px;">
                             <div style="position: relative; flex: 1; min-width: 0; display: flex; align-items: stretch; background: #fff; border: 2px solid var(--border); border-radius: 12px; overflow: hidden;">
                                 <input type="text" class="form-input" id="nextRefillDate-display"
-                                       onfocus="this.select()"
                                        onblur="handleDateTextInput(this, 'nextRefillDate')"
                                        onkeydown="if(event.key==='Enter') this.blur();"
-                                       ondblclick="triggerDatePicker('nextRefillDate', 'nextRefillDate-display')"
                                        style="flex: 1; min-width: 0; border: none; font-weight: 800; text-align: center; letter-spacing: 0.5px; color: #0984e3; background: transparent; height: 42px;"
                                        placeholder="DD - MMM - YYYY"
                                        title="اكتب التاريخ مباشرة أو اضغط على 📅 للاختيار من التقويم">
@@ -4718,10 +4714,8 @@
                 <div class="date-filter">
                     <div style="position: relative; height: 100%; display: flex; align-items: stretch; background: #fff; border: 2px solid var(--border); border-radius: 10px; overflow: hidden;">
                         <input type="text" id="filterDateFrom-display" 
-                            onfocus="this.select()"
                             onblur="handleDateTextInput(this, 'filterDateFrom'); applyDateFilter();"
                             onkeydown="if(event.key==='Enter') this.blur();"
-                            ondblclick="triggerDatePicker('filterDateFrom', 'filterDateFrom-display')"
                             placeholder="من تاريخ (DD-MMM-YYYY)"
                             title="اكتب التاريخ مباشرة أو اضغط على 📅 للاختيار من التقويم"
                             style="flex: 1; min-width: 0; border: none; padding: 10px; font-size: 13px; font-weight: 700; background: transparent; text-align: center; color: #1e293b; outline: none; box-sizing: border-box; height: 100%;">
@@ -4734,10 +4728,8 @@
                     </div>
                     <div style="position: relative; height: 100%; display: flex; align-items: stretch; background: #fff; border: 2px solid var(--border); border-radius: 10px; overflow: hidden;">
                         <input type="text" id="filterDateTo-display" 
-                            onfocus="this.select()"
                             onblur="handleDateTextInput(this, 'filterDateTo'); applyDateFilter();"
                             onkeydown="if(event.key==='Enter') this.blur();"
-                            ondblclick="triggerDatePicker('filterDateTo', 'filterDateTo-display')"
                             placeholder="إلى تاريخ (DD-MMM-YYYY)"
                             title="اكتب التاريخ مباشرة أو اضغط على 📅 للاختيار من التقويم"
                             style="flex: 1; min-width: 0; border: none; padding: 10px; font-size: 13px; font-weight: 700; background: transparent; text-align: center; color: #1e293b; outline: none; box-sizing: border-box; height: 100%;">
@@ -5076,12 +5068,18 @@
     }
     window.formatFullDate = formatFullDate;
 
-    function parseUserDateInput(str) {
+    function parseUserDateInput(str, currentIsoVal) {
         if (!str || typeof str !== 'string') return null;
         str = str.trim();
         if (!str || str === '-') return null;
 
-        const currentYear = new Date().getFullYear();
+        let fallbackYear = new Date().getFullYear();
+        let fallbackMonth = new Date().getMonth() + 1;
+        if (currentIsoVal && typeof currentIsoVal === 'string' && /^\d{4}-\d{2}-\d{2}/.test(currentIsoVal)) {
+            const [cy, cm] = currentIsoVal.split('T')[0].split('-');
+            fallbackYear = parseInt(cy, 10);
+            fallbackMonth = parseInt(cm, 10);
+        }
 
         const monthNames = {
             jan: 1, feb: 2, mar: 3, apr: 4, may: 5, jun: 6,
@@ -5092,13 +5090,21 @@
             'يوليو': 7, 'اغسطس': 8, 'أغسطس': 8, 'سبتمبر': 9, 'اكتوبر': 10, 'أكتوبر': 10, 'نوفمبر': 11, 'ديسمبر': 12
         };
 
-        // 1. Format: DD - MMM - YYYY (e.g. 11 - Nov - 2026 or 11 Nov 2026 or 11-Nov-26)
+        // 0. User typed ONLY a day number! (e.g. "15" or "5" or "31") -> Update day keeping month & year
+        if (/^\d{1,2}$/.test(str)) {
+            const d = parseInt(str, 10);
+            if (d >= 1 && d <= 31) {
+                return `${fallbackYear}-${String(fallbackMonth).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+            }
+        }
+
+        // 1. Format: DD - MMM - YYYY (e.g. 11 - Nov - 2026 or 11 Nov 2026 or 11-Nov)
         const alphaMatch = str.match(/^(\d{1,2})[\s\-\/\.]+([a-zA-Z\u0621-\u064A]{3,})(?:[\s\-\/\.]+(\d{2,4}))?$/);
         if (alphaMatch) {
             const d = parseInt(alphaMatch[1], 10);
             const mKey = alphaMatch[2].toLowerCase().substring(0, 3);
             const m = monthNames[mKey] || arMonths[alphaMatch[2]] || null;
-            let y = alphaMatch[3] ? parseInt(alphaMatch[3], 10) : currentYear;
+            let y = alphaMatch[3] ? parseInt(alphaMatch[3], 10) : fallbackYear;
             if (y < 100) y += 2000;
             if (m && d >= 1 && d <= 31) {
                 return `${y}-${String(m).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
@@ -5116,12 +5122,12 @@
             }
         }
 
-        // 3. Format: DD-MM-YYYY or DD/MM/YYYY or DD.MM.YYYY or DD MM (current year)
+        // 3. Format: DD-MM-YYYY or DD/MM/YYYY or DD.MM.YYYY or DD MM (fallbackYear)
         const numMatch = str.match(/^(\d{1,2})[\s\-\/\.]+(\d{1,2})(?:[\s\-\/\.]+(\d{2,4}))?$/);
         if (numMatch) {
             let d = parseInt(numMatch[1], 10);
             let m = parseInt(numMatch[2], 10);
-            let y = numMatch[3] ? parseInt(numMatch[3], 10) : currentYear;
+            let y = numMatch[3] ? parseInt(numMatch[3], 10) : fallbackYear;
             if (y < 100) y += 2000;
 
             if (m > 12 && d <= 12) {
@@ -5161,7 +5167,8 @@
             return;
         }
 
-        const parsedIso = parseUserDateInput(rawVal);
+        const currentVal = hiddenInput ? hiddenInput.value : '';
+        const parsedIso = parseUserDateInput(rawVal, currentVal);
         if (parsedIso) {
             if (hiddenInput) {
                 hiddenInput.value = parsedIso;
@@ -5176,9 +5183,6 @@
         } else {
             if (hiddenInput && hiddenInput.value) {
                 textInput.value = formatFullDate(hiddenInput.value);
-                if (typeof showToast === 'function') {
-                    showToast('⚠️ صيغة التاريخ: 15-11-2026 أو 15-Nov-2026');
-                }
             }
         }
     }
@@ -7223,10 +7227,8 @@
                         <div style="position: relative; flex: 1; min-width: 0; display: flex; align-items: stretch; background: #fff; border: 1.5px solid #cbd5e1; border-radius: 6px; box-shadow: 0 1px 2px rgba(0,0,0,0.05);">
                             <input type="text" id="q-dispense-${patient.id}-display" 
                                    value="${formatFullDate(pDispenseVal)}" 
-                                   onfocus="this.select()"
                                    onblur="handleDateTextInput(this, 'q-dispense-${patient.id}')"
                                    onkeydown="if(event.key==='Enter') this.blur();"
-                                   ondblclick="triggerDatePicker('q-dispense-${patient.id}', 'q-dispense-${patient.id}-display')"
                                    placeholder="DD - MMM - YYYY"
                                    title="اكتب التاريخ مباشرة أو اضغط على 📅 للاختيار من التقويم"
                                    style="flex: 1; min-width: 0; border: none; padding: 4px 6px; font-size: 11px; font-weight: 800; color: #1e293b; outline: none; background: transparent; text-align: center; letter-spacing: 0.3px; height: 28px;">
@@ -7250,10 +7252,8 @@
                         <div style="position: relative; flex: 1; min-width: 0; display: flex; align-items: stretch; background: #fff; border: 1.5px solid var(--primary); border-radius: 6px; box-shadow: 0 1px 2px rgba(9, 132, 227, 0.1);">
                             <input type="text" id="q-next-${patient.id}-display" 
                                    value="${formatFullDate(pNextVal)}" 
-                                   onfocus="this.select()"
                                    onblur="handleDateTextInput(this, 'q-next-${patient.id}')"
                                    onkeydown="if(event.key==='Enter') this.blur();"
-                                   ondblclick="triggerDatePicker('q-next-${patient.id}', 'q-next-${patient.id}-display')"
                                    placeholder="DD - MMM - YYYY"
                                    title="اكتب التاريخ مباشرة أو اضغط على 📅 للاختيار من التقويم"
                                    style="flex: 1; min-width: 0; border: none; padding: 4px 6px; font-weight: 900; color: #0984e3; outline: none; background: transparent; font-size: 11px; text-align: center; letter-spacing: 0.3px; height: 28px;">
@@ -10168,10 +10168,8 @@ SMART IMPORT SYSTEM (Dr. Mo Edition)
             <div style="position: relative; max-width: 320px; margin: 0 auto; display: flex; align-items: stretch; background: #fff; border: 2px solid var(--primary); border-radius: 12px; overflow: hidden;">
                 <input type="text" id="modalNewRefillDate-display" class="form-input" 
                        value="${formatFullDate(defaultDateStr)}" 
-                       onfocus="this.select()"
                        onblur="handleDateTextInput(this, 'modalNewRefillDate')"
                        onkeydown="if(event.key==='Enter') this.blur();"
-                       ondblclick="triggerDatePicker('modalNewRefillDate', 'modalNewRefillDate-display')"
                        placeholder="DD - MMM - YYYY"
                        title="اكتب التاريخ مباشرة أو اضغط على 📅 للاختيار من التقويم"
                        style="flex: 1; min-width: 0; font-size: 16px; padding: 12px; text-align: center; font-weight: 800; color: var(--primary); border: none; letter-spacing: 0.5px; background: transparent; height: 48px;">
@@ -13692,10 +13690,8 @@ SMART IMPORT SYSTEM (Dr. Mo Edition)
                     <div style="position: relative; width: 100%; display: flex; align-items: stretch; background: #fff; border: 1.5px solid #cbd5e1; border-radius: 8px; overflow: hidden;">
                         <input type="text" id="alarmModalDate-display" class="alarm-modal-input" 
                                value="${formatFullDate(initialDate)}" 
-                               onfocus="this.select()"
                                onblur="handleDateTextInput(this, 'alarmModalDate'); updateAlarmModalPreview();"
                                onkeydown="if(event.key==='Enter') this.blur();"
-                               ondblclick="triggerDatePicker('alarmModalDate', 'alarmModalDate-display')"
                                placeholder="DD - MMM - YYYY"
                                title="اكتب التاريخ مباشرة أو اضغط على 📅 للاختيار من التقويم"
                                style="flex: 1; min-width: 0; border: none; font-weight: 800; text-align: center; letter-spacing: 0.5px; background: transparent;">
