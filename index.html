@@ -4864,10 +4864,16 @@
                             <div style="font-size: 14px; font-weight: 700; color: var(--primary);">📋 Queue List <span
                                     id="queueCount" class="patient-badge">0</span></div>
                             <button id="btnPrintSelectedQueue" onclick="printSelectedQueueLabels()" class="btn-action" 
-                                    style="display: none; padding: 6px 14px; background: linear-gradient(135deg, #0284c7, #0369a1); color: white; border: none; border-radius: 8px; font-weight: 800; font-size: 12px; cursor: pointer; align-items: center; gap: 6px; box-shadow: 0 2px 6px rgba(2,132,199,0.35); transition: all 0.2s;" 
-                                    title="طباعة تيكتات العناصر المحددة دفعة واحدة">
+                                    style="display: none; padding: 6px 13px; background: linear-gradient(135deg, #0284c7, #0369a1); color: white; border: none; border-radius: 8px; font-weight: 800; font-size: 12px; cursor: pointer; align-items: center; gap: 6px; box-shadow: 0 2px 6px rgba(2,132,199,0.35); transition: all 0.2s;" 
+                                    title="طباعة ليبل زيبرا (3x2) للعناصر المحددة">
                                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 6 2 18 2 18 9"></polyline><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path><rect x="6" y="14" width="12" height="8"></rect></svg>
-                                <span>🖨️ طباعة المحدد (<span id="selectedQueueCount">0</span>)</span>
+                                <span>🖨️ ليبل زيبرا (<span id="selectedQueueCount">0</span>)</span>
+                            </button>
+                            <button id="btnPrintSelectedQueueEpson" onclick="printSelectedQueueEpsonRoll()" class="btn-action" 
+                                    style="display: none; padding: 6px 13px; background: linear-gradient(135deg, #0d9488, #0f766e); color: white; border: none; border-radius: 8px; font-weight: 800; font-size: 12px; cursor: pointer; align-items: center; gap: 6px; box-shadow: 0 2px 6px rgba(13,148,136,0.35); transition: all 0.2s;" 
+                                    title="طباعة رول إبسون (Epson 80mm) للعناصر المحددة">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M6 2h12a2 2 0 0 1 2 2v16l-3-2-3 2-3-2-3 2-2-1.33V4a2 2 0 0 1 2-2z"></path><line x1="9" y1="7" x2="15" y2="7"></line><line x1="9" y1="11" x2="15" y2="11"></line></svg>
+                                <span>🧾 رول إبسون (<span id="selectedQueueCountEpson">0</span>)</span>
                             </button>
                             <button onclick="openDispensedHistoryModal()" class="btn-action" 
                                     style="padding: 6px 14px; background: linear-gradient(135deg, #334155, #1e293b); color: white; border: none; border-radius: 8px; font-weight: 800; font-size: 12px; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; box-shadow: 0 2px 6px rgba(0,0,0,0.15);" 
@@ -4914,7 +4920,7 @@
                                         onkeyup="filterQueue()"
                                         style="width: 100%; margin-top: 5px; padding: 2px 4px; font-size: 10px; border: 1px solid #ddd; border-radius: 4px; font-weight: normal; box-sizing: border-box;">
                                 </th>
-                                <th width="50">Print</th>
+                                <th width="75" style="text-align: center;">Print</th>
                                 <th width="80">Done</th>
                             </tr>
                         </thead>
@@ -9611,15 +9617,27 @@ SMART IMPORT SYSTEM (Dr. Mo Edition)
                 </div>
             </td>
 
-            <td style="text-align: center;">
-                <button onclick="openPrintLabelModal('${p.id}')" title="طباعة ليبل Zebra 3x2" 
-                        style="background: #f1f5f9; border: 1.5px solid #cbd5e1; border-radius: 6px; width: 30px; height: 30px; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; color: #1e293b; transition: all 0.2s ease;">
-                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        <polyline points="6 9 6 2 18 2 18 9"></polyline>
-                        <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path>
-                        <rect x="6" y="14" width="12" height="8"></rect>
-                    </svg>
-                </button>
+            <td style="text-align: center; white-space: nowrap;">
+                <div style="display: inline-flex; align-items: center; justify-content: center; gap: 4px;">
+                    <button onclick="openPrintLabelModal('${p.id}', 'zebra')" title="طباعة ليبل Zebra 3x2" 
+                            style="background: #f1f5f9; border: 1.5px solid #cbd5e1; border-radius: 6px; width: 30px; height: 30px; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; color: #1e293b; transition: all 0.2s ease;"
+                            onmouseover="this.style.background='#e2e8f0'" onmouseout="this.style.background='#f1f5f9'">
+                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <polyline points="6 9 6 2 18 2 18 9"></polyline>
+                            <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path>
+                            <rect x="6" y="14" width="12" height="8"></rect>
+                        </svg>
+                    </button>
+                    <button onclick="openPrintEpsonRollModal('${p.id}')" title="طباعة رول إبسون (Epson 80mm Roll)" 
+                            style="background: #e0f2fe; border: 1.5px solid #38bdf8; border-radius: 6px; width: 30px; height: 30px; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; color: #0284c7; transition: all 0.2s ease;"
+                            onmouseover="this.style.background='#bae6fd'" onmouseout="this.style.background='#e0f2fe'">
+                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M6 2h12a2 2 0 0 1 2 2v16l-3-2-3 2-3-2-3 2-2-1.33V4a2 2 0 0 1 2-2z"></path>
+                            <line x1="9" y1="7" x2="15" y2="7"></line>
+                            <line x1="9" y1="11" x2="15" y2="11"></line>
+                        </svg>
+                    </button>
+                </div>
             </td>
 
             <td style="text-align: center;">
@@ -10554,9 +10572,14 @@ SMART IMPORT SYSTEM (Dr. Mo Edition)
                             🔄 إعادة
                         </button>
                         <button type="button" onclick="openPrintLabelModalFromHistory('${item.historyId}')" 
-                                style="background: #f1f5f9; color: #1e293b; border: 1px solid #cbd5e1; border-radius: 6px; padding: 4px 10px; font-size: 11px; font-weight: 800; cursor: pointer; display: inline-flex; align-items: center; gap: 4px;"
-                                title="طباعة تيكت">
+                                style="background: #f1f5f9; color: #1e293b; border: 1px solid #cbd5e1; border-radius: 6px; padding: 4px 8px; font-size: 11px; font-weight: 800; cursor: pointer; display: inline-flex; align-items: center; gap: 3px;"
+                                title="طباعة ليبل Zebra 3x2">
                             🖨️
+                        </button>
+                        <button type="button" onclick="openPrintEpsonRollModalFromHistory('${item.historyId}')" 
+                                style="background: #e0f2fe; color: #0284c7; border: 1px solid #38bdf8; border-radius: 6px; padding: 4px 8px; font-size: 11px; font-weight: 800; cursor: pointer; display: inline-flex; align-items: center; gap: 3px;"
+                                title="طباعة رول إبسون (Epson 80mm Roll)">
+                            🧾
                         </button>
                         <button type="button" onclick="deleteSingleHistoryItem('${item.historyId}')" 
                                 style="background: transparent; border: none; color: #ef4444; font-size: 13px; cursor: pointer; padding: 4px 6px;" title="حذف نهائي من السجل">
@@ -10789,9 +10812,9 @@ SMART IMPORT SYSTEM (Dr. Mo Edition)
 
         const defaultPharmName = (currentUser && (currentUser.pharmacy_name || currentUser.pharmacy_code)) 
             ? (currentUser.pharmacy_name || ('صيدلية ' + currentUser.pharmacy_code)) 
-            : 'صيدلية الدواء';
+            : (localStorage.getItem('mono_pharmacy_name') || 'صيدلية الدواء');
         const pharmacyName = d.pharmacyName || defaultPharmName;
-        const pharmacyPhone = d.pharmacyPhone || '03-5322900';
+        const pharmacyPhone = d.pharmacyPhone || (localStorage.getItem('mono_pharmacy_phone') || '03-5322900');
 
         const now = new Date();
         const dNum = String(now.getDate()).padStart(2, '0');
@@ -10857,7 +10880,241 @@ SMART IMPORT SYSTEM (Dr. Mo Edition)
         `;
     }
 
-    function openPrintLabelModal(target) {
+    // 🧾 قالب تصميم رول إبسون الحراري (Epson 80mm Roll)
+    function generateSingleEpsonRollBody(d) {
+        if (!d) return '';
+        const queueNum = (d.queueNumber !== undefined && d.queueNumber !== null && d.queueNumber !== '') ? d.queueNumber : (d.queueNum || '---');
+        const patientName = d.patientName || 'بدون اسم';
+        const nationalId = String(d.nationalId || '').trim();
+        const phoneNumber = String(d.phoneNumber || '').trim();
+        const rxNumbers = (d.prescriptions && Array.isArray(d.prescriptions)) 
+            ? d.prescriptions.map(r => r.number).filter(Boolean).join(', ') 
+            : (d.rxNumbers || '');
+
+        const defaultPharmName = (currentUser && (currentUser.pharmacy_name || currentUser.pharmacy_code)) 
+            ? (currentUser.pharmacy_name || ('صيدلية ' + currentUser.pharmacy_code)) 
+            : (localStorage.getItem('mono_pharmacy_name') || 'صيدلية الدواء');
+        const pharmacyName = d.pharmacyName || defaultPharmName;
+        const pharmacyPhone = d.pharmacyPhone || (localStorage.getItem('mono_pharmacy_phone') || '03-5322900');
+
+        const now = new Date();
+        const dNum = String(now.getDate()).padStart(2, '0');
+        const mName = SHORT_ENG_MONTHS[now.getMonth()];
+        const yNum = now.getFullYear();
+        const timeStr = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+        const dateStr = d.dateStr || `${dNum}-${mName}-${yNum} ${timeStr}`;
+
+        const idSvg = nationalId ? generateCode128Svg(nationalId, { width: 1.35, height: 32, fontSize: 10 }) : '<div style="font-size:10px; color:#666; padding:4px;">لا يوجد رقم هوية</div>';
+        const queueSvg = (queueNum && queueNum !== '---') ? generateCode128Svg(String(queueNum), { width: 1.45, height: 36, showText: false }) : '';
+
+        // أدوية إذا كانت متوفرة
+        let drugsSection = '';
+        const drugs = d.drugs || [];
+        if (Array.isArray(drugs) && drugs.length > 0) {
+            const drugList = drugs.map(dr => (typeof dr === 'string' ? dr : (dr.name || dr.drug_name || ''))).filter(Boolean).slice(0, 6).join(' • ');
+            if (drugList) {
+                drugsSection = `
+                <div style="margin-top: 6px; padding: 4px 6px; background: #fafafa; border: 1px dashed #bbb; border-radius: 4px; font-size: 10px; text-align: right;">
+                    <span style="font-weight: 800; color: #111;">📦 الأدوية:</span> 
+                    <span style="color: #333;">${drugList}</span>
+                </div>
+                `;
+            }
+        }
+
+        return `
+        <div class="epson-roll-ticket" dir="rtl">
+            <!-- Header -->
+            <div style="text-align: center; margin-bottom: 5px;">
+                <div style="font-size: 15px; font-weight: 900; color: #000; letter-spacing: 0.5px; line-height: 1.2;">${pharmacyName}</div>
+                <div style="font-size: 10px; font-weight: bold; color: #222; margin-top: 2px;">
+                    هاتف: <span dir="ltr">${pharmacyPhone}</span>
+                </div>
+                <div style="font-size: 9.5px; font-weight: 600; color: #333; margin-top: 2px;" dir="ltr">
+                    ${dateStr}
+                </div>
+            </div>
+
+            <div style="border-top: 1.5px dashed #000; margin: 6px 0;"></div>
+
+            <!-- Big Queue Number -->
+            <div style="text-align: center; padding: 4px 0;">
+                <div style="font-size: 10.5px; font-weight: 900; color: #222; letter-spacing: 1px;">رقم الانتظار / QUEUE NO.</div>
+                <div style="font-size: 52px; font-weight: 900; line-height: 1.05; font-family: Impact, 'Arial Black', -apple-system, sans-serif; letter-spacing: 2px; color: #000; margin: 4px 0;">
+                    ${queueNum}
+                </div>
+                ${queueSvg ? `<div style="display: flex; justify-content: center; margin-top: 4px;">${queueSvg}</div>` : ''}
+            </div>
+
+            <div style="border-top: 1.5px dashed #000; margin: 6px 0;"></div>
+
+            <!-- Patient Info -->
+            <div style="text-align: right; line-height: 1.5; font-size: 11px;">
+                <div style="display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 3px;">
+                    <span style="font-weight: 800; color: #111;">👤 المريض:</span>
+                    <span style="font-weight: 900; font-size: 12.5px; color: #000;">${patientName}</span>
+                </div>
+                ${phoneNumber ? `
+                <div style="display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 3px;">
+                    <span style="font-weight: 800; color: #111;">📱 الجوال:</span>
+                    <span style="font-weight: 900; font-family: monospace;" dir="ltr">${phoneNumber}</span>
+                </div>` : ''}
+                ${rxNumbers ? `
+                <div style="display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 3px;">
+                    <span style="font-weight: 800; color: #111;">📋 الوصفة:</span>
+                    <span style="font-weight: 800; font-family: monospace;" dir="ltr">${rxNumbers}</span>
+                </div>` : ''}
+            </div>
+
+            ${drugsSection}
+
+            <!-- National ID & Barcode -->
+            <div style="text-align: center; border-top: 1.5px dashed #000; padding-top: 6px; margin-top: 6px;">
+                <div style="font-size: 9px; font-weight: 900; margin-bottom: 3px;">رقم الهوية (NATIONAL ID)</div>
+                <div style="display: flex; justify-content: center;">${idSvg}</div>
+            </div>
+
+            <div style="border-top: 1.5px dashed #000; margin: 8px 0 6px 0;"></div>
+
+            <!-- Footer -->
+            <div style="text-align: center; font-size: 9.5px; color: #222; line-height: 1.35;">
+                <div style="font-weight: 800;">يرجى الانتظار حتى استدعاء رقمكم</div>
+                <div style="margin-top: 2px;">نتمنى لكم دوام الصحة والعافية 🌿</div>
+            </div>
+
+            <!-- Paper Feed Spacing before cutter -->
+            <div style="height: 12mm;"></div>
+        </div>
+        `;
+    }
+
+    // دوال المعاينة داخل المودال
+    function getZebraPreviewHtml(d) {
+        if (!d) return '';
+        return `
+        <div class="thermal-label-preview-wrapper" style="padding: 10px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; display: flex; justify-content: center;">
+            <div id="thermalLabelPreview" class="thermal-label-preview" style="width: 3in; min-height: 2in; background: #fff; border: 1.5px solid #000; border-radius: 6px; padding: 6px 8px; box-sizing: border-box; display: flex; flex-direction: column; justify-content: space-between; box-shadow: 0 4px 12px rgba(0,0,0,0.08);">
+                <!-- Header: Pharmacy & Date -->
+                <div style="display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 1.5px solid #000; padding-bottom: 2px;">
+                    <div style="text-align: right; line-height: 1.1;">
+                        <div id="prevPharmName" style="font-weight: 900; font-size: 11px; color: #000;">${d.pharmacyName}</div>
+                        <div id="prevPharmPhone" style="font-size: 8px; font-weight: bold; color: #333;">هاتف: <span dir="ltr">${d.pharmacyPhone}</span></div>
+                    </div>
+                    <div style="text-align: left; font-size: 8px; font-weight: bold; color: #000; line-height: 1.1;" dir="ltr">
+                        ${d.dateStr}
+                    </div>
+                </div>
+
+                <!-- Patient Info & Mobile & Rx (Compact Row) -->
+                <div style="display: flex; justify-content: space-between; align-items: center; padding: 2px 0; border-bottom: 1px dashed #aaa;">
+                    <div style="font-size: 10.5px; font-weight: 900; color: #000; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 45%;">
+                        👤 ${d.patientName}
+                    </div>
+                    ${d.phoneNumber ? `
+                    <div style="font-size: 10px; font-weight: 900; color: #000; white-space: nowrap;" dir="ltr">
+                        📱 ${d.phoneNumber}
+                    </div>` : ''}
+                    ${d.rxNumbers ? `
+                    <div style="font-size: 9px; font-weight: bold; color: #222; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" dir="ltr">
+                        Rx: ${d.rxNumbers}
+                    </div>` : ''}
+                </div>
+
+                <!-- Middle Row: Big Queue Number in Center + Queue Barcode on Side -->
+                <div style="display: flex; align-items: center; justify-content: space-between; padding: 2px 6px; margin: 3px 0;">
+                    <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; min-width: 85px;">
+                        ${d.queueSvg}
+                    </div>
+                    <div style="flex: 1; text-align: center;">
+                        <div style="font-size: 54px; font-weight: 900; line-height: 1; font-family: Impact, 'Arial Black', -apple-system, sans-serif; letter-spacing: 1px; color: #000;">
+                            ${d.queueNum}
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Barcode: National ID (Full width, centered) -->
+                <div style="text-align: center; border-top: 1.5px solid #000; padding-top: 3px; margin-top: 2px;">
+                    <div style="font-size: 8px; font-weight: 900; line-height: 1; letter-spacing: 0.5px; margin-bottom: 2px;">رقم الهوية (NATIONAL ID)</div>
+                    <div id="prevIdBarcode">${d.idSvg}</div>
+                </div>
+            </div>
+        </div>
+        `;
+    }
+
+    function getEpsonPreviewHtml(d) {
+        if (!d) return '';
+        return `
+        <div style="padding: 10px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; display: flex; justify-content: center; max-height: 380px; overflow-y: auto;">
+            <div style="width: 290px; background: #ffffff; border: 1.5px dashed #94a3b8; border-radius: 8px; box-shadow: 0 4px 15px rgba(0,0,0,0.08); padding: 10px 8px; box-sizing: border-box;">
+                ${generateSingleEpsonRollBody(d)}
+            </div>
+        </div>
+        `;
+    }
+
+    window.currentPrintLabelMode = 'zebra';
+
+    function switchPrintLabelMode(newMode) {
+        window.currentPrintLabelMode = newMode;
+        const tabZebra = document.getElementById('tabModeZebra');
+        const tabEpson = document.getElementById('tabModeEpson');
+        const container = document.getElementById('printPreviewContainer');
+        const execBtn = document.getElementById('modalExecutePrintBtn');
+        const execText = document.getElementById('modalExecutePrintText');
+
+        if (tabZebra && tabEpson) {
+            if (newMode === 'epson') {
+                tabZebra.style.background = '#f1f5f9';
+                tabZebra.style.color = '#475569';
+                tabZebra.style.border = '1px solid #cbd5e1';
+                tabZebra.style.boxShadow = 'none';
+
+                tabEpson.style.background = '#0d9488';
+                tabEpson.style.color = 'white';
+                tabEpson.style.border = 'none';
+                tabEpson.style.boxShadow = '0 2px 6px rgba(13,148,136,0.35)';
+            } else {
+                tabEpson.style.background = '#f1f5f9';
+                tabEpson.style.color = '#475569';
+                tabEpson.style.border = '1px solid #cbd5e1';
+                tabEpson.style.boxShadow = 'none';
+
+                tabZebra.style.background = '#0284c7';
+                tabZebra.style.color = 'white';
+                tabZebra.style.border = 'none';
+                tabZebra.style.boxShadow = '0 2px 6px rgba(2,132,199,0.35)';
+            }
+        }
+
+        if (container && window.currentPrintLabelData) {
+            container.innerHTML = (newMode === 'epson') 
+                ? getEpsonPreviewHtml(window.currentPrintLabelData) 
+                : getZebraPreviewHtml(window.currentPrintLabelData);
+        }
+
+        if (execBtn && execText) {
+            if (newMode === 'epson') {
+                execBtn.style.background = 'linear-gradient(135deg, #0d9488, #0f766e)';
+                execBtn.style.boxShadow = '0 4px 15px rgba(13,148,136,0.35)';
+                execText.textContent = '🧾 طباعة رول إبسون الآن (Epson 80mm)';
+            } else {
+                execBtn.style.background = 'linear-gradient(135deg, #059669, #10b981)';
+                execBtn.style.boxShadow = '0 4px 15px rgba(16,185,129,0.35)';
+                execText.textContent = '🖨️ طباعة ليبل زيبرا الآن (Zebra 3x2)';
+            }
+        }
+    }
+
+    function executeCurrentPrintLabel() {
+        if (window.currentPrintLabelMode === 'epson') {
+            executePrintEpsonRollLabel();
+        } else {
+            executePrintThermalLabel();
+        }
+    }
+
+    function openPrintLabelModal(target, initialMode) {
         let p = null;
         if (typeof target === 'object' && target !== null) {
             p = target;
@@ -10873,6 +11130,9 @@ SMART IMPORT SYSTEM (Dr. Mo Edition)
             return;
         }
 
+        const mode = initialMode || window.currentPrintLabelMode || 'zebra';
+        window.currentPrintLabelMode = mode;
+
         const queueNum = (p.queueNumber !== undefined && p.queueNumber !== null && p.queueNumber !== '') ? p.queueNumber : '---';
         const patientName = p.patientName || 'بدون اسم';
         const nationalId = String(p.nationalId || '').trim();
@@ -10881,9 +11141,9 @@ SMART IMPORT SYSTEM (Dr. Mo Edition)
 
         const defaultPharmName = (currentUser && (currentUser.pharmacy_name || currentUser.pharmacy_code)) 
             ? (currentUser.pharmacy_name || ('صيدلية ' + currentUser.pharmacy_code)) 
-            : 'صيدلية الدواء';
+            : (localStorage.getItem('mono_pharmacy_name') || 'صيدلية الدواء');
         const pharmacyName = defaultPharmName;
-        const pharmacyPhone = '03-5322900';
+        const pharmacyPhone = localStorage.getItem('mono_pharmacy_phone') || '03-5322900';
 
         const now = new Date();
         const dNum = String(now.getDate()).padStart(2, '0');
@@ -10905,7 +11165,8 @@ SMART IMPORT SYSTEM (Dr. Mo Edition)
             pharmacyPhone,
             dateStr,
             queueSvg,
-            idSvg
+            idSvg,
+            drugs: p.drugs || []
         };
 
         const modalContent = `
@@ -10916,77 +11177,39 @@ SMART IMPORT SYSTEM (Dr. Mo Edition)
                     </h3>
                 </div>
 
-                <!-- Thermal Label 3x2 Preview -->
-                <div class="thermal-label-preview-wrapper" style="padding: 10px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px;">
-                    <div id="thermalLabelPreview" class="thermal-label-preview">
-                        
-                        <!-- Header: Pharmacy & Date -->
-                        <div style="display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 1.5px solid #000; padding-bottom: 2px;">
-                            <div style="text-align: right; line-height: 1.1;">
-                                <div id="prevPharmName" style="font-weight: 900; font-size: 11px; color: #000;">${pharmacyName}</div>
-                                <div id="prevPharmPhone" style="font-size: 8px; font-weight: bold; color: #333;">هاتف: <span dir="ltr">${pharmacyPhone}</span></div>
-                            </div>
-                            <div style="text-align: left; font-size: 8px; font-weight: bold; color: #000; line-height: 1.1;" dir="ltr">
-                                ${dateStr}
-                            </div>
-                        </div>
+                <!-- Mode Switcher Tabs: Zebra Label vs Epson Roll -->
+                <div style="display: flex; justify-content: center; gap: 8px; margin-bottom: 12px;">
+                    <button type="button" id="tabModeZebra" onclick="switchPrintLabelMode('zebra')"
+                            style="padding: 7px 16px; border-radius: 20px; font-size: 12px; font-weight: 800; cursor: pointer; transition: all 0.2s; ${mode === 'zebra' ? 'background: #0284c7; color: white; border: none; box-shadow: 0 2px 6px rgba(2,132,199,0.35);' : 'background: #f1f5f9; color: #475569; border: 1px solid #cbd5e1;'}">
+                        🏷️ ليبل زيبرا (3×2 بوصة)
+                    </button>
+                    <button type="button" id="tabModeEpson" onclick="switchPrintLabelMode('epson')"
+                            style="padding: 7px 16px; border-radius: 20px; font-size: 12px; font-weight: 800; cursor: pointer; transition: all 0.2s; ${mode === 'epson' ? 'background: #0d9488; color: white; border: none; box-shadow: 0 2px 6px rgba(13,148,136,0.35);' : 'background: #f1f5f9; color: #475569; border: 1px solid #cbd5e1;'}">
+                        🧾 رول إبسون حراري (Epson 80mm)
+                    </button>
+                </div>
 
-                        <!-- Patient Info & Mobile & Rx (Compact Row) -->
-                        <div style="display: flex; justify-content: space-between; align-items: center; padding: 2px 0; border-bottom: 1px dashed #aaa;">
-                            <div style="font-size: 10.5px; font-weight: 900; color: #000; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 45%;">
-                                👤 ${patientName}
-                            </div>
-                            ${phoneNumber ? `
-                            <div style="font-size: 10px; font-weight: 900; color: #000; white-space: nowrap;" dir="ltr">
-                                📱 ${phoneNumber}
-                            </div>
-                            ` : ''}
-                            ${rxNumbers ? `
-                            <div style="font-size: 9px; font-weight: bold; color: #222; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" dir="ltr">
-                                Rx: ${rxNumbers}
-                            </div>
-                            ` : ''}
-                        </div>
-
-                        <!-- Middle Row: Big Queue Number in Center + Queue Barcode on Side -->
-                        <div style="display: flex; align-items: center; justify-content: space-between; padding: 2px 6px; margin: 3px 0;">
-                            <!-- Queue Barcode on Side (Left) -->
-                            <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; min-width: 85px;">
-                                ${queueSvg}
-                            </div>
-
-                            <!-- Big Bold Queue Number in Center -->
-                            <div style="flex: 1; text-align: center;">
-                                <div style="font-size: 54px; font-weight: 900; line-height: 1; font-family: Impact, 'Arial Black', -apple-system, sans-serif; letter-spacing: 1px; color: #000;">
-                                    ${queueNum}
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Barcode: National ID (Full width, centered) -->
-                        <div style="text-align: center; border-top: 1.5px solid #000; padding-top: 3px; margin-top: 2px;">
-                            <div style="font-size: 8px; font-weight: 900; line-height: 1; letter-spacing: 0.5px; margin-bottom: 2px;">رقم الهوية (NATIONAL ID)</div>
-                            <div id="prevIdBarcode">${idSvg}</div>
-                        </div>
-
-                    </div>
+                <!-- Dynamic Preview Container -->
+                <div id="printPreviewContainer">
+                    ${mode === 'epson' ? getEpsonPreviewHtml(window.currentPrintLabelData) : getZebraPreviewHtml(window.currentPrintLabelData)}
                 </div>
             </div>
         `;
 
+        const isEpson = (mode === 'epson');
         const actionsHtml = `
             <div style="display: flex; gap: 10px; width: 100%;">
                 <button class="btn-secondary" onclick="closeModal()" style="flex: 1; padding: 13px; font-size: 13px; font-weight: 800;">إلغاء</button>
-                <button class="btn-primary" onclick="executePrintThermalLabel()" 
-                        style="flex: 2.5; padding: 14px 20px; background: linear-gradient(135deg, #059669, #10b981); color: #ffffff; border: none; border-radius: 10px; font-weight: 900; font-size: 16px; display: inline-flex; align-items: center; justify-content: center; gap: 10px; box-shadow: 0 4px 15px rgba(16,185,129,0.35); cursor: pointer; transition: transform 0.1s, box-shadow 0.2s;">
-                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 6 2 18 2 18 9"></polyline><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path><rect x="6" y="14" width="12" height="8"></rect></svg>
-                    <span>🖨️ طباعة الآن (Print)</span>
+                <button id="modalExecutePrintBtn" class="btn-primary" onclick="executeCurrentPrintLabel()" 
+                        style="flex: 2.5; padding: 14px 20px; background: ${isEpson ? 'linear-gradient(135deg, #0d9488, #0f766e)' : 'linear-gradient(135deg, #059669, #10b981)'}; color: #ffffff; border: none; border-radius: 10px; font-weight: 900; font-size: 15px; display: inline-flex; align-items: center; justify-content: center; gap: 8px; box-shadow: 0 4px 15px ${isEpson ? 'rgba(13,148,136,0.35)' : 'rgba(16,185,129,0.35)'}; cursor: pointer; transition: transform 0.1s, box-shadow 0.2s;">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 6 2 18 2 18 9"></polyline><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path><rect x="6" y="14" width="12" height="8"></rect></svg>
+                    <span id="modalExecutePrintText">${isEpson ? '🧾 طباعة رول إبسون الآن (Epson 80mm)' : '🖨️ طباعة ليبل زيبرا الآن (Zebra 3x2)'}</span>
                 </button>
             </div>
         `;
 
         showModal(
-            '<span style="color: #0f172a; display: flex; align-items: center; gap: 6px; font-weight: 800;">🏷️ معاينة تيكت الطابور الحراري</span>',
+            '<span style="color: #0f172a; display: flex; align-items: center; gap: 6px; font-weight: 800;">🏷️ معاينة تيكت الطابور</span>',
             modalContent,
             actionsHtml
         );
@@ -10995,7 +11218,17 @@ SMART IMPORT SYSTEM (Dr. Mo Edition)
     function openPrintLabelModalFromHistory(historyId) {
         const item = dispensedQueueHistory.find(h => h.historyId === historyId);
         if (!item) return;
-        openPrintLabelModal(item);
+        openPrintLabelModal(item, 'zebra');
+    }
+
+    function openPrintEpsonRollModal(target) {
+        openPrintLabelModal(target, 'epson');
+    }
+
+    function openPrintEpsonRollModalFromHistory(historyId) {
+        const item = dispensedQueueHistory.find(h => h.historyId === historyId);
+        if (!item) return;
+        openPrintLabelModal(item, 'epson');
     }
 
     function updateLabelPharmacySettings() {
@@ -11095,6 +11328,79 @@ SMART IMPORT SYSTEM (Dr. Mo Edition)
         }, 250);
     }
 
+    // 🧾 تنفيذ طباعة رول إبسون الحراري (Epson TM-T20II 80mm Roll)
+    function executePrintEpsonRollLabel() {
+        if (!window.currentPrintLabelData) return;
+        const d = window.currentPrintLabelData;
+
+        let printFrame = document.getElementById('thermalPrintIframe');
+        if (!printFrame) {
+            printFrame = document.createElement('iframe');
+            printFrame.id = 'thermalPrintIframe';
+            printFrame.style.position = 'fixed';
+            printFrame.style.right = '0';
+            printFrame.style.bottom = '0';
+            printFrame.style.width = '0';
+            printFrame.style.height = '0';
+            printFrame.style.border = '0';
+            document.body.appendChild(printFrame);
+        }
+
+        const bodyHtml = generateSingleEpsonRollBody(d);
+
+        const rollHtml = `
+        <!DOCTYPE html>
+        <html lang="ar">
+        <head>
+            <meta charset="utf-8">
+            <title>Epson Roll #${d.queueNum}</title>
+            <style>
+                @page {
+                    size: 80mm auto;
+                    margin: 0;
+                }
+                * {
+                    box-sizing: border-box;
+                    margin: 0;
+                    padding: 0;
+                }
+                html, body {
+                    width: 80mm;
+                    margin: 0;
+                    padding: 0;
+                    background: #fff;
+                    color: #000;
+                    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+                    -webkit-print-color-adjust: exact;
+                    print-color-adjust: exact;
+                }
+                .epson-roll-ticket {
+                    width: 76mm;
+                    margin: 0 auto;
+                    padding: 4mm 3mm 10mm 3mm;
+                    box-sizing: border-box;
+                    text-align: center;
+                    overflow: hidden;
+                }
+            </style>
+        </head>
+        <body>
+            ${bodyHtml}
+        </body>
+        </html>
+        `;
+
+        const frameDoc = printFrame.contentWindow.document;
+        frameDoc.open();
+        frameDoc.write(rollHtml);
+        frameDoc.close();
+
+        setTimeout(() => {
+            printFrame.contentWindow.focus();
+            printFrame.contentWindow.print();
+        }, 250);
+    }
+
     // ========================================================
     // 🖨️ دوال التحديد المتعدد والطباعة المباشرة والجماعية للطابور
     // ========================================================
@@ -11141,9 +11447,17 @@ SMART IMPORT SYSTEM (Dr. Mo Edition)
         const countSpan = document.getElementById('selectedQueueCount');
         if (countSpan) countSpan.textContent = count;
 
+        const countSpanEpson = document.getElementById('selectedQueueCountEpson');
+        if (countSpanEpson) countSpanEpson.textContent = count;
+
         const btn = document.getElementById('btnPrintSelectedQueue');
         if (btn) {
             btn.style.display = count > 0 ? 'inline-flex' : 'none';
+        }
+
+        const btnEpson = document.getElementById('btnPrintSelectedQueueEpson');
+        if (btnEpson) {
+            btnEpson.style.display = count > 0 ? 'inline-flex' : 'none';
         }
 
         // تحديث حالة مربع تحديد الكل بناءً على العناصر المعروضة حالياً
@@ -11235,6 +11549,7 @@ SMART IMPORT SYSTEM (Dr. Mo Edition)
         }, 250);
     }
 
+    // طباعة جماعية ليبل زيبرا (3x2)
     function printSelectedQueueLabels() {
         if (!window.selectedQueuePatientIds) window.selectedQueuePatientIds = new Set();
 
@@ -11321,7 +11636,99 @@ SMART IMPORT SYSTEM (Dr. Mo Edition)
         frameDoc.write(fullDocumentHtml);
         frameDoc.close();
 
-        showToast(`🖨️ جاري إرسال ${selectedPatients.length} تيكت للطابعة...`);
+        showToast(`🖨️ جاري إرسال ${selectedPatients.length} تيكت لطابعة زيبرا...`);
+
+        setTimeout(() => {
+            printFrame.contentWindow.focus();
+            printFrame.contentWindow.print();
+        }, 300);
+    }
+
+    // 🧾 طباعة جماعية رول إبسون (Epson 80mm Roll)
+    function printSelectedQueueEpsonRoll() {
+        if (!window.selectedQueuePatientIds) window.selectedQueuePatientIds = new Set();
+
+        if (window.selectedQueuePatientIds.size === 0) {
+            showToast('⚠️ يرجى تحديد تيكت واحد على الأقل للطباعة');
+            return;
+        }
+
+        const selectedPatients = dispensingQueue.filter(p => window.selectedQueuePatientIds.has(String(p.id)));
+
+        if (selectedPatients.length === 0) {
+            showToast('⚠️ لم يتم العثور على بيانات العناصر المحددة');
+            return;
+        }
+
+        let printFrame = document.getElementById('thermalPrintIframe');
+        if (!printFrame) {
+            printFrame = document.createElement('iframe');
+            printFrame.id = 'thermalPrintIframe';
+            printFrame.style.position = 'fixed';
+            printFrame.style.right = '0';
+            printFrame.style.bottom = '0';
+            printFrame.style.width = '0';
+            printFrame.style.height = '0';
+            printFrame.style.border = '0';
+            document.body.appendChild(printFrame);
+        }
+
+        const labelsHtml = selectedPatients.map(p => generateSingleEpsonRollBody(p)).join('\n');
+
+        const fullDocumentHtml = `
+        <!DOCTYPE html>
+        <html lang="ar">
+        <head>
+            <meta charset="utf-8">
+            <title>طباعة رول إبسون (${selectedPatients.length})</title>
+            <style>
+                @page {
+                    size: 80mm auto;
+                    margin: 0;
+                }
+                * {
+                    box-sizing: border-box;
+                    margin: 0;
+                    padding: 0;
+                }
+                html, body {
+                    width: 80mm;
+                    margin: 0;
+                    padding: 0;
+                    background: #fff;
+                    color: #000;
+                    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+                    -webkit-print-color-adjust: exact;
+                    print-color-adjust: exact;
+                }
+                .epson-roll-ticket {
+                    width: 76mm;
+                    margin: 0 auto;
+                    padding: 4mm 3mm 10mm 3mm;
+                    box-sizing: border-box;
+                    text-align: center;
+                    page-break-after: always;
+                    break-after: page;
+                    overflow: hidden;
+                }
+                .epson-roll-ticket:last-child {
+                    page-break-after: auto;
+                    break-after: auto;
+                }
+            </style>
+        </head>
+        <body>
+            ${labelsHtml}
+        </body>
+        </html>
+        `;
+
+        const frameDoc = printFrame.contentWindow.document;
+        frameDoc.open();
+        frameDoc.write(fullDocumentHtml);
+        frameDoc.close();
+
+        showToast(`🧾 جاري إرسال ${selectedPatients.length} تيكت لرول إبسون...`);
 
         setTimeout(() => {
             printFrame.contentWindow.focus();
@@ -11339,14 +11746,23 @@ SMART IMPORT SYSTEM (Dr. Mo Edition)
     window.clearAllQueueHistory = clearAllQueueHistory;
     window.openPrintLabelModal = openPrintLabelModal;
     window.openPrintLabelModalFromHistory = openPrintLabelModalFromHistory;
+    window.openPrintEpsonRollModal = openPrintEpsonRollModal;
+    window.openPrintEpsonRollModalFromHistory = openPrintEpsonRollModalFromHistory;
     window.updateLabelPharmacySettings = updateLabelPharmacySettings;
     window.executePrintThermalLabel = executePrintThermalLabel;
+    window.executePrintEpsonRollLabel = executePrintEpsonRollLabel;
+    window.executeCurrentPrintLabel = executeCurrentPrintLabel;
+    window.switchPrintLabelMode = switchPrintLabelMode;
     window.directPrintThermalLabel = directPrintThermalLabel;
     window.generateSingleThermalLabelBody = generateSingleThermalLabelBody;
+    window.generateSingleEpsonRollBody = generateSingleEpsonRollBody;
+    window.getZebraPreviewHtml = getZebraPreviewHtml;
+    window.getEpsonPreviewHtml = getEpsonPreviewHtml;
     window.toggleQueueItemSelection = toggleQueueItemSelection;
     window.toggleSelectAllQueue = toggleSelectAllQueue;
     window.updateQueueSelectionCount = updateQueueSelectionCount;
     window.printSelectedQueueLabels = printSelectedQueueLabels;
+    window.printSelectedQueueEpsonRoll = printSelectedQueueEpsonRoll;
     window.generateCode128Svg = generateCode128Svg;
     window.loadDispensedQueueHistory = loadDispensedQueueHistory;
     window.recordQueueHistoryItem = recordQueueHistoryItem;
