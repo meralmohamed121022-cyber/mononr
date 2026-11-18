@@ -527,6 +527,21 @@
             position: relative;
         }
 
+        .modal-box.modal-quick-add {
+            max-width: 480px;
+            width: 95%;
+            padding: 18px 22px;
+            border-radius: 18px;
+            max-height: 95vh;
+            overflow: visible;
+            box-shadow: 0 15px 50px rgba(0,0,0,0.25);
+        }
+        @media (max-height: 720px) {
+            .modal-box.modal-quick-add {
+                padding: 14px 18px;
+            }
+        }
+        
         .modal-box.modal-print-wide {
             max-width: 860px;
             width: 95%;
@@ -537,7 +552,22 @@
         }
 
         @media (max-width: 768px) {
-            .modal-box.modal-print-wide {
+            .modal-box.modal-quick-add {
+            max-width: 480px;
+            width: 95%;
+            padding: 18px 22px;
+            border-radius: 18px;
+            max-height: 95vh;
+            overflow: visible;
+            box-shadow: 0 15px 50px rgba(0,0,0,0.25);
+        }
+        @media (max-height: 720px) {
+            .modal-box.modal-quick-add {
+                padding: 14px 18px;
+            }
+        }
+        
+        .modal-box.modal-print-wide {
                 width: 98%;
                 padding: 14px;
                 margin-top: 0;
@@ -3180,8 +3210,11 @@
             }
         }
 
+        /* .modal-actions display rule cleaned to allow proper button rendering */
         .modal-actions {
-            display: none !important;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
         }
 
         .btn-icon-small {
@@ -5926,8 +5959,18 @@
     }
     async function savePatientToSupabase(patient) {
         try {
+            if ((!currentUser || !currentUser.id) && typeof localStorage !== 'undefined') {
+                const storedUser = localStorage.getItem('monoCurrentUser');
+                if (storedUser) {
+                    try {
+                        currentUser = JSON.parse(storedUser);
+                        window.currentUser = currentUser;
+                    } catch (e) {}
+                }
+            }
+            const activePharmId = (currentUser && currentUser.id) ? currentUser.id : (window.currentUser ? window.currentUser.id : null);
             const patientData = {
-                pharmacy_id: currentUser.id,
+                pharmacy_id: activePharmId,
                 national_id: patient.nationalId || null,
                 scanner_code: patient.scannerCode || null,
                 patient_name: patient.patientName || patient.patient_name || '',
@@ -9243,7 +9286,7 @@ SMART IMPORT SYSTEM (Dr. Mo Edition)
                     <span style="font-size: 11px; font-weight: bold; color: #2E7D32;">❄️ Fridge</span>
                 </label>
 
-                <button onclick="addToQueue('${String(p.id)}')" 
+                <button onclick="addToQueue('${String(p.id)}', event)" 
                         style="background:${isBlocked ? '#e74c3c' : 'var(--secondary)'}; color:white; border:none; padding:8px 15px; border-radius:8px; cursor:pointer; font-size:11px; font-weight:bold; box-shadow: 0 4px 10px rgba(0,184,148,0.2);">
                     Add to Queue
                 </button>
@@ -9311,10 +9354,11 @@ SMART IMPORT SYSTEM (Dr. Mo Edition)
             showToast('❌ Failed to save phone');
         }
     }
-    async function addToQueue(patientId) {
+    async function addToQueue(patientId, ev) {
         const pId = String(patientId);
-        // تحديد الزرار اللي انضغط لتغيير حالته
-        const btn = event.target.closest('button');
+        // تحديد الزرار بأمان ليعمل في فايرفوكس وكروم وجميع المتصفحات
+        const clickEvent = ev || (typeof event !== 'undefined' ? event : null);
+        const btn = (clickEvent && clickEvent.target) ? clickEvent.target.closest('button') : null;
         const nameInput = document.getElementById(`name-input-${pId}`);
         const fridgeCheck = document.getElementById(`fridge-check-${pId}`);
         const newName = nameInput ? nameInput.value.trim() : '';
@@ -11322,10 +11366,17 @@ SMART IMPORT SYSTEM (Dr. Mo Edition)
             printFrame.style.position = 'fixed';
             printFrame.style.right = '0';
             printFrame.style.bottom = '0';
-            printFrame.style.width = '0';
-            printFrame.style.height = '0';
+            printFrame.style.width = '1px';
+            printFrame.style.height = '1px';
+            printFrame.style.opacity = '0.01';
+            printFrame.style.pointerEvents = 'none';
             printFrame.style.border = '0';
             document.body.appendChild(printFrame);
+        } else {
+            printFrame.style.width = '1px';
+            printFrame.style.height = '1px';
+            printFrame.style.opacity = '0.01';
+            printFrame.style.pointerEvents = 'none';
         }
 
         const bodyHtml = generateSingleThermalLabelBody(d);
@@ -11398,10 +11449,17 @@ SMART IMPORT SYSTEM (Dr. Mo Edition)
             printFrame.style.position = 'fixed';
             printFrame.style.right = '0';
             printFrame.style.bottom = '0';
-            printFrame.style.width = '0';
-            printFrame.style.height = '0';
+            printFrame.style.width = '1px';
+            printFrame.style.height = '1px';
+            printFrame.style.opacity = '0.01';
+            printFrame.style.pointerEvents = 'none';
             printFrame.style.border = '0';
             document.body.appendChild(printFrame);
+        } else {
+            printFrame.style.width = '1px';
+            printFrame.style.height = '1px';
+            printFrame.style.opacity = '0.01';
+            printFrame.style.pointerEvents = 'none';
         }
 
         const bodyHtml = generateSingleEpsonRollBody(d);
@@ -11542,10 +11600,17 @@ SMART IMPORT SYSTEM (Dr. Mo Edition)
             printFrame.style.position = 'fixed';
             printFrame.style.right = '0';
             printFrame.style.bottom = '0';
-            printFrame.style.width = '0';
-            printFrame.style.height = '0';
+            printFrame.style.width = '1px';
+            printFrame.style.height = '1px';
+            printFrame.style.opacity = '0.01';
+            printFrame.style.pointerEvents = 'none';
             printFrame.style.border = '0';
             document.body.appendChild(printFrame);
+        } else {
+            printFrame.style.width = '1px';
+            printFrame.style.height = '1px';
+            printFrame.style.opacity = '0.01';
+            printFrame.style.pointerEvents = 'none';
         }
 
         const bodyHtml = generateSingleThermalLabelBody(patientData);
@@ -11631,10 +11696,17 @@ SMART IMPORT SYSTEM (Dr. Mo Edition)
             printFrame.style.position = 'fixed';
             printFrame.style.right = '0';
             printFrame.style.bottom = '0';
-            printFrame.style.width = '0';
-            printFrame.style.height = '0';
+            printFrame.style.width = '1px';
+            printFrame.style.height = '1px';
+            printFrame.style.opacity = '0.01';
+            printFrame.style.pointerEvents = 'none';
             printFrame.style.border = '0';
             document.body.appendChild(printFrame);
+        } else {
+            printFrame.style.width = '1px';
+            printFrame.style.height = '1px';
+            printFrame.style.opacity = '0.01';
+            printFrame.style.pointerEvents = 'none';
         }
 
         const labelsHtml = selectedPatients.map(p => generateSingleThermalLabelBody(p)).join('\n');
@@ -11725,10 +11797,17 @@ SMART IMPORT SYSTEM (Dr. Mo Edition)
             printFrame.style.position = 'fixed';
             printFrame.style.right = '0';
             printFrame.style.bottom = '0';
-            printFrame.style.width = '0';
-            printFrame.style.height = '0';
+            printFrame.style.width = '1px';
+            printFrame.style.height = '1px';
+            printFrame.style.opacity = '0.01';
+            printFrame.style.pointerEvents = 'none';
             printFrame.style.border = '0';
             document.body.appendChild(printFrame);
+        } else {
+            printFrame.style.width = '1px';
+            printFrame.style.height = '1px';
+            printFrame.style.opacity = '0.01';
+            printFrame.style.pointerEvents = 'none';
         }
 
         const labelsHtml = selectedPatients.map(p => generateSingleEpsonRollBody(p)).join('\n');
@@ -11811,8 +11890,8 @@ SMART IMPORT SYSTEM (Dr. Mo Edition)
     window.updateLabelPharmacySettings = updateLabelPharmacySettings;
     window.executePrintThermalLabel = executePrintThermalLabel;
     window.executePrintEpsonRollLabel = executePrintEpsonRollLabel;
-    window.executeCurrentPrintLabel = executeCurrentPrintLabel;
-    window.switchPrintLabelMode = switchPrintLabelMode;
+    window.executeCurrentPrintLabel = executeCurrentSelectedPrinter;
+    window.switchPrintLabelMode = selectActivePrinter;
     window.directPrintThermalLabel = directPrintThermalLabel;
     window.generateSingleThermalLabelBody = generateSingleThermalLabelBody;
     window.generateSingleEpsonRollBody = generateSingleEpsonRollBody;
@@ -13013,88 +13092,144 @@ SMART IMPORT SYSTEM (Dr. Mo Edition)
         }
     }
     async function quickAddAndQueue(newId) {
-        // 1. التقاط حالة الثلاجة من Checkbox البحث قبل إخفاء النتائج لضمان المزامنة
+        window.currentQuickAddId = String(newId || '').trim();
+
+        // 1. Capture Fridge status from search checkbox
         const quickFridgeCheck = document.getElementById('quick-fridge-check');
         const isFridgeInit = quickFridgeCheck ? quickFridgeCheck.checked : false;
 
-        // 2. إخفاء نتائج البحث فوراً
+        // 2. Hide search dropdown immediately
         const dropdown = document.getElementById('dispenseSearchResults');
         if (dropdown) dropdown.style.display = 'none';
 
-        // 3. فتح المودال مع واجهة الإضافة السريعة
-        const isNewIdBlocked = isBlockedNationalId(newId);
+        // 3. Check if ID is blocked
+        const isNewIdBlocked = (typeof isBlockedNationalId === 'function') ? isBlockedNationalId(window.currentQuickAddId) : false;
+
+        // 4. Open compact modal with explicit onclick on button and zero-scroll layout
         showModal(
-            `<span style="color: ${isNewIdBlocked ? '#d63031' : 'var(--primary)'};">⚡ Quick Add to Queue ${isNewIdBlocked ? '(🚫 محظور)' : ''}</span>`,
+            `<div style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
+                <span style="color: ${isNewIdBlocked ? '#d63031' : 'var(--primary)'}; font-size: 16px; font-weight: 800;">
+                    ⚡ Quick Add to Queue ${isNewIdBlocked ? '(🚫 BLOCKED)' : ''}
+                </span>
+                <span style="background: ${isNewIdBlocked ? '#ffebee' : '#e3f2fd'}; color: ${isNewIdBlocked ? '#b71c1c' : '#0d47a1'}; padding: 4px 10px; border-radius: 8px; font-weight: 800; font-family: monospace; font-size: 13px;">
+                    ID: ${window.currentQuickAddId}
+                </span>
+            </div>`,
             `
-        <div style="padding: 5px;" dir="auto">
+        <div style="display: flex; flex-direction: column; gap: 12px; margin: 0; padding: 4px 0;">
             ${isNewIdBlocked ? `
-            <div style="background: #ffebee; border: 1.5px solid #ef5350; border-radius: 10px; padding: 10px; margin-bottom: 15px; color: #c62828; text-align: center; font-weight: bold; font-size: 13px;" dir="auto">
-                🚫 تنبيه: هذا الرقم محظور! (العميل رافض الصرف من الفرع بتاعنا)
+            <div style="background: #ffebee; border: 1.5px solid #ef5350; border-radius: 8px; padding: 8px 12px; color: #c62828; text-align: center; font-weight: bold; font-size: 12px;">
+                🚫 WARNING: This National ID is blocked!
             </div>
             ` : ''}
-            <div style="background: ${isNewIdBlocked ? '#ffebee' : '#e3f2fd'}; padding: 12px; border-radius: 12px; margin-bottom: 15px; text-align: center; border: 1px solid ${isNewIdBlocked ? '#ffcdd2' : '#bbdefb'};">
-                <span style="font-size: 14px; color: ${isNewIdBlocked ? '#b71c1c' : '#0d47a1'}; font-weight: 800; font-family: monospace;">ID: ${newId}</span>
-            </div>
-            
-            <div class="form-group">
-                <label class="form-label">Patient Name (Required)</label>
-                <input type="text" id="quickName" class="form-input" placeholder="Enter Full Name" style="border: 2px solid var(--primary);">
+
+            <!-- 1. Patient Name -->
+            <div>
+                <label style="display: block; font-weight: 800; font-size: 13px; color: #2d3748; margin-bottom: 5px;">
+                    Patient Name <span style="color: #e53e3e;">*</span>
+                </label>
+                <input type="text" id="quickName" class="form-input" placeholder="Enter Full Patient Name..." required
+                       style="width: 100%; border: 2px solid var(--primary); padding: 10px 12px; font-size: 14px; border-radius: 8px; box-sizing: border-box;"
+                       onkeydown="if(event.key === 'Enter'){ event.preventDefault(); window.executeQuickAdd(); }">
             </div>
 
-            <div class="form-group">
-                <label class="form-label">Phone Number (Optional)</label>
-                <input type="text" id="quickPhone" class="form-input" placeholder="05xxxxxxxx" maxlength="10">
+            <!-- 2. Phone Number & Prescription Number Side by Side -->
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                <div>
+                    <label style="display: block; font-weight: 700; font-size: 12px; color: #4a5568; margin-bottom: 4px;">
+                        Phone Number (Optional)
+                    </label>
+                    <input type="text" id="quickPhone" class="form-input" placeholder="05xxxxxxxx" maxlength="10"
+                           style="width: 100%; padding: 9px 10px; font-size: 13px; border-radius: 8px; box-sizing: border-box;"
+                           onkeydown="if(event.key === 'Enter'){ event.preventDefault(); window.executeQuickAdd(); }">
+                </div>
+                <div>
+                    <label style="display: block; font-weight: 700; font-size: 12px; color: #4a5568; margin-bottom: 4px;">
+                        Prescription Rx (Optional)
+                    </label>
+                    <input type="text" id="quickRx" class="form-input" placeholder="a1234567" maxlength="8"
+                           style="width: 100%; padding: 9px 10px; font-size: 13px; font-family: monospace; font-weight: bold; text-transform: lowercase; border-radius: 8px; box-sizing: border-box;"
+                           onkeydown="if(event.key === 'Enter'){ event.preventDefault(); window.executeQuickAdd(); }">
+                </div>
             </div>
 
-            <div style="margin-bottom: 20px;">
-                <label style="display: flex; align-items: center; gap: 10px; cursor: pointer; background: #E8F5E9; padding: 12px; border-radius: 12px; border: 1px solid #c8e6c9; transition: 0.2s;" onmouseover="this.style.background='#c8e6c9'" onmouseout="this.style.background='#E8F5E9'">
-                    <input type="checkbox" id="modal-quick-fridge" ${isFridgeInit ? 'checked' : ''} style="width: 20px; height: 20px; cursor: pointer;">
+            <!-- 3. Fridge Rx Checkbox -->
+            <div>
+                <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; background: #E8F5E9; padding: 8px 12px; border-radius: 8px; border: 1px solid #c8e6c9; user-select: none;">
+                    <input type="checkbox" id="modal-quick-fridge" ${isFridgeInit ? 'checked' : ''} style="width: 18px; height: 18px; cursor: pointer;">
                     <span style="font-size: 13px; font-weight: 800; color: #2E7D32;">❄️ Fridge RX (أدوية ثلاجة)</span>
                 </label>
             </div>
 
-            <div class="form-group">
-                <label class="form-label">Prescription Number (Optional)</label>
-                <input type="text" id="quickRx" class="form-input" placeholder="a1234567" maxlength="8" style="text-transform: lowercase; font-family: monospace; font-weight: bold;">
-            </div>
-            
-            <div style="background: #fff9e6; padding: 12px; border-radius: 10px; font-size: 11px; color: #7d5a00; border-left: 5px solid #ffc107; line-height: 1.4;">
-                <strong>Note:</strong> Name is mandatory to create a record. <br>Phone and Rx can be updated later from the queue list.
+            <!-- 4. Action Buttons (Explicit onclick, 100% English) -->
+            <div style="display: grid; grid-template-columns: 1fr 2fr; gap: 10px; margin-top: 4px;">
+                <button type="button" class="btn-secondary" onclick="closeModal()" 
+                        style="margin: 0; padding: 11px; font-weight: 700; border-radius: 8px; cursor: pointer; font-size: 14px;">
+                    CANCEL
+                </button>
+                <button type="button" id="executeQuickAddBtn" onclick="window.executeQuickAdd()" class="btn-primary" 
+                        style="margin: 0; padding: 11px; font-weight: 800; border-radius: 8px; cursor: pointer; font-size: 14px; background: #007bff; display: flex; align-items: center; justify-content: center; gap: 6px;">
+                    <span id="quickAddBtnText">CONFIRM & ADD</span>
+                    <span id="quickAddBtnLoading" style="display:none;" class="loading"></span>
+                </button>
             </div>
         </div>
         `,
-            `
-        <button class="btn-secondary" onclick="closeModal()" style="margin:0;">CANCEL</button>
-        <button class="btn-primary" id="executeQuickAddBtn" onclick="window.executeQuickAdd('${newId}')" style="margin:0;">
-            <span id="quickAddBtnText">CONFIRM & ADD</span>
-            <span id="quickAddBtnLoading" style="display:none;" class="loading"></span>
-        </button>
-        `
+            "", // actions empty because buttons are directly in content
+            "modal-quick-add" // customClass ensures compact height and zero-scroll
         );
 
-        // فوكس تلقائي على خانة الاسم لتسريع العمل
+        // Immediate focus on name field
         setTimeout(() => {
             const nameInput = document.getElementById('quickName');
             if (nameInput) nameInput.focus();
-        }, 500);
+        }, 120);
     }
-    window.executeQuickAdd = async function (id) {
-        const name = document.getElementById('quickName').value.trim();
-        const phone = document.getElementById('quickPhone').value.trim();
-        const rx = document.getElementById('quickRx').value.trim().toLowerCase();
+    window.quickAddAndQueue = quickAddAndQueue;
+
+    window.executeQuickAdd = async function (idOverride) {
+        console.log("⚡ window.executeQuickAdd triggered! Override ID:", idOverride);
+        const id = String(idOverride || window.currentQuickAddId || document.getElementById('dispenseSearchInput')?.value || '').trim();
+        const nameInput = document.getElementById('quickName');
+        const phoneInput = document.getElementById('quickPhone');
+        const rxInput = document.getElementById('quickRx');
         const fridgeCheck = document.getElementById('modal-quick-fridge');
 
-        // ✅ تحديد اللون بناءً على اختيار الثلاجة
+        const name = nameInput ? nameInput.value.trim() : '';
+        const phone = phoneInput ? phoneInput.value.trim() : '';
+        const rx = rxInput ? rxInput.value.trim().toLowerCase() : '';
         const assignedColor = (fridgeCheck && fridgeCheck.checked) ? 'blue' : 'none';
+
+        if (!id) {
+            alert("⚠️ National ID is required");
+            return;
+        }
 
         if (!name) {
             alert("⚠️ Please enter patient name");
+            if (nameInput) nameInput.focus();
             return;
         }
 
         if (rx && !/^[a-z][0-9]{7}$/.test(rx)) {
-            alert("Invalid Rx format! (e.g., a1234567)");
+            alert("⚠️ Invalid Rx format! (e.g., a1234567)");
+            if (rxInput) rxInput.focus();
             return;
+        }
+
+        const btn = document.getElementById('executeQuickAddBtn');
+        const btnText = document.getElementById('quickAddBtnText');
+        const btnLoading = document.getElementById('quickAddBtnLoading');
+        const originalBtnHtml = btn ? btn.innerHTML : 'CONFIRM & ADD';
+
+        if (btn) {
+            btn.disabled = true;
+            if (btnText && btnLoading) {
+                btnText.textContent = 'SAVING...';
+                btnLoading.style.display = 'inline-block';
+            } else {
+                btn.innerHTML = '<span class="loading"></span> SAVING...';
+            }
         }
 
         try {
@@ -13102,8 +13237,9 @@ SMART IMPORT SYSTEM (Dr. Mo Edition)
             const nextRefill = new Date();
             nextRefill.setDate(nextRefill.getDate() + 24);
 
-            const nextQueueNum = dispensingQueue.length > 0
-                ? Math.max(...dispensingQueue.map(p => parseInt(p.queueNumber) || 0)) + 1
+            const qList = (typeof dispensingQueue !== 'undefined' && Array.isArray(dispensingQueue)) ? dispensingQueue : [];
+            const nextQueueNum = qList.length > 0
+                ? Math.max(...qList.map(p => parseInt(p.queueNumber) || 0)) + 1
                 : 1;
 
             const newPatient = {
@@ -13119,62 +13255,76 @@ SMART IMPORT SYSTEM (Dr. Mo Edition)
                 imported: false,
                 inQueue: true,
                 queueNumber: nextQueueNum,
-                cardColor: assignedColor // 🔥 اللون هنا سيتم حفظه في السيرفر
+                cardColor: assignedColor
             };
 
-            const btn = document.getElementById('executeQuickAddBtn');
-            if (btn) {
-                btn.innerHTML = '<span class="loading"></span> SAVING...';
-                btn.disabled = true;
-            }
+            // Force creation of a fresh record
+            editingPatientId = null;
+            window.isContinuingAdding = true;
 
-            // تحقق إذا كانت الهوية موجودة بالفعل في السيرفر لتفادي التكرار
-            const { data: existingPatient } = await supabaseClient
-                .from('patients')
-                .select('id')
-                .eq('national_id', id)
-                .single();
-
-            if (existingPatient) {
-                editingPatientId = existingPatient.id;
-                window.isContinuingAdding = false;
+            // Save to Supabase with 10s timeout protection
+            let newDbId;
+            if (typeof savePatientToSupabase === 'function') {
+                const timeoutPromise = new Promise((_, reject) => 
+                    setTimeout(() => reject(new Error('Network timeout: Supabase server took too long to respond. Check your connection or browser shields.')), 10000)
+                );
+                newDbId = await Promise.race([
+                    savePatientToSupabase(newPatient),
+                    timeoutPromise
+                ]);
             } else {
-                editingPatientId = null;
-                window.isContinuingAdding = true;
+                newDbId = 'local_' + Date.now();
             }
 
-            // الحفظ في سوبابيز
-            const newDbId = await savePatientToSupabase(newPatient);
             newPatient.id = newDbId;
             newPatient.realDbId = newDbId;
 
-            // لا نحتاج لعمل update لأن savePatientToSupabase يقوم بحفظ هذه البيانات مباشرة
-            // منع التكرار في القوائم المحلية
-            if (!patients.some(p => String(p.id) === String(newDbId))) {
-                patients.unshift(newPatient);
+            // Update in-memory lists
+            if (typeof patients !== 'undefined' && Array.isArray(patients)) {
+                if (!patients.some(p => String(p.id) === String(newDbId))) {
+                    patients.unshift(newPatient);
+                }
             }
-            if (!dispensingQueue.some(q => String(q.id) === String(newDbId))) {
-                dispensingQueue.push(newPatient);
+            if (typeof dispensingQueue !== 'undefined' && Array.isArray(dispensingQueue)) {
+                if (!dispensingQueue.some(q => String(q.id) === String(newDbId))) {
+                    dispensingQueue.push(newPatient);
+                }
+                dispensingQueue.sort((a, b) => (parseInt(a.queueNumber) || 0) - (parseInt(b.queueNumber) || 0));
             }
 
-            dispensingQueue.sort((a, b) => (parseInt(a.queueNumber) || 0) - (parseInt(b.queueNumber) || 0));
-
+            // Close modal & toast notification
             closeModal();
             showToast(`✅ Added #${nextQueueNum} ${assignedColor === 'blue' ? '(Fridge ❄️)' : ''}`);
 
-            updateStats();
-            displayPatients();
-            renderDispensingQueue(document.getElementById('queueFilterInput')?.value || '');
+            // Clear search field and dropdown
+            const searchInput = document.getElementById('dispenseSearchInput');
+            if (searchInput) searchInput.value = '';
+            const searchDropdown = document.getElementById('dispenseSearchResults');
+            if (searchDropdown) searchDropdown.style.display = 'none';
 
-            // 🔥 طباعة التيكت الحراري فوراً ومباشرة بدون شاشة معاينة
-            if (typeof directPrintThermalLabel === 'function') {
-                directPrintThermalLabel(newPatient);
+            // Refresh UI components
+            if (typeof updateStats === 'function') updateStats();
+            if (typeof displayPatients === 'function') displayPatients();
+            if (typeof renderDispensingQueue === 'function') {
+                renderDispensingQueue(document.getElementById('queueFilterInput')?.value || '');
+            }
+
+            // Trigger direct thermal print safely
+            try {
+                if (typeof directPrintThermalLabel === 'function') {
+                    directPrintThermalLabel(newPatient);
+                }
+            } catch (printErr) {
+                console.warn('Direct print error:', printErr);
             }
 
         } catch (err) {
             console.error('Quick Add Error:', err);
-            alert("Failed to add: " + err.message);
-            if (btn) { btn.disabled = false; btn.innerHTML = 'CONFIRM & ADD TO QUEUE'; }
+            alert("⚠️ Failed to add patient: " + (err.message || err));
+            if (btn) {
+                btn.disabled = false;
+                btn.innerHTML = originalBtnHtml;
+            }
         }
     };
 
