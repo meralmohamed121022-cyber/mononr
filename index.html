@@ -2341,6 +2341,51 @@
             /* ميلة بسيطة لشكل جمالي */
         }
 
+        /* كروت مستوردة نشطة مسبقاً (ALREADY ACTIVE) */
+        .patient-card.imported.imported-active {
+            background: linear-gradient(135deg, #f0f7ff 0%, #e1f0fa 100%) !important;
+            border: 2.5px solid #1976d2 !important;
+            box-shadow: 0 8px 24px rgba(25, 118, 210, 0.22) !important;
+        }
+        .patient-card.imported.imported-active::before {
+            background: linear-gradient(180deg, #1976d2, #0288d1) !important;
+            width: 8px !important;
+        }
+        .patient-card.imported.imported-active::after {
+            content: 'ALREADY ACTIVE';
+            color: rgba(25, 118, 210, 0.20) !important;
+        }
+
+        /* كروت مستوردة جديدة (BRAND NEW) */
+        .patient-card.imported.imported-new {
+            background: linear-gradient(135deg, #f1f8e9 0%, #dcedc8 100%) !important;
+            border: 2px solid #388e3c !important;
+            box-shadow: 0 8px 20px rgba(56, 142, 60, 0.2) !important;
+        }
+        .patient-card.imported.imported-new::before {
+            background: linear-gradient(180deg, #388e3c, #2e7d32) !important;
+            width: 8px !important;
+        }
+        .patient-card.imported.imported-new::after {
+            content: 'BRAND NEW';
+            color: rgba(56, 142, 60, 0.20) !important;
+        }
+
+        /* كروت مستوردة سحب حالة (PULL) */
+        .patient-card.imported.imported-pull {
+            background: linear-gradient(135deg, #FFF3E0 0%, #FFCC80 100%) !important;
+            border: 2px solid #EF6C00 !important;
+            box-shadow: 0 8px 20px rgba(239, 108, 0, 0.2) !important;
+        }
+        .patient-card.imported.imported-pull::before {
+            background: linear-gradient(180deg, #EF6C00, #E65100) !important;
+            width: 8px !important;
+        }
+        .patient-card.imported.imported-pull::after {
+            content: 'RESET / PULL';
+            color: rgba(230, 81, 0, 0.20) !important;
+        }
+
         /* ============================================ */
         /* QUICK NOTES STYLES */
         /* ============================================ */
@@ -6159,25 +6204,52 @@
 
                 if (targetIds.length === 0) return;
 
-                // 2. الحذف من قاعدة البيانات (Supabase)
-                const { error } = await supabaseClient
-                    .from('patients')
-                    .delete()
-                    .in('id', targetIds)
-                    .eq('pharmacy_id', currentUser.id);
+                // التمييز بأمان: الكروت التي كانت موجودة مسبقاً (Active/Pull) يُلغى استيرادها فقط، بينما الكروت الجديدة تماماً تُحذف
+                const existingTargets = [];
+                const brandNewTargets = [];
 
-                if (error) throw error;
+                targets.forEach(p => {
+                    const gNote = (p.generalNote || '').toUpperCase();
+                    const isExisting = p.importType === 'active' || p.importType === 'pull' || gNote.includes('ACTIVE') || gNote.includes('PULL') || gNote.includes('RE-IMPORTED') || (p.createdAt && p.importDate && (new Date(p.importDate) - new Date(p.createdAt) > 60000));
+                    if (isExisting) {
+                        existingTargets.push(p);
+                    } else {
+                        brandNewTargets.push(p);
+                    }
+                });
 
-                // 3. التحديث المحلي للمصفوفات
-                patients = patients.filter(p => p.importDate !== importTimestamp);
-                dispensingQueue = dispensingQueue.filter(p => !targetIds.includes(p.id));
+                // 2. الحذف أو فك الاستيراد من قاعدة البيانات (Supabase)
+                if (brandNewTargets.length > 0) {
+                    const newIds = brandNewTargets.map(p => p.id);
+                    const { error } = await supabaseClient
+                        .from('patients')
+                        .delete()
+                        .in('id', newIds)
+                        .eq('pharmacy_id', currentUser.id);
+                    if (error) throw error;
+                    patients = patients.filter(p => !newIds.includes(p.id));
+                    dispensingQueue = dispensingQueue.filter(p => !newIds.includes(p.id));
+                }
+
+                if (existingTargets.length > 0) {
+                    const exIds = existingTargets.map(p => p.id);
+                    const { error } = await supabaseClient
+                        .from('patients')
+                        .update({ imported: false })
+                        .in('id', exIds)
+                        .eq('pharmacy_id', currentUser.id);
+                    if (error) throw error;
+                    existingTargets.forEach(p => {
+                        p.imported = false;
+                    });
+                }
 
                 // 4. تحديث الواجهة والعدادات
                 updateStats();
                 displayPatients();
                 renderDispensingQueue();
 
-                showToast(`Deleted ${targetIds.length} cards successfully! 🗑️`);
+                showToast(`Deleted batch successfully! 🗑️`);
 
             } catch (error) {
                 console.error('Batch delete error:', error);
@@ -7041,12 +7113,33 @@
 
                 const batchBox = document.createElement('div');
                 batchBox.className = 'import-batch-container';
+
+                let actCount = 0;
+                let pullCount = 0;
+                let newCount = 0;
+                batchList.forEach(p => {
+                    const gNote = (p.generalNote || '').toUpperCase();
+                    if (p.importType === 'active' || gNote.includes('ACTIVE') || (p.createdAt && p.importDate && (new Date(p.importDate) - new Date(p.createdAt) > 60000))) {
+                        actCount++;
+                    } else if (p.importType === 'pull' || gNote.includes('PULL') || gNote.includes('RE-IMPORTED')) {
+                        pullCount++;
+                    } else {
+                        newCount++;
+                    }
+                });
+
+                let batchSummaryBadges = '';
+                if (actCount > 0) batchSummaryBadges += `<span style="background: #1565c0; color: white; padding: 3px 8px; border-radius: 6px; font-size: 10px; font-weight: 800;">⚡ ${actCount} Active</span>`;
+                if (pullCount > 0) batchSummaryBadges += `<span style="background: #e65100; color: white; padding: 3px 8px; border-radius: 6px; font-size: 10px; font-weight: 800;">🚚 ${pullCount} Pull</span>`;
+                if (newCount > 0) batchSummaryBadges += `<span style="background: #2e7d32; color: white; padding: 3px 8px; border-radius: 6px; font-size: 10px; font-weight: 800;">✨ ${newCount} New</span>`;
+
                 batchBox.innerHTML = `
                 <div class="import-batch-header">
                     <div>${displayHeader}</div>
-                    <div style="display:flex; gap:10px;">
-                        <span class="patient-badge" style="background:#00B894;">${batchList.length} Cards</span>
-                        <button onclick="deleteImportBatch('${dateKey}')" style="background:#ff7675; border:none; color:white; padding:2px 10px; border-radius:8px; cursor:pointer; font-size:10px; font-weight:bold;">DELETE BATCH</button>
+                    <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
+                        <span class="patient-badge" style="background:#00B894; font-weight:900;">${batchList.length} Cards</span>
+                        ${batchSummaryBadges}
+                        <button onclick="deleteImportBatch('${dateKey}')" style="background:#ff7675; border:none; color:white; padding:4px 10px; border-radius:8px; cursor:pointer; font-size:10px; font-weight:bold;">DELETE BATCH</button>
                     </div>
                 </div>
                 <div class="import-batch-grid"></div>
@@ -7217,7 +7310,47 @@
 
         let status = getRefillStatus(patient.nextRefillDate);
         if (status) card.classList.add(status);
-        if (patient.imported) card.classList.add('imported');
+
+        let isImportedActive = false;
+        let isImportedNew = false;
+        let isImportedPull = false;
+        let importBadgeHtml = '';
+
+        if (patient.imported) {
+            card.classList.add('imported');
+            const gNote = (patient.generalNote || '').toUpperCase();
+            if (patient.importType === 'active' || gNote.includes('ACTIVE') || (patient.createdAt && patient.importDate && (new Date(patient.importDate) - new Date(patient.createdAt) > 60000))) {
+                isImportedActive = true;
+                card.classList.add('imported-active');
+                importBadgeHtml = `
+                    <span class="import-badge-pill import-badge-active" 
+                          style="background: linear-gradient(135deg, #1565c0, #0d47a1); color: #fff; padding: 3px 8px; border-radius: 6px; font-size: 10px; font-weight: 900; letter-spacing: 0.3px; display: inline-flex; align-items: center; gap: 4px; box-shadow: 0 2px 6px rgba(21, 101, 192, 0.35); border: 1px solid #1e88e5;"
+                          title="هذا الكارت مسجل مسبقاً في النظام وكان نشطاً (Active)">
+                        <span style="font-size: 11px;">⚡</span> ACTIVE (مسجل مسبقاً)
+                    </span>
+                `;
+            } else if (patient.importType === 'pull' || gNote.includes('PULL') || gNote.includes('RE-IMPORTED')) {
+                isImportedPull = true;
+                card.classList.add('imported-pull');
+                importBadgeHtml = `
+                    <span class="import-badge-pill import-badge-pull" 
+                          style="background: linear-gradient(135deg, #e65100, #bf360c); color: #fff; padding: 3px 8px; border-radius: 6px; font-size: 10px; font-weight: 900; letter-spacing: 0.3px; display: inline-flex; align-items: center; gap: 4px; box-shadow: 0 2px 6px rgba(230, 81, 0, 0.35); border: 1px solid #f57c00;"
+                          title="تم سحب هذا الكارت وتجديده">
+                        <span style="font-size: 11px;">🚚</span> PULL (سحب حالة)
+                    </span>
+                `;
+            } else {
+                isImportedNew = true;
+                card.classList.add('imported-new');
+                importBadgeHtml = `
+                    <span class="import-badge-pill import-badge-new" 
+                          style="background: linear-gradient(135deg, #2e7d32, #1b5e20); color: #fff; padding: 3px 8px; border-radius: 6px; font-size: 10px; font-weight: 900; letter-spacing: 0.3px; display: inline-flex; align-items: center; gap: 4px; box-shadow: 0 2px 6px rgba(46, 125, 50, 0.35); border: 1px solid #43a047;"
+                          title="وصفة / مريض جديد تماماً">
+                        <span style="font-size: 11px;">✨</span> NEW (جديد)
+                    </span>
+                `;
+            }
+        }
 
         let badgeText = isBlocked ? 'BLOCKED' : (status === 'today' ? 'DUE TODAY' :
             status === 'overdue' ? 'OVERDUE' :
@@ -7249,7 +7382,8 @@
         const processNotes = (note) => {
             if (!note) return '';
             let badgesHtml = '<div style="display:flex; flex-wrap:wrap; gap:5px; margin-top:5px;">';
-            let parts = note.split(',').map(s => s.trim()).filter(s => s.length > 0);
+            let parts = note.split(',').map(s => s.trim()).filter(s => s.length > 0 && !['ACTIVE', 'NEW', 'PULL', 'AUTO-IMPORTED', 'RE-IMPORTED'].includes(s.toUpperCase()));
+            if (parts.length === 0) return '<div style="font-size:10px; color:#aaa; margin-top:4px;">No notes yet</div>';
             const tagsMap = {
                 'VIP': { class: 'badge-vip' }, 'NEED NEW RX NO': { class: 'badge-need-rx' },
                 'SENSOR': { class: 'badge-sensor' }, 'INSULIN': { class: 'badge-insulin' },
@@ -7414,11 +7548,12 @@
     <div class="patient-header" style="border-bottom: none; margin-bottom: 0; padding-bottom: 0;">
         <div style="display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; width: 100%;">
             <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap; flex: 1;">
-                <div class="patient-id" style="margin-bottom: 0; ${isBlocked ? 'color: #d63031;' : ''}">${hl_nationalId}</div>
+                <div class="patient-id" style="margin-bottom: 0; ${isBlocked ? 'color: #d63031;' : ''} ${isImportedActive ? 'font-weight: 900; color: #0d47a1;' : ''}">${hl_nationalId}</div>
                 <button class="btn-check-inline" onclick="checkHistory('${patient.id}'); event.stopPropagation();" title="Check History">
                     <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
                     CHECK
                 </button>
+                ${importBadgeHtml}
                 
                 ${patient.scannerCode ? `
                 <a href="https://ul.wasfaty.sa/${patient.scannerCode}" target="_blank" onclick="event.stopPropagation();" 
@@ -8547,7 +8682,20 @@ SMART IMPORT SYSTEM (Dr. Mo Edition)
                     // المجموعة 3: موجود وأكتيف (ACTIVE)
                     if (!alreadyActive.some(a => a.nationalId === detectedId && a.rx === detectedRx)) {
                         alreadyActive.push({
-                            nationalId: detectedId, rx: detectedRx, nextDate: existingMatch.patient.nextRefillDate
+                            nationalId: detectedId,
+                            phoneNumber: detectedPhone || existingMatch.patient.phoneNumber,
+                            dispensingDate: detectedTrxDate || existingMatch.patient.dispensingDate,
+                            nextRefillDate: nextRefill || existingMatch.patient.nextRefillDate,
+                            refillPeriod: 24,
+                            prescriptions: [{ number: detectedRx, note: '' }],
+                            generalNote: existingMatch.patient.generalNote || "ACTIVE",
+                            imported: true,
+                            importDate: batchTimestamp,
+                            importType: 'active',
+                            oldStatus: 'Active',
+                            rx: detectedRx,
+                            nextDate: existingMatch.patient.nextRefillDate,
+                            existingPatientId: existingMatch.patient.id
                         });
                     }
                 }
@@ -8667,12 +8815,23 @@ SMART IMPORT SYSTEM (Dr. Mo Edition)
         </div>`;
         }
 
-        // 4. قسم النشط (ACTIVE) - عرض فقط
+        // 4. قسم النشط (ACTIVE) - قابل للمزامنة والاستيراد
         if (activeEntries.length > 0) {
-            html += `<div style="border: 2px solid #dfe4ea; border-radius: 12px; margin-bottom: 15px; overflow: hidden;">
-            ${sectionHeader('✅ ALREADY ACTIVE (No Action)', activeEntries.length, '#f1f2f6', null)}
-            <div style="max-height: 150px; overflow-y: auto; background: #fafafa; font-size: 11px;">
-                ${activeEntries.map(p => `<div style="padding: 8px 15px; border-bottom: 1px solid #eee; color:#666;">ID: ${p.nationalId} | <span style="color:var(--primary); font-weight:bold;">Next Refill: ${formatFullDate(p.nextDate)}</span></div>`).join('')}
+            html += `<div style="border: 2px solid #90CAF9; border-radius: 12px; margin-bottom: 15px; overflow: hidden;">
+            ${sectionHeader('⚡ ALREADY ACTIVE (موجودة بالفعل ونشطة)', activeEntries.length, '#E3F2FD', 'import-check-active')}
+            <div style="max-height: 180px; overflow-y: auto; background: white;">
+                ${activeEntries.map(p => {
+                const rxNum = (p.prescriptions && p.prescriptions.length > 0) ? p.prescriptions[0].number : (p.rx || '');
+                const disp = p.dispensingDate || p.detectedTrxDate || '';
+                const nextR = p.nextRefillDate || p.nextDate || '';
+                return `<div style="padding: 10px 15px; border-bottom: 1px solid #eee; display: flex; align-items: center; gap: 10px; font-size: 12px; flex-wrap: wrap;">
+                        <input type="checkbox" class="import-check-new import-check-active" data-type="active" data-id="${p.nationalId}" data-rx="${rxNum}" checked>
+                        <b>${p.nationalId}</b>
+                        <span style="background: #e3f2fd; color: #1565c0; padding: 2px 8px; border-radius: 6px; font-family: monospace; font-weight: bold; font-size: 11px;">Rx: ${rxNum}</span>
+                        <span style="color: #636e72; font-size: 11px;">📅 الصرف: <b>${formatFullDate(disp)}</b> ➔ الريفيل: <b style="color: #1565c0;">${formatFullDate(nextR)}</b></span>
+                        <span style="background: #e8f0fe; color:#1a73e8; border: 1px solid #c2e7ff; padding: 2px 8px; border-radius: 12px; font-size: 11px; margin-left:auto; font-weight: 800;">⚡ ALREADY ACTIVE</span>
+                    </div>`;
+            }).join('')}
             </div>
         </div>`;
         }
@@ -8691,9 +8850,10 @@ SMART IMPORT SYSTEM (Dr. Mo Edition)
     async function confirmSmartImport() {
         const brandNewChecks = Array.from(document.querySelectorAll('.import-check-new[data-type="brand_new"]:checked'));
         const reimportChecks = Array.from(document.querySelectorAll('.import-check-new[data-type="reimport"]:checked'));
+        const activeChecks = Array.from(document.querySelectorAll('.import-check-new[data-type="active"]:checked'));
         const updateChecks = Array.from(document.querySelectorAll('.import-check-update:checked'));
 
-        if (brandNewChecks.length === 0 && reimportChecks.length === 0 && updateChecks.length === 0) {
+        if (brandNewChecks.length === 0 && reimportChecks.length === 0 && activeChecks.length === 0 && updateChecks.length === 0) {
             showToast('⚠️ No records selected');
             return;
         }
@@ -8708,7 +8868,7 @@ SMART IMPORT SYSTEM (Dr. Mo Edition)
         </div>
     `;
 
-        let counters = { new: 0, moved: 0, updated: 0 };
+        let counters = { new: 0, moved: 0, active: 0, updated: 0 };
         const todayStr = new Date().toISOString().split('T')[0];
 
         try {
@@ -8718,16 +8878,18 @@ SMART IMPORT SYSTEM (Dr. Mo Edition)
                 return supabaseClient.from('patients').update({ phone_number: u.newPhone }).eq('id', u.dbId);
             });
 
-            const allCardActions = [...brandNewChecks, ...reimportChecks];
+            const allCardActions = [...brandNewChecks, ...reimportChecks, ...activeChecks];
             const patientsToInsert = [];
             const actionMapping = [];
 
             allCardActions.forEach(check => {
                 const id = check.dataset.id;
                 const rx = check.dataset.rx;
+                const checkType = check.dataset.type;
+
                 const data = pendingImportData.find(p => {
-                    const rxNum = (p.prescriptions && p.prescriptions.length > 0) ? p.prescriptions[0].number : '';
-                    return p.nationalId === id && rxNum.toLowerCase() === rx.toLowerCase();
+                    const rxNum = (p.prescriptions && p.prescriptions.length > 0) ? p.prescriptions[0].number : (p.rx || '');
+                    return String(p.nationalId).trim() === String(id).trim() && rxNum.toLowerCase() === rx.toLowerCase();
                 });
 
                 if (data) {
@@ -8735,14 +8897,27 @@ SMART IMPORT SYSTEM (Dr. Mo Edition)
                     const nextDate = data.nextRefillDate || todayStr;
                     const refillP = data.refillPeriod || 24;
 
-                    const existing = patients.find(p => p.nationalId === id && p.prescriptions && p.prescriptions.some(r => r.number.toLowerCase() === rx.toLowerCase()));
+                    const existing = patients.find(p => String(p.nationalId).trim() === String(id).trim() && p.prescriptions && p.prescriptions.some(r => r.number.toLowerCase() === rx.toLowerCase()));
                     if (existing) {
+                        const isAct = (checkType === 'active');
+                        let noteVal = existing.generalNote || '';
+                        if (isAct) {
+                            if (!noteVal.toUpperCase().includes('ACTIVE')) {
+                                noteVal = noteVal ? `ACTIVE, ${noteVal}` : 'ACTIVE';
+                            }
+                        } else {
+                            if (!noteVal.toUpperCase().includes('RE-IMPORTED')) {
+                                noteVal = noteVal ? `Re-Imported, ${noteVal}` : 'Re-Imported';
+                            }
+                        }
+
                         updatePromises.push(supabaseClient.from('patients').update({
                             dispensing_date: dispDate,
                             next_refill_date: nextDate,
                             refill_period: refillP,
                             imported: true,
-                            import_date: data.importDate
+                            import_date: data.importDate,
+                            general_note: noteVal
                         }).eq('id', existing.id));
 
                         updatePromises.push(supabaseClient.from('prescriptions').update({
@@ -8750,8 +8925,18 @@ SMART IMPORT SYSTEM (Dr. Mo Edition)
                             next_refill_date: nextDate
                         }).eq('patient_id', existing.id));
 
-                        counters.moved++;
+                        existing.dispensingDate = dispDate;
+                        existing.nextRefillDate = nextDate;
+                        existing.refillPeriod = refillP;
+                        existing.imported = true;
+                        existing.importDate = data.importDate;
+                        existing.generalNote = noteVal;
+                        existing.importType = isAct ? 'active' : 'pull';
+
+                        if (isAct) counters.active++;
+                        else counters.moved++;
                     } else {
+                        const newNote = data.generalNote || 'Auto-Imported';
                         patientsToInsert.push({
                             pharmacy_id: currentUser.id,
                             national_id: data.nationalId,
@@ -8759,6 +8944,7 @@ SMART IMPORT SYSTEM (Dr. Mo Edition)
                             dispensing_date: dispDate,
                             next_refill_date: nextDate,
                             refill_period: refillP,
+                            general_note: newNote,
                             imported: true,
                             import_date: data.importDate
                         });
@@ -8791,7 +8977,7 @@ SMART IMPORT SYSTEM (Dr. Mo Edition)
             }
 
             await loadPatientsFromSupabase();
-            showModal('✅ Done', `Processed: ${counters.new} New, ${counters.moved} Pulled, ${counters.updated} Updated.`, `<button class="btn-primary" onclick="closeModal(); switchTab('patients')">OK</button>`);
+            showModal('✅ Done', `Processed: ${counters.new} New, ${counters.moved} Pulled, ${counters.active} Active, ${counters.updated} Updated.`, `<button class="btn-primary" onclick="closeModal(); switchTab('patients'); filterPatients('imported');">OK</button>`);
             container.innerHTML = '';
         } catch (e) {
             console.error(e);
@@ -8837,7 +9023,7 @@ SMART IMPORT SYSTEM (Dr. Mo Edition)
                     const result = processAndValidateData(rawData, file.name.toLowerCase().endsWith('.txt'));
 
                     // تخزين النتائج
-                    pendingImportData = result.valid;
+                    pendingImportData = [...result.valid, ...(result.active || [])];
                     pendingUpdates = result.updates;
 
                     // عرض النتيجة النهائية (سيختفي اللودينج هنا)
@@ -14743,25 +14929,36 @@ SMART IMPORT SYSTEM (Dr. Mo Edition)
         showToast('Saving dates... 💾');
 
         try {
+            const p = patients.find(p => String(p.id) === String(patientId));
+            let cleanNote = null;
+            if (p && p.generalNote && (p.generalNote.toUpperCase().includes('ACTIVE') || p.generalNote.toUpperCase().includes('NEW') || p.generalNote.toUpperCase().includes('PULL') || p.generalNote.toUpperCase().includes('RE-IMPORTED') || p.generalNote.toUpperCase().includes('AUTO-IMPORTED'))) {
+                cleanNote = p.generalNote.split(',').map(s => s.trim()).filter(s => s && !['ACTIVE', 'NEW', 'PULL', 'AUTO-IMPORTED', 'RE-IMPORTED'].includes(s.toUpperCase())).join(', ');
+            }
+
+            const updatePayload = {
+                dispensing_date: dispDate,
+                next_refill_date: nextDate,
+                imported: false,
+                updated_at: new Date().toISOString()
+            };
+            if (cleanNote !== null) {
+                updatePayload.general_note = cleanNote;
+            }
+
             const { error } = await supabaseClient
                 .from('patients')
-                .update({
-                    dispensing_date: dispDate,
-                    next_refill_date: nextDate,
-                    imported: false,
-                    updated_at: new Date().toISOString()
-                })
+                .update(updatePayload)
                 .eq('id', patientId);
 
             if (error) throw error;
 
             // 1. تحديث المصفوفة المحلية فوراً
             // ملحوظة: لازم نحدث الحقول بنفس الأسماء اللي mapPatientData بيستخدمها
-            const p = patients.find(p => String(p.id) === String(patientId));
             if (p) {
                 p.dispensingDate = dispDate;    // تعديل ليتوافق مع displayPatients
                 p.nextRefillDate = nextDate;    // تعديل ليتوافق مع displayPatients
                 p.imported = false;
+                if (cleanNote !== null) p.generalNote = cleanNote;
             }
 
             // 2. تحديث العدادات (Stats)
