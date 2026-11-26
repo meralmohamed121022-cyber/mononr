@@ -6,10 +6,28 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>MONO - Mono Wasfaty System</title>
 
-    <link rel="icon"
+    <!-- Favicon (High-res Vector SVG + PNG) -->
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'%3E%3Cdefs%3E%3ClinearGradient id='bg' x1='0%25' y1='0%25' x2='100%25' y2='100%25'%3E%3Cstop offset='0%25' stop-color='%230f172a'/%3E%3Cstop offset='100%25' stop-color='%230284c7'/%3E%3C/linearGradient%3E%3ClinearGradient id='glow' x1='0%25' y1='0%25' x2='100%25' y2='100%25'%3E%3Cstop offset='0%25' stop-color='%2338bdf8'/%3E%3Cstop offset='100%25' stop-color='%2306b6d4'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='512' height='512' rx='120' fill='url(%23bg)'/%3E%3Ccircle cx='256' cy='256' r='180' fill='none' stroke='url(%23glow)' stroke-width='24' stroke-dasharray='16 10' opacity='0.7'/%3E%3Cpath d='M256 120v272M120 256h272' stroke='url(%23glow)' stroke-width='54' stroke-linecap='round'/%3E%3Ctext x='256' y='320' font-family='-apple-system,BlinkMacSystemFont,Segoe UI,Roboto,sans-serif' font-size='200' font-weight='900' fill='%23ffffff' text-anchor='middle'%3EM%3C/text%3E%3C/svg%3E">
+    <link rel="icon" type="image/png"
         href="https://raw.githubusercontent.com/meralmohamed121022-cyber/Drug-Monograph/858ba78ce2719a0e7069fd4807b725e0002a17d8/6_20251129_184528_0005.png">
     <link rel="apple-touch-icon"
         href="https://raw.githubusercontent.com/meralmohamed121022-cyber/Drug-Monograph/858ba78ce2719a0e7069fd4807b725e0002a17d8/6_20251129_184528_0005.png">
+
+    <!-- Meta Tags & Open Graph for WhatsApp, Telegram, and Social Sharing -->
+    <meta name="description" content="MONO - نظام وصفتي وإدارة الصيدلية الذكي: متابعة مواعيد إعادة الصرف (Refill)، طابور الصرف وطباعة الملصقات الحرارية">
+    <meta property="og:type" content="website">
+    <meta property="og:site_name" content="MONO Wasfaty System">
+    <meta property="og:title" content="MONO - نظام وصفتي وإدارة الصيدلية الذكي">
+    <meta property="og:description" content="نظام إدارة وصرف الوصفات، متابعة مواعيد إعادة الصرف (Refill)، طابور الصرف وطباعة الملصقات الحرارية">
+    <meta property="og:image" content="https://raw.githubusercontent.com/meralmohamed121022-cyber/Drug-Monograph/858ba78ce2719a0e7069fd4807b725e0002a17d8/6_20251129_184528_0005.png">
+    <meta property="og:image:width" content="512">
+    <meta property="og:image:height" content="512">
+    <meta property="og:url" content="https://mononr.vercel.app">
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="MONO - نظام وصفتي وإدارة الصيدلية الذكي">
+    <meta name="twitter:description" content="نظام إدارة وصرف الوصفات، متابعة مواعيد إعادة الصرف (Refill)، طابور الصرف وطباعة الملصقات الحرارية">
+    <meta name="twitter:image" content="https://raw.githubusercontent.com/meralmohamed121022-cyber/Drug-Monograph/858ba78ce2719a0e7069fd4807b725e0002a17d8/6_20251129_184528_0005.png">
+    <meta name="theme-color" content="#0d47a1">
 
     <script src="env.js"></script>
 
@@ -5363,6 +5381,7 @@
     }
     function closeModal() {
         document.getElementById('modalOverlay').classList.remove('active');
+        if (typeof updateAppUrl === 'function') updateAppUrl({ modal: null });
     }
     function confirmAction(message, callback, cancelCallback) {
         // هنحط الزراير جوه الـ content عشان نتفادى مشكلة الـ display: none اللي في الـ actions
@@ -6368,6 +6387,7 @@
                 }
 
                 console.log('✅ App initialized successfully');
+                if (typeof initAppRouting === 'function') initAppRouting();
             }).catch(error => {
                 console.error('❌ App initialization failed:', error);
             });
@@ -7008,17 +7028,30 @@
         document.querySelectorAll('.nav-tab').forEach(tab => tab.classList.remove('active'));
         document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
 
-        document.querySelector(`[onclick="switchTab('${tabName}')"]`).classList.add('active');
-        document.getElementById(tabName + '-tab').classList.add('active');
+        const targetNavBtn = document.querySelector(`[onclick="switchTab('${tabName}')"]`);
+        if (targetNavBtn) targetNavBtn.classList.add('active');
+        const targetTabContent = document.getElementById(tabName + '-tab');
+        if (targetTabContent) targetTabContent.classList.add('active');
 
         // ✅ التعديل السحري هنا
         if (tabName === 'patients') {
-            // بدلاً من عرض الكل، هننادي فلتر Today مباشرة
-            filterPatients('today');
+            // بدلاً من عرض الكل، هننادي فلتر Today مباشرة لو لم يتم تحديد فلتر مسبقاً
+            if (!window._preventTabFilterOverride) {
+                filterPatients(currentFilter || 'today');
+            }
 
-            // ونأكد إن شريط البحث فاضي عشان ميتداخلش مع الفلتر
+            // ونأكد إن شريط البحث فاضي عشان ميتداخلش مع الفلتر إلا لو كنا بنفتح رابط مخصص
             const searchInput = document.getElementById('searchInput');
-            if (searchInput) searchInput.value = '';
+            if (searchInput && !window._keepSearchOnTabSwitch && !window._isHandlingPopstate) {
+                searchInput.value = '';
+            }
+        }
+
+        if (typeof updateAppUrl === 'function') {
+            updateAppUrl({ 
+                tab: tabName, 
+                filter: (tabName === 'patients' ? (currentFilter || 'today') : null) 
+            });
         }
     }
     function displayPatients() {
@@ -8009,6 +8042,10 @@
 
         // استدعاء عرض المرضى بالمنطق الجديد
         displayPatients();
+
+        if (typeof updateAppUrl === 'function') {
+            updateAppUrl({ tab: 'patients', filter: status });
+        }
     }
 
     function searchPatients() {
@@ -8016,6 +8053,11 @@
         updateStats();
         // عرض المرضى
         displayPatients();
+
+        if (typeof updateAppUrl === 'function') {
+            const sTerm = document.getElementById('searchInput')?.value.trim();
+            updateAppUrl({ tab: 'patients', search: sTerm || null });
+        }
     }     // متغير عشان نحفظ حالة الفلترة بالتاريخ
     let dateFilterActive = false;
     let dateFilterFrom = null;
@@ -9800,6 +9842,9 @@ SMART IMPORT SYSTEM (Dr. Mo Edition)
             const input = document.getElementById('queueFilterInput');
             const filterText = input ? input.value.toLowerCase().trim() : '';
             renderDispensingQueue(filterText);
+            if (typeof updateAppUrl === 'function') {
+                updateAppUrl({ tab: 'dispensed', q: filterText || null });
+            }
         }, 300);
     }
     // 4. رسم الجدول (نسخة الـ Turbo - تعديل الاسم المباشر + أداء فائق السرعة)
@@ -10848,6 +10893,8 @@ SMART IMPORT SYSTEM (Dr. Mo Edition)
             actionsHtml,
             'modal-lg'
         );
+
+        if (typeof updateAppUrl === 'function') updateAppUrl({ modal: 'history' });
 
         setTimeout(() => {
             filterDispensedHistory();
@@ -12205,11 +12252,102 @@ SMART IMPORT SYSTEM (Dr. Mo Edition)
     window.updateHistoryBadge = updateHistoryBadge;
 
     // ========================================================
-    // ✍️ ميزة "رايت" (Write) - طباعة حرة للنصوص والأرقام والباركود
-    // تتيح كتابة أي شيء وطباعته فوراً على طابعة وصفتي (3x2) أو الفاتورة (80mm)
+    // 🧭 نظام توجيه وفهرسة الروابط ومشاركتها (URL Routing & Deep Linking)
+    // يتيح مشاركة أي رابط مع التاب والفلتر والبحث وفتحه بدقة
+    // ========================================================
+
+    function updateAppUrl(params = {}) {
+        try {
+            const url = new URL(window.location.href);
+            Object.entries(params).forEach(([k, v]) => {
+                if (v === null || v === undefined || v === '') {
+                    url.searchParams.delete(k);
+                } else {
+                    url.searchParams.set(k, String(v));
+                }
+            });
+            window.history.replaceState({ path: url.href }, '', url.href);
+        } catch (e) {
+            // Fallback for file:// or restricted environments
+        }
+    }
+    window.updateAppUrl = updateAppUrl;
+
+    function initAppRouting() {
+        try {
+            const url = new URL(window.location.href);
+            const tab = url.searchParams.get('tab');
+            const filter = url.searchParams.get('filter');
+            const search = url.searchParams.get('search');
+            const q = url.searchParams.get('q');
+            const modal = url.searchParams.get('modal');
+
+            if (tab && ['add', 'patients', 'data', 'dispensed'].includes(tab)) {
+                window._preventTabFilterOverride = true;
+                window._keepSearchOnTabSwitch = true;
+                switchTab(tab);
+                window._preventTabFilterOverride = false;
+                window._keepSearchOnTabSwitch = false;
+
+                if (tab === 'patients') {
+                    if (filter) {
+                        filterPatients(filter);
+                    }
+                    if (search) {
+                        const sInput = document.getElementById('searchInput');
+                        if (sInput) {
+                            sInput.value = search;
+                            searchPatients();
+                        }
+                    }
+                } else if (tab === 'dispensed') {
+                    if (q) {
+                        const qInput = document.getElementById('queueFilterInput');
+                        if (qInput) {
+                            qInput.value = q;
+                            if (typeof filterQueue === 'function') filterQueue();
+                        }
+                    }
+                }
+            }
+
+            if (modal === 'write') {
+                setTimeout(() => {
+                    if (typeof openWritePrintModal === 'function') openWritePrintModal();
+                }, 250);
+            } else if (modal === 'history') {
+                setTimeout(() => {
+                    if (typeof openDispensedHistoryModal === 'function') openDispensedHistoryModal();
+                }, 250);
+            }
+        } catch (e) {
+            console.debug('Routing init error:', e);
+        }
+    }
+    window.initAppRouting = initAppRouting;
+
+    window.addEventListener('popstate', () => {
+        window._isHandlingPopstate = true;
+        initAppRouting();
+        window._isHandlingPopstate = false;
+    });
+
+    // ========================================================
+    // ✍️ ميزة "رايت" (Write) المتقدمة - طباعة حرة للنصوص والأرقام والباركود
+    // تحكم كامل في حجم الخط حتى أقصى درجة، وإظهار/إخفاء الباركود والعنوان
     // ========================================================
 
     window.currentWritePrinter = localStorage.getItem('mono_write_printer') || 'wasfaty';
+
+    function onWriteFontSizeChange(val) {
+        const numVal = Math.max(10, Math.min(95, parseInt(val) || 16));
+        const range = document.getElementById('writeFontSizeRange');
+        const num = document.getElementById('writeFontSizeNum');
+        if (range) range.value = numVal;
+        if (num) num.value = numVal;
+        updateWritePrintPreview();
+    }
+    window.onWriteFontSizeChange = onWriteFontSizeChange;
 
     function openWritePrintModal(initialText = '') {
         const activeType = window.currentWritePrinter || 'wasfaty';
@@ -12246,12 +12384,35 @@ SMART IMPORT SYSTEM (Dr. Mo Edition)
                                 <label style="font-size: 12px; font-weight: 800; color: #1e293b;">✍️ النص أو الأرقام المطلوب طباعتها:</label>
                                 <span style="font-size: 10.5px; color: #64748b;">(أرقام وصفات، هويات، تعليمات، إلخ)</span>
                             </div>
-                            <textarea id="writeTextInput" rows="4" oninput="updateWritePrintPreview()" 
-                                      placeholder="اكتب هنا أي شيء تريده... مثلاً:&#10;رقم الوصفة: 95821034&#10;قرص واحد يومياً بعد الأكل&#10;ملاحظة: يحفظ في الثلاجة" 
-                                      style="width: 100%; box-sizing: border-box; padding: 8px 10px; border: 1.5px solid #cbd5e1; border-radius: 8px; font-size: 13.5px; font-weight: 700; line-height: 1.5; outline: none; transition: border-color 0.2s; resize: vertical;">${initialText}</textarea>
+                            <textarea id="writeTextInput" rows="3" oninput="updateWritePrintPreview()" 
+                                      placeholder="اكتب هنا أي شيء تريده... مثلاً:&#10;2026&#10;أو: رقم الوصفة 95821034" 
+                                      style="width: 100%; box-sizing: border-box; padding: 8px 10px; border: 1.5px solid #cbd5e1; border-radius: 8px; font-size: 14px; font-weight: 700; line-height: 1.4; outline: none; transition: border-color 0.2s; resize: vertical;">${initialText}</textarea>
                         </div>
 
-                        <!-- إعدادات العنوان والباركود -->
+                        <!-- لوحة التحكم في حجم الخط بحرية كاملة -->
+                        <div style="background: #ffffff; border: 1.5px solid #cbd5e1; border-radius: 9px; padding: 8px 10px; display: flex; flex-direction: column; gap: 6px; box-shadow: 0 1px 3px rgba(0,0,0,0.04);">
+                            <div style="display: flex; justify-content: space-between; align-items: center;">
+                                <label style="font-size: 11.5px; font-weight: 800; color: #1e293b;">🔤 حجم الخط (كبر وصغر بحرية تامة):</label>
+                                <div style="display: flex; align-items: center; gap: 4px;">
+                                    <input type="number" id="writeFontSizeNum" value="22" min="10" max="95" oninput="onWriteFontSizeChange(this.value)" 
+                                           style="width: 52px; text-align: center; font-weight: 900; font-size: 13.5px; padding: 2px 4px; border: 1.5px solid #0284c7; border-radius: 6px; color: #0284c7;">
+                                    <span style="font-size: 11px; font-weight: 800; color: #64748b;">px</span>
+                                </div>
+                            </div>
+                            <input type="range" id="writeFontSizeRange" min="10" max="95" value="22" step="1" oninput="onWriteFontSizeChange(this.value)" 
+                                   style="width: 100%; height: 6px; accent-color: #0284c7; cursor: pointer;">
+                            
+                            <!-- أزرار سريعة للأحجام الشائعة -->
+                            <div style="display: flex; gap: 5px;">
+                                <button type="button" onclick="onWriteFontSizeChange(14)" style="flex: 1; padding: 3px 0; font-size: 10px; font-weight: 700; border: 1px solid #cbd5e1; border-radius: 5px; background: #f8fafc; cursor: pointer;">صغير 14</button>
+                                <button type="button" onclick="onWriteFontSizeChange(22)" style="flex: 1; padding: 3px 0; font-size: 10px; font-weight: 700; border: 1px solid #cbd5e1; border-radius: 5px; background: #f8fafc; cursor: pointer;">وسط 22</button>
+                                <button type="button" onclick="onWriteFontSizeChange(36)" style="flex: 1; padding: 3px 0; font-size: 10px; font-weight: 800; border: 1.5px solid #0284c7; border-radius: 5px; background: #e0f2fe; color: #0369a1; cursor: pointer;">كبير 36</button>
+                                <button type="button" onclick="onWriteFontSizeChange(54)" style="flex: 1; padding: 3px 0; font-size: 10px; font-weight: 800; border: 1.5px solid #0d9488; border-radius: 5px; background: #ccfbf1; color: #0f766e; cursor: pointer;">ضخم 54</button>
+                                <button type="button" onclick="onWriteFontSizeChange(75)" style="flex: 1; padding: 3px 0; font-size: 10px; font-weight: 900; border: 1.5px solid #7c3aed; border-radius: 5px; background: #ede9fe; color: #6d28d9; cursor: pointer;">عملاق 75</button>
+                            </div>
+                        </div>
+
+                        <!-- إعدادات العنوان والباركود والمحاذاة -->
                         <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 8px 10px; display: flex; flex-direction: column; gap: 8px;">
                             
                             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
@@ -12269,41 +12430,39 @@ SMART IMPORT SYSTEM (Dr. Mo Edition)
                                 </div>
                             </div>
 
-                            <div style="display: flex; flex-wrap: wrap; gap: 12px; align-items: center; padding-top: 4px; border-top: 1px dashed #e2e8f0;">
-                                <label style="display: inline-flex; align-items: center; gap: 5px; font-size: 11.5px; font-weight: 800; color: #334155; cursor: pointer;">
-                                    <input type="checkbox" id="writeEnableBarcode" onchange="updateWritePrintPreview()" checked style="width: 14px; height: 14px; accent-color: #0284c7; cursor: pointer;">
-                                    <span>🏷️ توليد باركود تلقائي للأرقام</span>
+                            <!-- أزرار التحكم في إظهار الباركود والعناصر -->
+                            <div style="display: flex; flex-wrap: wrap; gap: 8px; align-items: center; padding-top: 4px; border-top: 1px dashed #e2e8f0;">
+                                <label style="display: inline-flex; align-items: center; gap: 6px; font-size: 11.5px; font-weight: 900; color: #0f172a; cursor: pointer; background: #e0f2fe; padding: 4px 9px; border-radius: 6px; border: 1.5px solid #0284c7;">
+                                    <input type="checkbox" id="writeShowBarcode" onchange="updateWritePrintPreview()" checked style="width: 15px; height: 15px; accent-color: #0284c7; cursor: pointer;">
+                                    <span>🏷️ إظهار الباركود</span>
                                 </label>
-                                <label style="display: inline-flex; align-items: center; gap: 5px; font-size: 11.5px; font-weight: 800; color: #334155; cursor: pointer;">
-                                    <input type="checkbox" id="writeShowDate" onchange="updateWritePrintPreview()" checked style="width: 14px; height: 14px; accent-color: #0284c7; cursor: pointer;">
-                                    <span>🕒 تضمين التاريخ والتوقيت</span>
+                                <label style="display: inline-flex; align-items: center; gap: 5px; font-size: 11px; font-weight: 800; color: #334155; cursor: pointer;">
+                                    <input type="checkbox" id="writeEnableBarcode" onchange="updateWritePrintPreview()" checked style="width: 13px; height: 13px; accent-color: #0284c7; cursor: pointer;">
+                                    <span>توليد تلقائي</span>
+                                </label>
+                                <label style="display: inline-flex; align-items: center; gap: 5px; font-size: 11px; font-weight: 800; color: #334155; cursor: pointer;">
+                                    <input type="checkbox" id="writeShowTitle" onchange="updateWritePrintPreview()" checked style="width: 13px; height: 13px; accent-color: #0284c7; cursor: pointer;">
+                                    <span>🏛️ العنوان</span>
+                                </label>
+                                <label style="display: inline-flex; align-items: center; gap: 5px; font-size: 11px; font-weight: 800; color: #334155; cursor: pointer;">
+                                    <input type="checkbox" id="writeShowDate" onchange="updateWritePrintPreview()" checked style="width: 13px; height: 13px; accent-color: #0284c7; cursor: pointer;">
+                                    <span>🕒 التاريخ</span>
                                 </label>
                             </div>
 
-                            <!-- تخصيص الخط والمحاذاة -->
-                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
-                                <div>
-                                    <label style="font-size: 11px; font-weight: 800; color: #475569; display: block; margin-bottom: 2px;">حجم الخط:</label>
-                                    <select id="writeFontSize" onchange="updateWritePrintPreview()" style="width: 100%; box-sizing: border-box; padding: 5px 8px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 11.5px; font-weight: 700; background: white; cursor: pointer;">
-                                        <option value="20px">ضخم (20px) - عناوين وأرقام كبيرة</option>
-                                        <option value="16px" selected>كبير (16px) - قياسي مميز</option>
-                                        <option value="13px">متوسط (13px) - فقرات متعددة</option>
-                                        <option value="11px">صغير (11px) - تفاصيل كثيرة</option>
-                                    </select>
-                                </div>
-                                <div>
-                                    <label style="font-size: 11px; font-weight: 800; color: #475569; display: block; margin-bottom: 2px;">المحاذاة:</label>
-                                    <select id="writeTextAlign" onchange="updateWritePrintPreview()" style="width: 100%; box-sizing: border-box; padding: 5px 8px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 11.5px; font-weight: 700; background: white; cursor: pointer;">
-                                        <option value="center" selected>توسيط (Center)</option>
-                                        <option value="right">يمين (Right)</option>
-                                        <option value="left">يسار (Left)</option>
-                                    </select>
-                                </div>
+                            <!-- تخصيص المحاذاة -->
+                            <div style="display: flex; align-items: center; gap: 8px;">
+                                <label style="font-size: 11px; font-weight: 800; color: #475569; white-space: nowrap;">محاذاة النص:</label>
+                                <select id="writeTextAlign" onchange="updateWritePrintPreview()" style="flex: 1; box-sizing: border-box; padding: 4px 8px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 11.5px; font-weight: 700; background: white; cursor: pointer;">
+                                    <option value="center" selected>توسيط (Center)</option>
+                                    <option value="right">يمين (Right)</option>
+                                    <option value="left">يسار (Left)</option>
+                                </select>
                             </div>
                         </div>
 
                         <!-- زر الطباعة الرئيسي -->
-                        <div style="display: flex; gap: 8px; margin-top: 4px;">
+                        <div style="display: flex; gap: 8px; margin-top: 2px;">
                             <button type="button" id="btnExecuteWritePrint" onclick="executeWritePrint()" 
                                     style="flex: 2; padding: 11px; background: ${isInvoice ? 'linear-gradient(135deg, #0d9488, #0f766e)' : 'linear-gradient(135deg, #0284c7, #0369a1)'}; color: white; border: none; border-radius: 9px; font-weight: 900; font-size: 14px; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; box-shadow: ${isInvoice ? '0 4px 12px rgba(13,148,136,0.35)' : '0 4px 12px rgba(2,132,199,0.35)'}; transition: all 0.2s;">
                                 <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 6 2 18 2 18 9"></polyline><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path><rect x="6" y="14" width="12" height="8"></rect></svg>
@@ -12341,6 +12500,8 @@ SMART IMPORT SYSTEM (Dr. Mo Edition)
             '',
             'modal-print-wide'
         );
+
+        if (typeof updateAppUrl === 'function') updateAppUrl({ modal: 'write' });
 
         setTimeout(() => {
             const input = document.getElementById('writeTextInput');
@@ -12406,9 +12567,11 @@ SMART IMPORT SYSTEM (Dr. Mo Edition)
         const text = document.getElementById('writeTextInput')?.value || '';
         const title = document.getElementById('writeTitleInput')?.value || '';
         const barcodeVal = document.getElementById('writeBarcodeVal')?.value || '';
+        const showBarcode = document.getElementById('writeShowBarcode')?.checked ?? true;
         const enableBarcode = document.getElementById('writeEnableBarcode')?.checked ?? true;
+        const showTitle = document.getElementById('writeShowTitle')?.checked ?? true;
         const showDate = document.getElementById('writeShowDate')?.checked ?? true;
-        const fontSize = document.getElementById('writeFontSize')?.value || '16px';
+        const fontSizePx = (document.getElementById('writeFontSizeNum')?.value || 22) + 'px';
         const textAlign = document.getElementById('writeTextAlign')?.value || 'center';
 
         const now = new Date();
@@ -12418,21 +12581,23 @@ SMART IMPORT SYSTEM (Dr. Mo Edition)
         const timeStr = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
         const dateStr = `${dNum}-${mName}-${yNum} ${timeStr}`;
 
-        // توليد باركود تلقائي إذا تم إدخال أرقام أو تفعيل الخيار
+        // توليد باركود تلقائي فقط إذا كان خيار إظهار الباركود مفعلاً
         let barcodeSvg = '';
-        let targetNum = barcodeVal.trim();
-        if (!targetNum && enableBarcode) {
-            const matches = text.match(/\b\d{4,20}\b/);
-            if (matches && matches[0]) targetNum = matches[0];
-        }
+        if (showBarcode) {
+            let targetNum = barcodeVal.trim();
+            if (!targetNum && enableBarcode) {
+                const matches = text.match(/\b\d{4,20}\b/);
+                if (matches && matches[0]) targetNum = matches[0];
+            }
 
-        if (enableBarcode && targetNum) {
-            barcodeSvg = generateCode128Svg(targetNum, {
-                width: isInvoice ? 1.35 : 1.2,
-                height: isInvoice ? 32 : 24,
-                fontSize: 9,
-                showText: true
-            });
+            if (targetNum) {
+                barcodeSvg = generateCode128Svg(targetNum, {
+                    width: isInvoice ? 1.35 : 1.2,
+                    height: isInvoice ? 32 : 24,
+                    fontSize: 9,
+                    showText: true
+                });
+            }
         }
 
         const safeText = (text || 'اكتب النص هنا لمعاينته مباشرة...')
@@ -12444,19 +12609,19 @@ SMART IMPORT SYSTEM (Dr. Mo Edition)
         if (!isInvoice) {
             // معاينة طابعة وصفتي (3x2 بوصة)
             previewContainer.innerHTML = `
-                <div style="width: 275px; height: 185px; background: #fff; border: 2px solid #0f172a; border-radius: 6px; box-sizing: border-box; padding: 7px 9px; display: flex; flex-direction: column; justify-content: space-between; font-family: sans-serif; color: #000; box-shadow: 0 4px 15px rgba(0,0,0,0.12); position: relative; overflow: hidden;" dir="rtl">
-                    ${title ? `
-                    <div style="font-size: 11.5px; font-weight: 900; text-align: center; border-bottom: 1.5px solid #000; padding-bottom: 2px; margin-bottom: 4px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+                <div style="width: 275px; height: 185px; background: #fff; border: 2px solid #0f172a; border-radius: 6px; box-sizing: border-box; padding: 6px 8px; display: flex; flex-direction: column; justify-content: space-between; font-family: sans-serif; color: #000; box-shadow: 0 4px 15px rgba(0,0,0,0.12); position: relative; overflow: hidden;" dir="rtl">
+                    ${(showTitle && title) ? `
+                    <div style="font-size: 11px; font-weight: 900; text-align: center; border-bottom: 1.5px solid #000; padding-bottom: 2px; margin-bottom: 2px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
                         ${title}
                     </div>` : ''}
                     
-                    <div style="flex: 1; display: flex; flex-direction: column; justify-content: center; align-items: ${textAlign === 'center' ? 'center' : (textAlign === 'right' ? 'flex-start' : 'flex-end')}; text-align: ${textAlign}; overflow: hidden; padding: 2px 0;">
-                        <div style="font-size: ${fontSize}; font-weight: 800; line-height: 1.35; color: ${text ? '#000' : '#94a3b8'}; word-break: break-word; width: 100%;">
+                    <div style="flex: 1; height: 100%; display: flex; flex-direction: column; justify-content: center; align-items: ${textAlign === 'center' ? 'center' : (textAlign === 'right' ? 'flex-start' : 'flex-end')}; text-align: ${textAlign}; overflow: hidden; padding: 2px 0;">
+                        <div style="font-size: ${fontSizePx}; font-weight: 900; line-height: 1.15; color: ${text ? '#000' : '#94a3b8'}; word-break: break-word; width: 100%;">
                             ${safeText}
                         </div>
                     </div>
 
-                    ${barcodeSvg ? `
+                    ${(showBarcode && barcodeSvg) ? `
                     <div style="text-align: center; margin-top: 2px;">
                         ${barcodeSvg}
                     </div>` : ''}
@@ -12472,16 +12637,16 @@ SMART IMPORT SYSTEM (Dr. Mo Edition)
             // معاينة طابعة الفاتورة (80mm)
             previewContainer.innerHTML = `
                 <div style="width: 250px; background: #fff; border: 2px solid #0f172a; border-radius: 6px; box-sizing: border-box; padding: 10px 12px; display: flex; flex-direction: column; gap: 8px; font-family: sans-serif; color: #000; box-shadow: 0 4px 15px rgba(0,0,0,0.12);" dir="rtl">
-                    ${title ? `
+                    ${(showTitle && title) ? `
                     <div style="font-size: 13px; font-weight: 900; text-align: center; border-bottom: 2px dashed #000; padding-bottom: 5px;">
                         ${title}
                     </div>` : ''}
                     
-                    <div style="text-align: ${textAlign}; font-size: ${fontSize}; font-weight: 800; line-height: 1.4; color: ${text ? '#000' : '#94a3b8'}; word-break: break-word; padding: 4px 0;">
+                    <div style="text-align: ${textAlign}; font-size: ${fontSizePx}; font-weight: 900; line-height: 1.25; color: ${text ? '#000' : '#94a3b8'}; word-break: break-word; padding: 4px 0;">
                         ${safeText}
                     </div>
 
-                    ${barcodeSvg ? `
+                    ${(showBarcode && barcodeSvg) ? `
                     <div style="text-align: center; border-top: 1px dashed #ccc; padding-top: 6px;">
                         ${barcodeSvg}
                     </div>` : ''}
@@ -12505,9 +12670,11 @@ SMART IMPORT SYSTEM (Dr. Mo Edition)
         const isInvoice = (window.currentWritePrinter === 'invoice');
         const title = document.getElementById('writeTitleInput')?.value || '';
         const barcodeVal = document.getElementById('writeBarcodeVal')?.value || '';
+        const showBarcode = document.getElementById('writeShowBarcode')?.checked ?? true;
         const enableBarcode = document.getElementById('writeEnableBarcode')?.checked ?? true;
+        const showTitle = document.getElementById('writeShowTitle')?.checked ?? true;
         const showDate = document.getElementById('writeShowDate')?.checked ?? true;
-        const fontSize = document.getElementById('writeFontSize')?.value || '16px';
+        const fontSizePx = (document.getElementById('writeFontSizeNum')?.value || 22) + 'px';
         const textAlign = document.getElementById('writeTextAlign')?.value || 'center';
 
         const now = new Date();
@@ -12517,20 +12684,22 @@ SMART IMPORT SYSTEM (Dr. Mo Edition)
         const timeStr = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
         const dateStr = `${dNum}-${mName}-${yNum} ${timeStr}`;
 
-        let targetNum = barcodeVal.trim();
-        if (!targetNum && enableBarcode) {
-            const matches = text.match(/\b\d{4,20}\b/);
-            if (matches && matches[0]) targetNum = matches[0];
-        }
-
         let barcodeSvg = '';
-        if (enableBarcode && targetNum) {
-            barcodeSvg = generateCode128Svg(targetNum, {
-                width: isInvoice ? 1.4 : 1.25,
-                height: isInvoice ? 34 : 26,
-                fontSize: 9,
-                showText: true
-            });
+        if (showBarcode) {
+            let targetNum = barcodeVal.trim();
+            if (!targetNum && enableBarcode) {
+                const matches = text.match(/\b\d{4,20}\b/);
+                if (matches && matches[0]) targetNum = matches[0];
+            }
+
+            if (targetNum) {
+                barcodeSvg = generateCode128Svg(targetNum, {
+                    width: isInvoice ? 1.4 : 1.25,
+                    height: isInvoice ? 34 : 26,
+                    fontSize: 9,
+                    showText: true
+                });
+            }
         }
 
         const safeText = text
@@ -12599,18 +12768,18 @@ SMART IMPORT SYSTEM (Dr. Mo Edition)
             </head>
             <body>
                 <div class="label-body" dir="rtl">
-                    ${title ? `
+                    ${(showTitle && title) ? `
                     <div style="font-size: 11px; font-weight: 900; text-align: center; border-bottom: 1.5px solid #000; padding-bottom: 2px;">
                         ${title}
                     </div>` : ''}
 
-                    <div style="flex: 1; display: flex; flex-direction: column; justify-content: center; text-align: ${textAlign}; overflow: hidden; padding: 2px 0;">
-                        <div style="font-size: ${fontSize}; font-weight: 800; line-height: 1.35; word-break: break-word;">
+                    <div style="flex: 1; height: 100%; display: flex; flex-direction: column; justify-content: center; text-align: ${textAlign}; overflow: hidden; padding: 2px 0;">
+                        <div style="font-size: ${fontSizePx}; font-weight: 900; line-height: 1.15; word-break: break-word;">
                             ${safeText}
                         </div>
                     </div>
 
-                    ${barcodeSvg ? `
+                    ${(showBarcode && barcodeSvg) ? `
                     <div style="text-align: center; margin-top: 1px;">
                         ${barcodeSvg}
                     </div>` : ''}
@@ -12664,16 +12833,16 @@ SMART IMPORT SYSTEM (Dr. Mo Edition)
             </head>
             <body>
                 <div class="epson-roll-ticket" dir="rtl">
-                    ${title ? `
+                    ${(showTitle && title) ? `
                     <div style="font-size: 14px; font-weight: 900; border-bottom: 2px dashed #000; padding-bottom: 6px; margin-bottom: 8px;">
                         ${title}
                     </div>` : ''}
 
-                    <div style="text-align: ${textAlign}; font-size: ${fontSize}; font-weight: 800; line-height: 1.45; word-break: break-word; margin: 8px 0;">
+                    <div style="text-align: ${textAlign}; font-size: ${fontSizePx}; font-weight: 900; line-height: 1.35; word-break: break-word; margin: 8px 0;">
                         ${safeText}
                     </div>
 
-                    ${barcodeSvg ? `
+                    ${(showBarcode && barcodeSvg) ? `
                     <div style="text-align: center; border-top: 1px dashed #000; padding-top: 8px; margin-top: 8px;">
                         ${barcodeSvg}
                     </div>` : ''}
