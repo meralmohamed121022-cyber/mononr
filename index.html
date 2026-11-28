@@ -4905,7 +4905,7 @@
                         </svg>
                     </div>
                     <input type="text" class="search-input" id="searchInput" placeholder="Search by ID, prescription..."
-                        oninput="searchPatients()">
+                        oninput="searchPatients()" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" data-lpignore="true">
                 </div>
                 <div class="date-filter">
                     <div style="position: relative; height: 100%; display: flex; align-items: stretch; background: #fff; border: 2px solid var(--border); border-radius: 10px; overflow: hidden;">
@@ -6461,6 +6461,22 @@
                 if (typeof initAppRouting === 'function') initAppRouting();
             } catch (e) {}
 
+            // منع وحذف أي تعبئة تلقائية قد يضعها المتصفح في مربع البحث (مثل كود الصيدلية 66)
+            const clearAutofillSearch = () => {
+                const sInput = document.getElementById('searchInput');
+                const urlParams = new URLSearchParams(window.location.search);
+                if (sInput && !urlParams.get('search')) {
+                    if (sInput.value) {
+                        sInput.value = '';
+                        if (typeof displayPatients === 'function') displayPatients();
+                    }
+                }
+            };
+            clearAutofillSearch();
+            setTimeout(clearAutofillSearch, 80);
+            setTimeout(clearAutofillSearch, 250);
+            setTimeout(clearAutofillSearch, 600);
+
             console.log('🚀 Initializing app...');
 
             loadPatientsFromSupabase().then(() => {
@@ -6533,10 +6549,14 @@
                                     }));
                                 }
 
-                                // Check if alarm was stopped remotely
-                                if (!payload.new.sensor_reminder && window.currentlyRingingId === payload.new.id) {
-                                    stopAlarmSound();
-                                    closeModal();
+                                // Check if alarm was stopped, snoozed, or cleared remotely
+                                if (window.currentlyRingingId && String(window.currentlyRingingId) === String(payload.new.id)) {
+                                    const now = new Date();
+                                    const currentTimeStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}T${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+                                    if (!payload.new.sensor_reminder || payload.new.sensor_reminder !== currentTimeStr) {
+                                        stopAlarmSound();
+                                        closeModal();
+                                    }
                                 }
 
                                 // نحدث بيانات المريض مع الحفاظ على بنية البيانات (mapping)
@@ -12397,11 +12417,15 @@ SMART IMPORT SYSTEM (Dr. Mo Edition)
 
             if (targetTab === 'patients') {
                 filterPatients(targetFilter);
+                const sInput = document.getElementById('searchInput');
                 if (search) {
-                    const sInput = document.getElementById('searchInput');
                     if (sInput) {
                         sInput.value = search;
                         searchPatients();
+                    }
+                } else {
+                    if (sInput) {
+                        sInput.value = '';
                     }
                 }
             } else if (targetTab === 'dispensed') {
@@ -15162,7 +15186,109 @@ SMART IMPORT SYSTEM (Dr. Mo Edition)
         return div;
     }
 
-    // 2. المراقبة اللحظية (Realtime Sync)
+    // ==========================================
+    // 🔔 محرك المزامنة اللحظية الشامل للمنبه عبر كافة الأجهزة والمتصفحات
+    // ==========================================
+
+    // 1. قناة البث المباشر المحلية بين تابات نفس الجهاز (0ms Latency)
+    const localAlarmBroadcast = (typeof BroadcastChannel !== 'undefined') 
+        ? new BroadcastChannel('mono_alarm_broadcast_channel') 
+        : null;
+
+    if (localAlarmBroadcast) {
+        localAlarmBroadcast.onmessage = (event) => {
+            if (event.data && event.data.type === 'ALARM_ACTION') {
+                handleRemoteAlarmAction(event.data);
+            }
+        };
+    }
+
+    // 2. قناة البث المباشر السحابية بين كافة الأجهزة والمتصفحات (Supabase Realtime Broadcast)
+    let remoteAlarmChannel = null;
+
+    function initRemoteAlarmBroadcastChannel() {
+        if (!supabaseClient || !currentUser) return;
+        const channelName = `alarm_sync_${currentUser.pharmacy_code || 'mono'}`;
+        
+        try {
+            remoteAlarmChannel = supabaseClient.channel(channelName, {
+                config: { broadcast: { self: false } }
+            });
+
+            remoteAlarmChannel
+                .on('broadcast', { event: 'ALARM_ACTION' }, ({ payload }) => {
+                    if (payload) {
+                        console.log('📡 Received remote alarm broadcast:', payload);
+                        handleRemoteAlarmAction(payload);
+                    }
+                })
+                .subscribe((status) => {
+                    console.log(`📡 Alarm broadcast channel status:`, status);
+                });
+        } catch (e) {
+            console.warn('Alarm broadcast channel init error:', e);
+        }
+    }
+
+    // دالة المعالجة الموحدة عند استقبال إشارة إيقاف/تأجيل/مسح من أي جهاز أو تاب آخر
+    function handleRemoteAlarmAction(actionData) {
+        const { patientId, action, newTime } = actionData;
+
+        // إذا كان هذا المنبه يرن حالياً على هذا المتصفح/الجهاز -> أوقف الصوت والمودال فوراً
+        if (window.currentlyRingingId && (String(window.currentlyRingingId) === String(patientId) || !patientId)) {
+            console.log(`🔕 Stopping ringing alarm remotely for patient ${patientId} (Action: ${action})`);
+            stopAlarmSound();
+            closeModal();
+        }
+
+        // تحديث المصفوفة المحلية فوراً لتعكس المسح أو التأجيل
+        if (patientId) {
+            const p = patients.find(pat => String(pat.id) === String(patientId));
+            if (p) {
+                if (action === 'clear' || action === 'delete' || action === 'silence') {
+                    if (action === 'clear' || action === 'delete') {
+                        p.sensor_reminder = null;
+                        p.retry_count = 0;
+                    }
+                } else if (action === 'snooze' && newTime) {
+                    p.sensor_reminder = newTime;
+                    p.retry_count = 0;
+                }
+            }
+            displayPatients();
+        }
+    }
+
+    // دالة إرسال إشارة الإيقاف/التأجيل لكافة الأجهزة والتابات
+    function broadcastAlarmAction(patientId, action, newTime = null) {
+        const data = {
+            type: 'ALARM_ACTION',
+            patientId: String(patientId),
+            action: action, // 'clear', 'snooze', 'silence', 'delete'
+            newTime: newTime,
+            timestamp: Date.now()
+        };
+
+        // بث محلي للتابات الأخرى على نفس الجهاز
+        try {
+            if (localAlarmBroadcast) {
+                localAlarmBroadcast.postMessage(data);
+            }
+        } catch (e) {}
+
+        // بث سحابي للأجهزة والمتصفحات الأخرى
+        try {
+            if (remoteAlarmChannel) {
+                remoteAlarmChannel.send({
+                    type: 'broadcast',
+                    event: 'ALARM_ACTION',
+                    payload: data
+                });
+            }
+        } catch (e) {}
+    }
+
+    // 2. المراقبة اللحظية لقاعدة البيانات (Database Realtime Sync)
     function setupAlarmRealtimeSync() {
         supabaseClient
             .channel('public:patients-alarm')
@@ -15171,28 +15297,30 @@ SMART IMPORT SYSTEM (Dr. Mo Edition)
                 const index = patients.findIndex(p => String(p.id) === String(updatedPatient.id));
 
                 if (index !== -1) {
-                    // 1. التحقق هل التغيير فعلاً في المنبه؟ عشان ما نحدثش عمال على بطال
                     const isReminderChanged = patients[index].sensor_reminder !== updatedPatient.sensor_reminder;
 
                     if (isReminderChanged) {
-                        // تحديث القيمة في المصفوفة المحلية
                         patients[index].sensor_reminder = updatedPatient.sensor_reminder;
-
-                        // 2. تصفير العداد فوراً لو المنبه اتغير (ضبط جديد) أو اتحذف
                         patients[index].retry_count = 0;
 
-                        // 3. لو المنبه اتحذف (بقى null) وهو شغال دلوقتي.. وقفه فوراً
-                        if (!updatedPatient.sensor_reminder && window.currentlyRingingId === updatedPatient.id) {
-                            console.log("🔔 Alarm cleared remotely while ringing.");
-                            stopAlarmSound();
-                            closeModal();
+                        // إذا كان يرن وتغير وقته أو مُسح -> أوقفه فوراً على هذا الجهاز
+                        if (window.currentlyRingingId && String(window.currentlyRingingId) === String(updatedPatient.id)) {
+                            const now = new Date();
+                            const currentTimeStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}T${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+                            if (!updatedPatient.sensor_reminder || updatedPatient.sensor_reminder !== currentTimeStr) {
+                                console.log("🔔 Alarm cleared/snoozed remotely via DB change -> stopping alert");
+                                stopAlarmSound();
+                                closeModal();
+                            }
                         }
 
-                        // 4. تحديث الواجهة فقط لو التغيير يخص المنبه
                         displayPatients();
                     }
                 }
             }).subscribe();
+
+        // تفعيل قناة البث المباشر بين الأجهزة
+        initRemoteAlarmBroadcastChannel();
     }
     // 3. المحرك الخلفي مع منطق الـ 3 مرات
     function initReminderWatcher() {
@@ -15231,9 +15359,9 @@ SMART IMPORT SYSTEM (Dr. Mo Edition)
             <p style="font-weight: bold; color: #636e72;">محاولة رقم (${(patient.retry_count || 0) + 1} من 3)</p>
          </div>`,
             `<div style="display: flex; flex-direction: column; gap: 10px; width: 100%;">
-            <button class="btn-primary" onclick="clearReminder('${patient.id}')" style="background: #00b894; height: 50px; font-weight:900;">✅ تم الصرف (مسح نهائي)</button>
-            <button class="btn-secondary" onclick="snoozeReminder('${patient.id}', 10)" style="height: 45px; font-weight:800;">💤 تأجيل 10 دقائق</button>
-            <button class="btn-secondary" onclick="stopAlarmSound(); closeModal();" style="background: #f1f2f6; border:none; height: 40px; color: #666;">🔇 صامت حالياً</button>
+            <button class="btn-primary" onclick="clearReminder('${patient.id}')" style="background: #00b894; height: 50px; font-weight:900;">✅ تم الصرف (مسح نهائي في كل الأجهزة)</button>
+            <button class="btn-secondary" onclick="snoozeReminder('${patient.id}', 10)" style="height: 45px; font-weight:800;">💤 تأجيل 10 دقائق (في كل الأجهزة)</button>
+            <button class="btn-secondary" onclick="silenceAlarmEverywhere('${patient.id}')" style="background: #f1f2f6; border:none; height: 40px; color: #666; font-weight: 700;">🔇 صامت حالياً (إيقاف الصوت في كل الأجهزة)</button>
         </div>`
         );
     }
@@ -15246,50 +15374,75 @@ SMART IMPORT SYSTEM (Dr. Mo Edition)
         displayPatients();
     }
 
+    // إيقاف الصوت وجعله صامتاً في كل الأجهزة فوراً
+    function silenceAlarmEverywhere(patientId) {
+        stopAlarmSound();
+        closeModal();
+        broadcastAlarmAction(patientId, 'silence', null);
+        showToast('🔇 تم إيقاف صوت المنبه في كافة الأجهزة فوراً');
+    }
+    window.silenceAlarmEverywhere = silenceAlarmEverywhere;
+
     // 5. مسح المنبه نهائياً
     async function clearReminder(patientId) {
         stopAlarmSound();
         closeModal();
+        broadcastAlarmAction(patientId, 'clear', null);
+
+        // تحديث محلي فوري
+        const p = patients.find(pat => String(pat.id) === String(patientId));
+        if (p) {
+            p.sensor_reminder = null;
+            p.retry_count = 0;
+        }
+        displayPatients();
+        showToast('Alarm Cleared Successfully 🔕');
+
         try {
-            // تحديث السيرفر أولاً
             const { error } = await supabaseClient
                 .from('patients')
-                .update({
-                    sensor_reminder: null,
-                    // نأكد إننا بنصفر أي بيانات متعلقة بالمنبه
-                })
+                .update({ sensor_reminder: null })
                 .eq('id', patientId);
 
             if (error) throw error;
-
-            // تحديث المصفوفة المحلية فوراً (Optimistic UI)
-            const p = patients.find(pat => String(pat.id) === String(patientId));
-            if (p) {
-                p.sensor_reminder = null;
-                p.retry_count = 0;
-            }
-
-            showToast('Alarm Cleared Successfully 🔕');
-            displayPatients(); // إعادة رسم الكروت عشان يختفي بوكس المنبه
         } catch (err) {
             console.error('Clear Error:', err);
             showToast('❌ Failed to clear alarm from cloud');
         }
     }
-    // 6. تأجيل تلقائي دقيقتين (يُستدعى في المحاولات 1 و 2)
-    async function autoSnoozeProcess(patientId, minutes) {
+    window.clearReminder = clearReminder;
+
+    // 6. تأجيل المنبه 10 دقائق
+    async function snoozeReminder(patientId, minutes = 10) {
         stopAlarmSound();
         closeModal();
         const future = new Date(new Date().getTime() + minutes * 60000);
         const formattedTime = `${future.getFullYear()}-${String(future.getMonth() + 1).padStart(2, '0')}-${String(future.getDate()).padStart(2, '0')}T${String(future.getHours()).padStart(2, '0')}:${String(future.getMinutes()).padStart(2, '0')}`;
 
+        // بث الإيقاف والتأجيل فوراً لكافة الأجهزة
+        broadcastAlarmAction(patientId, 'snooze', formattedTime);
+
+        // تحديث محلي فوري
+        const p = patients.find(pat => String(pat.id) === String(patientId));
+        if (p) {
+            p.sensor_reminder = formattedTime;
+            p.retry_count = 0;
+        }
+        displayPatients();
+        showToast(`⏰ تم تأجيل المنبه ${minutes} دقائق في كافة الأجهزة`);
+
         try {
-            await supabaseClient.from('patients').update({ sensor_reminder: formattedTime }).eq('id', patientId);
-            // التحديث المحلي للمصفوفة يتم عبر الـ Realtime تلقائياً أو يدوياً هنا
-            const p = patients.find(pat => String(pat.id) === String(patientId));
-            if (p) p.sensor_reminder = formattedTime;
-        } catch (e) { console.log("Snooze Sync Error"); }
+            const { error } = await supabaseClient
+                .from('patients')
+                .update({ sensor_reminder: formattedTime })
+                .eq('id', patientId);
+            if (error) throw error;
+        } catch (e) {
+            console.error("Snooze Sync Error:", e);
+        }
     }
+    window.snoozeReminder = snoozeReminder;
+    window.autoSnoozeProcess = snoozeReminder;
 
     // 7. زر حفظ المنبه (تصفير العداد عند الضبط الجديد)
     async function saveSensorReminder(patientId) {
@@ -15651,6 +15804,10 @@ SMART IMPORT SYSTEM (Dr. Mo Edition)
 
     async function deleteReminderFromModal(patientId) {
         if (!confirm('هل أنت متأكد من حذف هذا المنبه؟')) return;
+        if (window.currentlyRingingId === patientId) {
+            stopAlarmSound();
+        }
+        broadcastAlarmAction(patientId, 'delete', null);
         try {
             const { error } = await supabaseClient
                 .from('patients')
@@ -15925,6 +16082,7 @@ SMART IMPORT SYSTEM (Dr. Mo Edition)
         if (window.currentlyRingingId === patientId) {
             stopAlarmSound();
         }
+        broadcastAlarmAction(patientId, 'delete', null);
 
         try {
             await supabaseClient
